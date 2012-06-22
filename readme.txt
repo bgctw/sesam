@@ -13,6 +13,6 @@
 library(twDev)
 loadPkg()
 
-#genRd()
-#runRUnit()
-#svnCommit("descriptive comment of your changes")
+genRd()
+runRCheck()
+svnCommit("descriptive comment of your changes")
