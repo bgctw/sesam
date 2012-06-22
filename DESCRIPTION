@@ -1,11 +1,11 @@
-Package: twDev
-Title: tw utility functions for code development  
+Package: myPackageId
+Title: one line title  
 Version: 0.5.213
 Date: 2012-06-20
 Author: Thomas Wutzler
 Maintainer: Thomas Wutzler <twutz@bgc-jena.mpg.de>
-Description: utilities used in package development
-Depends: R (>= 1.10.0), testthat, R.methodsS3, inlinedocs, stringr, snowfall
-Suggests: debug
+Description: longer description
+Depends: R (>= 1.14.0)
+Suggests: testthat, debug
 License: GPL-2
 LazyLoad: yes

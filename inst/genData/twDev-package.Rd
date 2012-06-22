@@ -1,9 +1,0 @@
-\name{twDev-package}
-\alias{twDev-package}\alias{twDev}
-\title{TWs development utilities}
-\description{Utilities used during package development.Usually invoked in working space being the root directory of the package, where the DESCRIPTION file resides.}
-\details{Most functions relief developing the current package \itemize{\item{ Parsing the DESCRIPTION file: \code{\link{getPackageDesc}} and \code{\link{getPackageId}} }\item{ Loading package from source dir: \code{\link{loadPkg}} (\code{\link{loadLibs}}, \code{\link{loadDll}}, and \code{\link{sourceR}})  }\item{ Executing inlinedocs: \code{\link{genRd}}  }\item{ Compiling the shared objects from sources: \code{\link{cleanSrc}} and \code{\link{compileSrc}}  }\item{ Running tests: \code{\link{runTests}},  and R CMD check \code{\link{runRCheck}} }\item{ Updating the version and date in the DESCRIPTION file: \code{\link{updateVersionAndDate}}  }\item{ Install package: \code{\link{installPkg}} }\item{ SVN Update: \code{\link{svnUpdate}} and Commit: \code{\link{svnCommit}} }}%itemizeArchiving the package code and documentation at the code repository of the MDI group. \itemize{\item{ publishing html documentation \code{\link{put2MdiRep}} }\item{ putting archive and source-code to the repository \code{\link{put2mdiCodeDir}} }}%itemizeWhen updating a package depending on, this is useful\itemize{\item{ reloading the package (e.g. after reinstalling) \code{\link{reloadPkg}} }}%itemizeFurther misc functionality: \itemize{\item{ Creating new standard window: \code{\link{twWin}}  }\item{ Compact object summary: \code{\link{str3}}  }\item{ Clipboard copying \code{\link{copy2clip}}  }\item{ MediaWiki code for dataframe: \code{\link{twDf2wikiTable}}  }}%itemize}%details\author{Thomas Wutzler}
-
-\keyword{ package }
-
-
