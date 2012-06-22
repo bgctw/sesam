@@ -11,6 +11,7 @@
 # The workspace should be the directory of the DESCRIPTION file.
 
 library(twDev)
+?twDev
 loadPkg()
 
 genRd()
