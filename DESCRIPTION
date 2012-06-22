@@ -1,11 +1,11 @@
 Package: myPackageId
 Title: one line title  
-Version: 0.5.213
-Date: 2012-06-20
+Version: 0.5.225
+Date: 2012-06-22
 Author: Thomas Wutzler
 Maintainer: Thomas Wutzler <twutz@bgc-jena.mpg.de>
 Description: longer description
 Depends: R (>= 1.14.0)
-Suggests: testthat, debug
+Suggests: testthat
 License: GPL-2
 LazyLoad: yes

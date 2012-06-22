@@ -1,11 +1,11 @@
 #require(testthat)
-context("sampleFunc")
+context("fSampleFunc")
 
 test_that("two vectors are added correctly",{
 		a = 1:10
 		b = 1
 		c = a+b
-		expect_that( sampleFunc(a,b), equals(c) )
-		expect_that( sampleFunc(a), throws_error() )
+		expect_that( fSampleFunc(a,b), equals(c) )
+		expect_that( fSampleFunc(a), throws_error() )
 	})
 

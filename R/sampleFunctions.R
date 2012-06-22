@@ -1,4 +1,4 @@
-sampleFunc <- function(
+fSampleFunc <- function(
 	### Adding two vectors
 	a.n.v		##<< numeric vector: first term
 	,b.n.v		##<< numeric vector: second term
@@ -12,7 +12,7 @@ sampleFunc <- function(
 	a.n.v + b.n.v 
 	### The componentwise sum of the two arguments
 }
-attr(sampleFunc,"ex") <- function(){
+attr(fSampleFunc,"ex") <- function(){
 	# This example appears in the generated help.
-	sampleFunc(1:10, 2)
+	fSampleFunc(1:10, 2)
 }
