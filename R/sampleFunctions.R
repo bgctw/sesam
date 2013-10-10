@@ -3,7 +3,7 @@ fSampleFunc <- function(
 	a.n.v		##<< numeric vector: first term
 	,b.n.v		##<< numeric vector: second term
 ){
-	##seealso<< \code{\link{myPackageId}}
+	##seealso<< \code{\link{eezy}}
 	#
 	##details<< 
 	## If the two vectors are of different length, the shorter one

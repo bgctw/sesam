@@ -18,7 +18,7 @@ is recycled.}
 
 
 
-\seealso{\code{\link{myPackageId}}}
+\seealso{\code{\link{eezy}}}
 \examples{
 # This example appears in the generated help.
 fSampleFunc(1:10, 2)
