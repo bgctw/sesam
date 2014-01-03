@@ -47,7 +47,44 @@ parms0 <- within(parms0,{
 
 parms <- parms0
 x <- x0
+
+derivEezyOrig <- function(t,x,parms){
+    # only one enzme pool E_Total is simulated. at each time this split into E1 and E2 by alpha
+    alpha  <- 1/2 * (2 * parms$eps * parms$cnS1 * x["E"]-parms$cnB * parms$K-parms$cnB * x["E"]+(4 * (parms$eps * parms$cnS1 * x["E"])^2 -8 * parms$eps * parms$cnS1 * x["E"] * parms$cnB * parms$K-4 * parms$eps * parms$cnS1 * x["E"]^2 * parms$cnB+(parms$cnB * parms$K)^2 +2 * parms$cnB^2 * parms$K * x["E"]+(parms$cnB * x["E"])^2+8 * (parms$eps * parms$cnS1)^2 * parms$K * x["E"])^(1/2) ) /  x["E"]/(2 * parms$eps * parms$cnS1-parms$cnB)  
+    E1 <- alpha * x["E"]
+    E2 <- (1-alpha) * x["E"]
+    decC1 <- parms$kS *  E1 / (parms$K + E1)
+    decC2 <- parms$kS *  E2 / (parms$K + E2)
+    uC <- decC1 + decC2
+    uN <- decC1/parms$cnS1
+    #(uC)* pr$eps/ (uN)         # check to be cnB = 7.16
+    minUC <- min(uC, uN*parms$cnE) # C for enzyme biosynthesis, if necessary take microbial material for associated resp
+    minUCM <- min(uC, uN*parms$cnB) # C for biomass biosynthesis
+    synEC <- parms$aE * minUC
+    respSynE <- (1-parms$eps)/parms$eps * synE
+    respMaint <- parms$m * x["B"]
+    synB <- parms$eps * (1-parms$aE/parms$eps) * (minUCM - respMaint)
+    #synB2 <- min( parms$eps*(uC - synE - respSynE -respMaint), (uN-synE/parms$cnE)*parms$cnB   )
+    respSynB <- (1-parms$eps)/parms$eps * synB
+    tvrB <- parms$tau*x["B"]
+    respO <- uC - (synE+synB+respSynE+respSynB+respMaint)
+    Mm <- uN - (synE/parms$cnE + synB/parms$cnB)
+            
+    dB <- +synB -tvrB
+    dE <- +synE  - parms$kN*x["E"]
+    dS1 <- -decC1
+    dS2 <- -decC2
+    dI <- +Mm
+    resp <- respSynE + respSynB + respMaint + respO
+    
+    # c(decC=decC, usage=resp+synB+synE )  # check the same
+    # c(decN=decN, usage=synE/pr$cnE + synB/pr$cnB + Mm )  # check the same
+    
+    list( c( dB, dE, dS1, dS2, dI), c(respO=as.numeric(respO), Mm=as.numeric(Mm)) )
+}
+
 derivEezy <- function(t,x,parms){
+    # only one enzme pool E_Total is simulated. at each time this split into E1 and E2 by alpha
     alpha = 0.5
     alpha  <- 1/2 * (2 * parms$eps * parms$cnS1 * x["E"]-parms$cnB * parms$K-parms$cnB * x["E"]+(4 * (parms$eps * parms$cnS1 * x["E"])^2 -8 * parms$eps * parms$cnS1 * x["E"] * parms$cnB * parms$K-4 * parms$eps * parms$cnS1 * x["E"]^2 * parms$cnB+(parms$cnB * parms$K)^2 +2 * parms$cnB^2 * parms$K * x["E"]+(parms$cnB * x["E"])^2+8 * (parms$eps * parms$cnS1)^2 * parms$K * x["E"])^(1/2) ) /  x["E"]/(2 * parms$eps * parms$cnS1-parms$cnB)  
     E1 <- alpha * x["E"]
@@ -57,7 +94,7 @@ derivEezy <- function(t,x,parms){
     uC <- decC1 + decC2
     uN <- decC1/parms$cnS1
     #(uC)* pr$eps/ (uN)         # check to be cnB = 7.16
-    minUC <- min(uC, uN*parms$cnE)       # C for enzyme biosynthesis, if necessary take microbial material for associated resp
+    minUC <- min(uC, uN*parms$cnE) # C for enzyme biosynthesis, if necessary take microbial material for associated resp
     synE <- parms$aE * minUC              
     respSynE <- (1-parms$eps)/parms$eps * synE
     respMaint <- parms$m * x["B"]
@@ -66,6 +103,11 @@ derivEezy <- function(t,x,parms){
     tvrB <- parms$tau*x["B"]
     respO <- uC - (synE+synB+respSynE+respSynB+respMaint)
     Mm <- uN - (synE/parms$cnE + synB/parms$cnB)
+    #
+recover()    
+    synBOrig <- parms$eps * (1-parms$aE/parms$eps) * (minUC - respMaint)
+    respSynBOrig <- 
+    
     
     dB <- +synB -tvrB
     dE <- +synE  - parms$kN*x["E"]
@@ -81,7 +123,7 @@ derivEezy <- function(t,x,parms){
 }
 
 
-derivEezy2 <- function(t,x,parms){
+derivEezy_2 <- function(t,x,parms){
     alpha = 0.5
     alpha  <- 1/2 * (2 * parms$eps * parms$cnS1 * x["E"]-parms$cnB * parms$K-parms$cnB * x["E"]+(4 * (parms$eps * parms$cnS1 * x["E"])^2 -8 * parms$eps * parms$cnS1 * x["E"] * parms$cnB * parms$K-4 * parms$eps * parms$cnS1 * x["E"]^2 * parms$cnB+(parms$cnB * parms$K)^2 +2 * parms$cnB^2 * parms$K * x["E"]+(parms$cnB * x["E"])^2+8 * (parms$eps * parms$cnS1)^2 * parms$K * x["E"])^(1/2) ) /  x["E"]/(2 * parms$eps * parms$cnS1-parms$cnB)  
     E1 <- alpha * x["E"]
@@ -119,21 +161,26 @@ derivEezy2 <- function(t,x,parms){
     list( c( dB, dE, dS1, dS2, dI), c(respO=as.numeric(respO), Mm=as.numeric(Mm)) )
 }
 
+.tmp.f <- function(){
+    times <- seq(0,1000, length.out=101)
+    derivEezy(0, x0, parms0)
+    res <- res0 <- as.data.frame(lsoda( x0, times, derivEezy, parms=parms0))
+    res <- res0 <- as.data.frame(lsoda( x0, times, derivEezy2, parms=parms0))
+    #res <- lsoda( x0, times, derivEezy, parms=parms0)
+    
+    
+    parms1 <- within(parms, kS2<-0 )
+    res <- res1 <- as.data.frame(lsoda( x0, times, derivEezy2, parms=parms1))
 
-times <- seq(0,1000, length.out=101)
-res <- res0 <- as.data.frame(lsoda( x0, times, derivEezy2, parms=parms0))
-#res <- lsoda( x0, times, derivEezy, parms=parms0)
-
-
-parms1 <- within(parms, kS2<-0 )
-res <- res1 <- as.data.frame(lsoda( x0, times, derivEezy2, parms=parms1))
-
-
-
-res$B1000 <- res$B/1000
-res$E10 <- res$E/10
-cls <- c("B1000","E10","respO","Mm")
+    res$B1000 <- res$B/1000
+    res$E10 <- res$E/10
+    cls <- c("B1000","E10","respO","Mm")
 #cls <- c("B","E","respO","Mm","S1","S2")
-matplot( res[,1], res[,cls], type="l")
-legend("topleft", inset=c(0.01,0.01), legend=cls, lty=1:10, col=1:10)
+    matplot( res[,1], res[,cls], type="l")
+    legend("topleft", inset=c(0.01,0.01), legend=cls, lty=1:10, col=1:10)
+    
+}
+
+
+
 

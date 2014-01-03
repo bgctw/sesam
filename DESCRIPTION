@@ -5,7 +5,7 @@ Date: 2012-06-22
 Author: Thomas Wutzler
 Maintainer: Thomas Wutzler <twutz@bgc-jena.mpg.de>
 Description: longer description
-Depends: R (>= 1.14.0)
+Depends: R (>= 1.14.0), twModMeta
 Suggests: testthat
 License: GPL-2
 LazyLoad: yes
