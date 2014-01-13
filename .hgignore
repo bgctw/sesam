@@ -5,3 +5,5 @@ syntax: regexp
 ^\.RData$
 syntax: regexp
 ^inst/doc/.*\.md$
+syntax: regexp
+^\.pydevproject$
