@@ -1,24 +1,11 @@
 #library(deSolve)
-# extension to have really two enzyme pools, only synthesis is split 
 # partitioning according to efficiencies and limitations split for enzyme and for biomass
 # mg C and N, days
-tmp.f.depr <- function(){
-    initVars <- list(
-            B = c(1,0.14)            ##<< microbial biomass 
-            ,DOM = c(0,0)           ##<< dissolved organic matter
-            ,E1  = c( 0.01, 1.4e-3)  ##<< total enzyme pool
-            ,E2  = c( 0.01, 1.4e-3)  ##<< total enzyme pool
-            ,S1 = c(500, 100)       ##<< N rich substrate
-            ,S2 = c(500, 0)         ##<< N poor substrate
-            ,I = c(0, 0)            ##<< inorganic pool
-    )
-    xInit <- do.call( rbind, initVars )  #, names=c("C","N") )
-    colnames(xInit) <- c("C","N")
-}
 
 
 x0 <- x0Orig <- c(
-        B = 10            ##<< microbial biomass 
+        #B = 10            ##<< microbial biomass
+        B = 250
         ,E1  = 0.01        ##<< total enzyme pool
         ,E2  = 0.01        ##<< total enzyme pool
         ,S1 = 2000          ##<< N rich substrate
@@ -33,11 +20,14 @@ parms0 <- list(
         cnB = 7.16
         ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
         ,cnS1 = 5
-        ,cnS2 = 100 ##<< N poor substrate
+        ,cnS2 = 100  ##<< N poor substrate
         ,kN = 0.05   ##<< (per day) enzyme turnover
-        ,kS1 = 5e-3      ##<< substrate decomposition rate N-rich (here simulate large N stock)
-        ,kS2 = 10e-3      ##<< substrate decomposition rate N-poor
-        ,aE = 0.05   ##<< C-uptake allocated to enzymes
+        ,kS1 = 5e-3  ##<< substrate decomposition rate N-rich (here simulate large N stock)
+        ,kS2 = 5e-2 ##<< substrate decomposition rate N-poor (decomposition faster, advantage for C)
+        #,kS2 = 10e-3 ##<< substrate decomposition rate N-poor (decomposition faster, advantage for C)
+        #,aE = 0.05   ##<< C-uptake allocated to enzymes
+        #,aE = 0.025   ##<< C-uptake allocated to enzymes
+        ,aE = 0.1   ##<< C-uptake allocated to enzymes
         ,K = 0.3     ##<< enzyme half-saturation constant
         ,m = 0.01    ##<< maintenance respiration rate
         ,tau = 0.012    ##<< biomass turnover rate
@@ -46,6 +36,8 @@ parms0 <- list(
 )
 parms0 <- within(parms0,{
  K1 <- K2 <- K
+ kS1S <- kS1*500
+ kS2S <- kS2*500
  eps1 <- eps2 <- eps
  cnE1 <- cnE2 <- cnE 
         })
@@ -58,8 +50,8 @@ derivEezy3 <- function(t,x,parms){
     # including maintenance
     E1 <- x["E1"]
     E2 <- x["E2"]
-    decC1 <- parms$kS1  * E1 / (parms$K + E1) * 1000#*  x["S1"]
-    decC2 <- parms$kS2  * E2 / (parms$K + E2) * 1000#*  x["S2"]
+    decC1 <- parms$kS1  * E1 / (parms$K + E1) * 500#*  x["S1"]
+    decC2 <- parms$kS2  * E2 / (parms$K + E2) * 500#*  x["S2"]
     uscE1 <- parms$kN*x["E1"]        # production necessary to balance decay of E1 (uptake steady carbon E1)
     uscE2 <- parms$kN*x["E2"]        
     # average cnE Required for current enzymes (usc weighted)
@@ -117,28 +109,24 @@ derivEezy3 <- function(t,x,parms){
 
 
 .tmp.f <- function(){
-    times <- seq(0,1000, length.out=101)
+    times <- seq(0,500, length.out=101)
     derivEezy3(0, x0, parms0)
     parmsM0 <- within(parms0, m <- 0)   # no maintenance
     parmsMsmall <- within(parms0, m <- 1e-3)   # small maintenance
-    res <- res0 <- as.data.frame(lsoda( x0, times, derivEezy3, parms=parmsM0))
-    
+    #res <- res0 <- as.data.frame(lsoda( x0, times, derivEezy3, parms=parmsM0))
     res <- res1 <- as.data.frame(lsoda( x0, times, derivEezy3, parms=parms0))
-    res <- res1b <- as.data.frame(lsoda( x0, times, derivEezy3, parms=within(parms0,useAlpha0<-TRUE)))
     
-    res <- res2 <- as.data.frame(lsoda( x0, times, derivEezy3, parms=parmsMsmall))
     
     #res <- lsoda( x0, times, derivEezy, parms=parms0)
-    
-    #trace(derivEezy3, recover)  # untrace(derivEezy3)
-    derivEezy3(0, tail(res,1)[2:7], parmsM0)
-    derivEezy3(0, tail(res,1)[2:7], parms0)
-    
-    parms1 <- within(parms0, kS2<-0 )
-    res <- res1 <- as.data.frame(lsoda( x0, times, derivEezy3, parms=parms1))
+    .tmp.f <- function(){
+        #trace(derivEezy3, recover)  # untrace(derivEezy3)
+        derivEezy3(0, tail(res,1)[2:7], parmsM0)
+        derivEezy3(0, tail(res,1)[2:7], parms0)
+        
+        parms1 <- within(parms0, kS2<-0 )
+        res <- res1 <- as.data.frame(lsoda( x0, times, derivEezy3, parms=parms1))
+    }
 
-    
-    
     res$B1000 <- res$B/1000
     res$E1_10 <- res$E1/10
     res$E2_10 <- res$E2/10
@@ -149,9 +137,51 @@ derivEezy3 <- function(t,x,parms){
     #bo <- res[,1] < 70
     matplot( res[bo,1], res[bo,cls], type="l")
     legend("topleft", inset=c(0.01,0.01), legend=cls, lty=1:10, col=1:10)
- 
-    data.frame( alphaBest=res$alpha, alphaReal=res$E1/(res$E1+res$E2))
 }
+
+.tmp.fCNGraph <- function(){
+    cnS1s <- seq(5,25,by=.2)
+    
+    .tmp.f <- function(){
+        # no decomposition of S2        
+        parmsNoS2 <- within(parms0, kS2 <- 0)
+        cnAll <- cnS1s
+        resl <- lapply(cnS1s, function(cnS1i){
+                    parms <- within(parmsNoS2, cnS1 <- cnS1i)
+                    res <- as.data.frame(lsoda( x0, times, derivEezy, parms=parms))
+                    tail(res,1)
+                })
+    }
+    
+    
+    #cnS1i <- cnS1s[1]
+    #cnS1i <- cnS1s[length(cnS1s)]
+    cnAll <- 1000/(500/cnS1s)
+    resl <- lapply(cnS1s, function(cnS1i){
+                parms <- within(parms0, cnS1 <- cnS1i)
+                res <- as.data.frame(lsoda( x0, times, derivEezy3, parms=parms))
+                tail(res,1)
+            })
+    .tmp.f <- function(){
+        #trace(derivEezy, recover)   # untrace(derivEezy)
+        derivEezy3( 0, tail(res,1)[2:6], parms)
+    }
+    
+    resE1 <- do.call( rbind, resl)
+    resE <- cbind( cnS1 = cnS1s, cnAll=cnAll, resE1 )
+    resE$B1000 <- resE$B/1000
+    resE$E1_10 <- resE$E1/10
+    resE$alpha_10 <- resE$alpha/10
+    cls <- c("B1000","respO","Mm","alpha_10")
+    #cls <- c("B1000","E10","respO","Mm")
+    matplot( cnS1s, resE[,cls], type="l", xlab="CN S1 (CN S2=100)", ylab="", ylim=c(0,0.3))
+    legend("topleft", inset=c(0.01,0.01), legend=cls, lty=1:10, col=1:10)
+    
+    #install.packages("dplyr")
+    iMax <- which.max(resE$B)
+    resE[iMax+(-2:2),]
+}
+
 
 
 

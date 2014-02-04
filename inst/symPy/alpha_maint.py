@@ -1,5 +1,5 @@
 from __future__ import division 
-from sympy import symbols, solve 
+from sympy import symbols, solve, Eq 
 
 E = symbols('E',real=True, positiv=True)
 alpha = symbols('alpha' ,real=True, positiv=True)
@@ -10,13 +10,19 @@ parms_cnS1, parms_cnS2, parms_kS, parms_K = symbols('parms_cnS1 parms_cnS2 parms
 decC1 = parms_kS * alpha * E / (parms_K + alpha*E)
 decC2 = parms_kS * (1-alpha) * E / (parms_K + (1-alpha)*E)
 
+decPotS1, decPotS2 = symbols('decPotS1 decPotS2',real=True, positiv=True)
+decC1 = decPotS1  * alpha * E / (parms_K + alpha*E)
+decC2 = decPotS2  * (1-alpha) * E / (parms_K + (1-alpha)*E)
+
+
 eq3 = Eq( parms_cnB - (parms_eps*(decC1+decC2-respMaint))/(decC1/parms_cnS1 + decC2/parms_cnS2) )
 alphaOpt = solve( eq3, alpha)
-alphaOpt
+alphaOpt[0]
 
+# same without maintenance
 eq2 = Eq( parms_cnB - (parms_eps*(decC1+decC2))/(decC1/parms_cnS1 + decC2/parms_cnS2) )
 alphaOpt2 = solve( eq2, alpha)
-alphaOpt2
+alphaOpt2[0]
 
 # S2 purely Carbon, no maintenance
 eq3 = Eq( parms_cnB - (parms_eps*(decC1+decC2))/(decC1/parms_cnS1) )

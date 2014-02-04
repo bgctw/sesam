@@ -11,7 +11,8 @@ parms0 <- list(
         ,cnS2 = 100 ##<< N poor substrate
         ,kN = 0.05   ##<< (per day) enzyme turnover
         ,kS1 = 2e-3      ##<< substrate decomposition rate N-rich (here simulate large N stock)
-        ,kS2 = 10e-3      ##<< substrate decomposition rate N-poor
+        #,kS2 = 10e-3      ##<< substrate decomposition rate N-poor
+        ,kS2 = 5e-2      ##<< substrate decomposition rate N-poor
         #,aE = 0.05   ##<< C-uptake allocated to enzymes
         ,aE = 0.005   ##<< C-uptake allocated to enzymes
         ,K = 0.3     ##<< enzyme half-saturation constant
@@ -20,6 +21,7 @@ parms0 <- list(
         ,eps = 0.5      ##<< carbon use efficiency
         ,iS1 = 0        ##<< here input by enzyme and biomass tvr are modelled explicitely
         ,iS2 = 0.5     
+        ,useFixedAlloc = FALSE  ##<< set to true to 
 )
 parms0 <- within(parms0,{
  K1 <- K2 <- K
@@ -33,9 +35,9 @@ x0 <- x0Orig <- c(
         B = 10            ##<< microbial biomass 
         ,E1  = 0.01        ##<< total enzyme pool
         ,E2  = 0.01        ##<< total enzyme pool
-        ,S1 = 200          ##<< N rich substrate C pool
-        ,SN1 = 200/parms0$cnS1          ##<< N rich substrate N pool
-        ,S2 = 200         ##<< N poor substrate (cn is that of input and not changing)
+        ,S1 = 500          ##<< N rich substrate C pool
+        ,SN1 = 500/parms0$cnS1          ##<< N rich substrate N pool
+        ,S2 = 100         ##<< N poor substrate (cn is that of input and not changing)
         ,I =  0            ##<< inorganic pool
 )
 x <- x0
@@ -96,7 +98,8 @@ derivEezy5 <- function(t,x,parms){
     #
     pNLim <- (uNReq/uN)^10
     pCLim <- (uC/(uC+respO))^10
-    alpha <- pCLim*alphaC + pNLim*alphaN / (pCLim + pNLim)
+    #alpha <- pCLim*alphaC + pNLim*alphaN / (pCLim + pNLim)
+    alpha <- if( isTRUE(parms$useFixedAlloc)) 0.5 else pCLim*alphaC + pNLim*alphaN / (pCLim + pNLim)
     #
     tvrE1 <- parms$kN*x["E1"]
     tvrE2 <- parms$kN*x["E2"]
@@ -121,26 +124,13 @@ derivEezy5 <- function(t,x,parms){
 
 
 .tmp.f <- function(){
-    times <- seq(0,5000, length.out=101)
+    times <- seq(0,500, length.out=101)
     derivEezy5(0, x0, parms0)
     parmsM0 <- within(parms0, m <- 0)   # no maintenance
     parmsMsmall <- within(parms0, m <- 1e-3)   # small maintenance
-    res <- res0 <- as.data.frame(lsoda( x0, times, derivEezy5, parms=parmsM0))
-    
+    #res <- res0 <- as.data.frame(lsoda( x0, times, derivEezy5, parms=parmsM0))
     res <- res1 <- as.data.frame(lsoda( x0, times, derivEezy5, parms=parms0))
-    res <- res1b <- as.data.frame(lsoda( x0, times, derivEezy5, parms=within(parms0,useAlpha0<-TRUE)))
-    
-    res <- res2 <- as.data.frame(lsoda( x0, times, derivEezy5, parms=parmsMsmall))
-    
-    #res <- lsoda( x0, times, derivEezy, parms=parms0)
-    
-    #trace(derivEezy4, recover)  # untrace(derivEezy4)
-    derivEezy5(0, tail(res,1)[2:7], parmsM0)
-    derivEezy5(0, tail(res,1)[2:7], parms0)
-    
-    parms1 <- within(parms0, kS2<-0 )
-    res <- res1 <- as.data.frame(lsoda( x0, times, derivEezy5, parms=parms1))
-
+    res <- res1f <- as.data.frame(lsoda( x0, times, derivEezy5, parms=within(parms0, useFixedAlloc<-TRUE) ))
     
     
     res$B1000 <- res$B/1000
@@ -150,13 +140,14 @@ derivEezy5 <- function(t,x,parms){
     res$S1f <- res$S1/x0["S1"]
     res$S2f <- res$S2/x0["S2"]
     res$cnS1_10 <- res$cnS1/10
-    cls <- c("B100","E1_10","E2_10","respO","Mm","S1f","S2f","cnS1_10")
+    cls <- c("B100","respO","Mm","S1f","S2f","alpha")
+    #cls <- c("B100","E1_10","E2_10","respO","Mm","S1f","S2f","cnS1_10","alpha")
     #cls <- c("B1000","E1_10","E2_10","Mm")
     #cls <- c("B","E","respO","Mm","S1","S2")
     bo <- TRUE
     #bo <- res[,1] < 70
-    matplot( res[bo,1], res[bo,cls], type="l", lty=1:10, col=1:10)
-    legend("topleft", inset=c(0.01,0.01), legend=cls, lty=1:10, col=1:10)
+    matplot( res[bo,1], res[bo,cls], type="l", lty=1:10, col=1:10, xlab="time (d)", ylab="")
+    legend("topright", inset=c(0.01,0.01), legend=cls, lty=1:10, col=1:10)
  
     data.frame( alphaBest=res$alpha, alphaReal=res$E1/(res$E1+res$E2))
 }
