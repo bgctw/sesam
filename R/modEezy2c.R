@@ -4,7 +4,8 @@
 
 # problems with switching alpha between two values
 
-# mg C and N, daysx0 <- x0Orig <- c(
+# mg C and N, days
+x0 <- x0Orig <- c(
         B = 25000       ##<< microbial biomass 
         #,DOM = 0    ##<< dissolved organic matter
         ,E1  = 0.01  ##<< total enzyme pool

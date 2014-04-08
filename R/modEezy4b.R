@@ -11,8 +11,10 @@ x0 <- x0Orig <- c(
         B = 10             ##<< microbial biomass 
         ,E1  = 0.01        ##<< total enzyme pool
         ,E2  = 0.01        ##<< total enzyme pool
-        ,S1 = 500    ##<< N rich substrate
-        ,S2 = 100    ##<< N poor substrate
+        #,S1 = 500    ##<< N rich substrate
+        #,S2 = 100    ##<< N poor substrate
+        ,S1 = 2000    ##<< N rich substrate
+        ,S2 = 260    ##<< N poor substrate
 )
 x <- x0
 
@@ -22,27 +24,31 @@ parms0 <- list(
         cnB = 7.16
         #,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
         ,cnE = 7.16
-        ,cnS1 = 5
-        ,cnS2 = 100 ##<< N poor substrate
+        ,cnS1 = 7
+        ,cnS2 = 70 ##<< N poor substrate
         ,kN = 0.05   ##<< (per day) enzyme turnover
         #,kS1 = 0.2      ##<< substrate decomposition rate N-rich (here simulate large N stock)
         #,kS2 = 1      ##<< substrate decomposition rate N-poor
-        ,kS1 = 5e-3      ##<< substrate decomposition rate N-rich (here simulate large N stock)
-        ,kS2 = 10e-3     ##<< substrate decomposition rate N-poor
-        ,kS2 = 5e-2     ##<< substrate decomposition rate N-poor
+        #,kS1 = 5e-3      ##<< substrate decomposition rate N-rich (here simulate large N stock)
+        #,kS2 = 10e-3     ##<< substrate decomposition rate N-poor
+        #,kS2 = 5e-2     ##<< substrate decomposition rate N-poor
         #,aE = 0.05   ##<< C-uptake allocated to enzymes
+        ,kS1 = 1/(5*365)        ##<< 5 years 
+        ,kS2 = 1/(0.5*365)        ##<< 1/2 years 
         ,aE = 0.01   ##<< C biomass allocated to enzymes gC/day /microbial biomass
-        ,K = 0.3     ##<< enzyme half-saturation constant
+        #,km = 0.3     ##<< enzyme half-saturation constant
+        ,km = 2     ##<< enzyme half-saturation constant
         ,m = 0.01    ##<< maintenance respiration rate   gC/day /microbial biomass
         ,tau = 0.012    ##<< biomass turnover rate
         ,eps = 0.5      ##<< carbon use efficiency
-        ,iS1 = 1
-        ,iS2 = 1
+        ,iS1 = 0.6        #xE["B"]*(parms$aE+parms$tau)
+        ,iS2 = 300/365      # g/m2 input per year (half NPP)
         ,useFixedAlloc=FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
 )
 parms0 <- within(parms0,{
- K1 <- K2 <- K
+ km1 <- km2 <- km
  eps1 <- eps2 <- eps
+ kN1 <- kN2 <- kN
  cnE1 <- cnE2 <- cnE 
         })
 
@@ -50,14 +56,18 @@ parms <- parms0
 x <- x0
 
 derivEezy4b <- function(t,x,parms){
-    x <- structure( unlist(pmax(1e-16,x)), names=names(x) )      # no negative masses
+    x <- pmax(unlist(x),1e-16)      # no negative masses
     respMaint <- parms$m * x["B"]
     synE <-  parms$aE * x["B"]
     # including maintenance
     E1 <- x["E1"]
     E2 <- x["E2"]
-    decC1 <- parms$kS1  * E1 / (parms$K + E1) *  x["S1"]
-    decC2 <- parms$kS2  * E2 / (parms$K + E2) *  x["S2"]
+    #decC1 <- parms$kS1S  * E1 / (parms$km + E1) #* 1000#*  x["S1"]
+    #decC2 <- parms$kS2S  * E2 / (parms$km + E2) #* 1000#*  x["S2"]
+    limE1 <- E1 / (parms$km1 + E1)
+    limE2 <- E2 / (parms$km2 + E2)
+    decC1 <- parms$kS1  * limE1 *  x["S1"]
+    decC2 <- parms$kS2  * limE2 *  x["S2"]
     uscE1 <- parms$kN*x["E1"]        # production necessary to balance decay of E1 (uptake steady carbon E1)
     uscE2 <- parms$kN*x["E2"]     
     # average cnE Required for enzyme production according to current concentrations (usc weighted)
@@ -101,11 +111,9 @@ derivEezy4b <- function(t,x,parms){
     respO <- uC- (synE+synB+respSynE+respSynB+respMaint)
     Mm <- uN - (synE/parms$cnE + synB/parms$cnB)
     #
-    pNLim <- (uNReq/uN)^10
-    pCLim <- (uC/(uC+respO))^10
-    #alpha <- pCLim*alphaC + pNLim*alphaN / (pCLim + pNLim)
-    alpha <- if( isTRUE(parms$useFixedAlloc)) 0.5 else pCLim*alphaC + pNLim*alphaN / (pCLim + pNLim)
-    
+    pNLim <- (uNReq/uN)^100
+    pCLim <- ((uC+respO)/uC)^100
+    alpha <- if( isTRUE(parms$useFixedAlloc)) 0.5 else (pCLim*alphaC + pNLim*alphaN) / (pCLim + pNLim)
      #    
     tvrE1 <- parms$kN*x["E1"]
     tvrE2 <- parms$kN*x["E2"]
@@ -131,6 +139,7 @@ derivEezy4b <- function(t,x,parms){
     list( resDeriv, c(respO=as.numeric(respO), Mm=as.numeric(Mm), alpha=as.numeric(alpha)
         , isLimN=as.numeric(ifelse(uN < uNReq,1,0)), respSynE=as.numeric(respSynE), respSynB=as.numeric(respSynB), respMaint=as.numeric(respMaint) 
         , effE1=effE1  , effE2=effE2, eff=as.numeric(alpha*effE1+(1-alpha)*effE2)
+        , limE1=as.numeric(limE1), limE2=as.numeric(limE2)
 ))
 }
 
@@ -168,7 +177,7 @@ derivEezy4b <- function(t,x,parms){
                     ,a=aE, tau1=kN, tau2=kN
                     ,d1=kS1
                     ,d2=kS2
-                    ,m1=K, m2=K
+                    ,m1=km, m2=km
                     ,cn1=cnS1, cn2=cnS2, cnE=cnE
     ))
     alphaC <- with(tmp,
@@ -181,17 +190,53 @@ derivEezy4b <- function(t,x,parms){
     
 }
 
-plotRes <- function(res){
+.tmp.f.Steady <- function(){
+    x0sL <- estSteadyState4bc(parms0, d1p=parms0$kS1*x0["S1"]*0.8, d2p=parms0$kS2*x0["S2"]*0.8)
+    x0s <- x0
+    x0s[names(x0sL$x0)] <-  x0sL$x0   
+    #trace(derivEezy4bc, recover)   #untrace(derivEezy4bc)
+    derivEezy4b(0, x0s, parms0)
+    times <- seq(0,10*365, length.out=101)
+    res <- res1S <- as.data.frame(lsoda( x0s, times, derivEezy4b, parms=parms0))
+    xE <- unlist(tail(res,1))
+    plotRes(res, "topright", cls = c("B100","E1_10","E2_10","respO","Mm","S1r","S2r","alpha"))
+    #abline(h=0.5, col="lightgray", lty="dashed")
+    
+    parmsC2 <- within(parms0, { # double as much C in 
+               iS2 <- iS2*2
+               cnS2 <- cnS2*2
+            }) 
+    res <- res2S <- as.data.frame(lsoda( xE[1:length(x0)+1], times, derivEezy4b, parms=parmsC2))
+    plotRes(res, "topright", cls = c("B100","E1_10","E2_10","respO","Mm","S1r","S2r","alpha"))
+    xE2 <- unlist(tail(res,1))
+    
+    res <- res3S <- as.data.frame(lsoda( xE2[1:length(x0)+1], times, derivEezy4b, parms=parms0))
+    plotRes(res, "topright", cls = c("B100","E1_10","E2_10","respO","Mm","S1r","S2r","alpha"))
+    xE3 <- tail(res,1)
+    
+}
+
+
+
+plotRes <- function(res, legendPos="topleft"
+    , cls = c("B100","E1_10","E2_10","respO","Mm")
+    , xlab="time (days)"
+    , ylab="gC/m2 , gN/m2"
+){
     res$B100 <- res$B/100
     res$E1_10 <- res$E1/10
     res$E2_10 <- res$E2/10
-    cls <- c("B100","E1_10","E2_10","respO","Mm","eff")
+    res$S1r <- res$S1 / res$S1[1]  #max(res$S1, na.rm=TRUE)
+    res$S2r <- res$S2 / res$S2[1]  #max(res$S2, na.rm=TRUE)
+    #cls <- c("B100","E1_10","E2_10","respO","Mm")
+    #cls <- c("B100","E1_10","E2_10","respO","Mm","eff")
     #cls <- c("B1000","E1_10","E2_10","Mm")
     #cls <- c("B","E","respO","Mm","S1","S2")
     bo <- TRUE
     #bo <- res[,1] < 70
-    matplot( res[bo,1], res[bo,cls], type="l", lty=1:20, col=1:20)
-    legend("topleft", inset=c(0.01,0.01), legend=cls, lty=1:20, col=1:20)
+    matplot( res[bo,1], res[bo,cls], type="l", lty=1:20, col=1:20, xlab=xlab, ylab="")
+    mtext( ylab, 2, line=2.5, las=0)
+    legend(legendPos, inset=c(0.01,0.01), legend=cls, lty=1:20, col=1:20)
 }
 
 
@@ -215,6 +260,8 @@ plotRes <- function(res){
     alpha <- sapply(resL, function(res){ tail(res,1)[["alpha"]]})
     plot( B ~ aEs)
 }
+
+
 
 
 
