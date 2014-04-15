@@ -5,14 +5,13 @@
 # no changing S1 and S2
 
 # mg C and N, days
+# moving to gC/m2 yr
 
 
 x0 <- x0Orig <- c(
-        B = 10             ##<< microbial biomass 
-        ,E1  = 0.01        ##<< total enzyme pool
-        ,E2  = 0.01        ##<< total enzyme pool
-        #,S1 = 500    ##<< N rich substrate
-        #,S2 = 100    ##<< N poor substrate
+        B = 30             ##<< microbial biomass 
+        ,E1  = 3        ##<< total enzyme pool
+        ,E2  = 3        ##<< total enzyme pool
         ,S1 = 2000    ##<< N rich substrate
         ,S2 = 260    ##<< N poor substrate
 )
@@ -26,23 +25,26 @@ parms0 <- list(
         ,cnE = 7.16
         ,cnS1 = 7
         ,cnS2 = 70 ##<< N poor substrate
-        ,kN = 0.05   ##<< (per day) enzyme turnover
+        #,kN = 0.05   ##<< (per day) enzyme turnover
+        ,kN= 0.05*365  ##<< /yr enzyme turnover 5% turning over each day
         #,kS1 = 0.2      ##<< substrate decomposition rate N-rich (here simulate large N stock)
         #,kS2 = 1      ##<< substrate decomposition rate N-poor
         #,kS1 = 5e-3      ##<< substrate decomposition rate N-rich (here simulate large N stock)
         #,kS2 = 10e-3     ##<< substrate decomposition rate N-poor
         #,kS2 = 5e-2     ##<< substrate decomposition rate N-poor
         #,aE = 0.05   ##<< C-uptake allocated to enzymes
-        ,kS1 = 1/(5*365)        ##<< 5 years 
-        ,kS2 = 1/(0.5*365)        ##<< 1/2 years 
-        ,aE = 0.01   ##<< C biomass allocated to enzymes gC/day /microbial biomass
+        #,kS1 = 1/(5*365)        ##<< 5 years 
+        #,kS2 = 1/(0.5*365)        ##<< 1/2 years 
+        ,kS1 = 1/(5)        ##<< 5 years 
+        ,kS2 = 1/(0.5)        ##<< 1/2 years 
+        ,aE = 0.01*365   ##<< C biomass allocated to enzymes gC/day /microbial biomass
         #,km = 0.3     ##<< enzyme half-saturation constant
         ,km = 2     ##<< enzyme half-saturation constant
-        ,m = 0.01    ##<< maintenance respiration rate   gC/day /microbial biomass
-        ,tau = 0.012    ##<< biomass turnover rate
+        ,m = 0.01*365    ##<< maintenance respiration rate   gC/day /microbial biomass
+        ,tau = 0.012*365    ##<< biomass turnover rate
         ,eps = 0.5      ##<< carbon use efficiency
-        ,iS1 = 0.6        #xE["B"]*(parms$aE+parms$tau)
-        ,iS2 = 300/365      # g/m2 input per year (half NPP)
+        ,iS1 = 220           #xE["B"]*(parms$aE+parms$tau)
+        ,iS2 = 300         # g/m2 input per year (half NPP)
         ,useFixedAlloc=FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
 )
 parms0 <- within(parms0,{
@@ -196,10 +198,10 @@ derivEezy4b <- function(t,x,parms){
     x0s[names(x0sL$x0)] <-  x0sL$x0   
     #trace(derivEezy4bc, recover)   #untrace(derivEezy4bc)
     derivEezy4b(0, x0s, parms0)
-    times <- seq(0,10*365, length.out=101)
+    times <- seq(0,10, length.out=101)
     res <- res1S <- as.data.frame(lsoda( x0s, times, derivEezy4b, parms=parms0))
     xE <- unlist(tail(res,1))
-    plotRes(res, "topright", cls = c("B100","E1_10","E2_10","respO","Mm","S1r","S2r","alpha"))
+    plotRes(res, "topright", cls = c("B","respO","Mm","S1r","S2r","alpha100"))
     #abline(h=0.5, col="lightgray", lty="dashed")
     
     parmsC2 <- within(parms0, { # double as much C in 
@@ -207,11 +209,11 @@ derivEezy4b <- function(t,x,parms){
                cnS2 <- cnS2*2
             }) 
     res <- res2S <- as.data.frame(lsoda( xE[1:length(x0)+1], times, derivEezy4b, parms=parmsC2))
-    plotRes(res, "topright", cls = c("B100","E1_10","E2_10","respO","Mm","S1r","S2r","alpha"))
+    plotRes(res, "topright", cls = c("B","respO","Mm","S1r","S2r","alpha100"))
     xE2 <- unlist(tail(res,1))
     
     res <- res3S <- as.data.frame(lsoda( xE2[1:length(x0)+1], times, derivEezy4b, parms=parms0))
-    plotRes(res, "topright", cls = c("B100","E1_10","E2_10","respO","Mm","S1r","S2r","alpha"))
+    plotRes(res, "topright", cls = c("B","respO","Mm","S1r","S2r","alpha100"))
     xE3 <- tail(res,1)
     
 }
@@ -219,15 +221,20 @@ derivEezy4b <- function(t,x,parms){
 
 
 plotRes <- function(res, legendPos="topleft"
-    , cls = c("B100","E1_10","E2_10","respO","Mm")
-    , xlab="time (days)"
-    , ylab="gC/m2 , gN/m2"
+    , cls = c("B","E1","E2","respO","Mm")
+    , xlab="time (yr)"
+    , ylab="gC/m2 , gN/m2 , % ,/yr"
 ){
-    res$B100 <- res$B/100
-    res$E1_10 <- res$E1/10
-    res$E2_10 <- res$E2/10
-    res$S1r <- res$S1 / res$S1[1]  #max(res$S1, na.rm=TRUE)
-    res$S2r <- res$S2 / res$S2[1]  #max(res$S2, na.rm=TRUE)
+    #res$B100 <- res$B/100
+    res$E1_10 <- res$E1*10
+    res$E2_10 <- res$E2*10
+    res$E1_1000 <- res$E1*1000
+    res$E2_1000 <- res$E2*1000
+    res$alpha100 <- res$alpha*100
+    res$B100 <- res$B * 100
+    res$B10 <- res$B * 10
+    res$S1r <- res$S1 / res$S1[1]  * 100 #max(res$S1, na.rm=TRUE)
+    res$S2r <- res$S2 / res$S2[1]  * 100 #max(res$S2, na.rm=TRUE)
     #cls <- c("B100","E1_10","E2_10","respO","Mm")
     #cls <- c("B100","E1_10","E2_10","respO","Mm","eff")
     #cls <- c("B1000","E1_10","E2_10","Mm")
