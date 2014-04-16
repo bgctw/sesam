@@ -86,8 +86,10 @@ derivEezy5 <- function(t,x,parms){
     cnS2 <- x["S2"]/x["SN2"]
     limE1 <- E1 / (parms$km1 + E1)
     limE2 <- E2 / (parms$km2 + E2)
-    decC1 <- parms$kS1  *  x["S1"] * limE1
-    decC2 <- parms$kS2  *  x["S2"] * limE2
+    decC1p <- parms$kS1  *  x["S1"]
+    decC2p <- parms$kS2  *  x["S2"] 
+    decC1 <- decC1p * limE1
+    decC2 <- decC2p * limE2
     #decC1 <- parms$kS1  * E1 / (parms$km + E1) * 1000#*  x["S1"]
     #decC2 <- parms$kS2  * E2 / (parms$km + E2) * 1000#*  x["S2"]
     uscE1 <- parms$kN*x["E1"]        # production necessary to balance decay of E1 (uptake steady carbon E1)
@@ -138,13 +140,25 @@ derivEezy5 <- function(t,x,parms){
     MmImb <- uN - (synE/parms$cnE + synB/parms$cnB)
     MmTvr <- (1-parms$epsTvr)*tvrB/parms$cnB
     Mm <- MmImb + MmTvr
-    
     #
     pNLim <- (uNReq/uN)^20
     pCLim <- ((uC+respO)/uC)^20
     #alpha <- pCLim*alphaC + pNLim*alphaN / (pCLim + pNLim)
-    alpha <- if( isTRUE(parms$useFixedAlloc)) 0.5 else (pCLim*alphaC + pNLim*alphaN) / (pCLim + pNLim)
+    alpha <- (pCLim*alphaC + pNLim*alphaN) / (pCLim + pNLim)
+    if( isTRUE(parms$isAlphaMatch) ){
+        synB0 <- max(0, synB)
+        cnOpt <- (parms$cnE*synE + parms$cnB*synB0)/(synE+synB0)  # optimal biomass ratio
+        # calcMatchAlphaEnz
+        alpha <- calcMatchAlpha( E=E1+E2, decPotS1=decC1p, decPotS2=decC2p, respMaint=respMaint
+                ,cnOpt=cnOpt
+                , cnS1 = cnS1, cnS2=cnS2
+                , parms=parms)
+    }
+    if( isTRUE(parms$isAlphaFix) ){
+        alpha <- 0.5
+    }        
     #
+    # tvr that feeds back to S1 pool, assume that N in SOM for resp (by epsTvr) is mineralized
     tvrC <- (1-parms$kNB)*(tvrE1 +tvrE2) + parms$epsTvr*tvrB
     tvrN <- (1-parms$kNB)*(tvrE1 +tvrE2)/parms$cnE + parms$epsTvr*tvrB/parms$cnB
     #
@@ -154,6 +168,8 @@ derivEezy5 <- function(t,x,parms){
     if( isTRUE(parms$isFixedS) ){
         # scenario of fixed substrate
         dS1 <- dS2 <- dSN1 <- dSN2 <- 0
+        tvrExC <- 0
+        tvrExN <- 0
     }else{ 
         dS2 <- +parms$iS2 -decC2
         dSN2 <- +parms$iS2/parms$cnIS2 -decC2/cnS2
@@ -178,8 +194,10 @@ derivEezy5 <- function(t,x,parms){
     sqrEps <- sqrt(.Machine$double.eps)
     if( diff( unlist(c(uC=uC, usage=resp+synB+synE )))^2 > sqrEps )  stop("biomass mass balance C error")
     if( diff( unlist(c(uN=uN, usage=synE/parms$cnE + synB/parms$cnB + MmImb )))^2 > .Machine$double.eps)  stop("biomass mass balance N error")
-    if( diff(unlist(c(dB+dE1+dE2+dS1+dS2+resp+respTvr+tvrExC,    parms$iS1+parms$iS2 )))^2 > sqrEps )  stop("mass balance C error")
-    if( diff(unlist(c((dB)/parms$cnB+(dE1+dE2)/parms$cnE+dSN1+dSN2+dI+tvrExN,    parms$iS1/parms$cnIS1+parms$iS2/parms$cnIS2-plantNUp)))^2 > .Machine$double.eps )  stop("mass balance N error")
+    if( !isTRUE(parms$isFixedS) ){    
+        if( diff(unlist(c(dB+dE1+dE2+dS1+dS2+resp+respTvr+tvrExC,    parms$iS1+parms$iS2 )))^2 > sqrEps )  stop("mass balance C error")
+        if( diff(unlist(c((dB)/parms$cnB+(dE1+dE2)/parms$cnE+dSN1+dSN2+dI+tvrExN,    parms$iS1/parms$cnIS1+parms$iS2/parms$cnIS2-plantNUp)))^2 > .Machine$double.eps )  stop("mass balance N error")
+    }
     list( resDeriv, c(respO=as.numeric(respO)
         , Mm=as.numeric(Mm), MmImb=as.numeric(MmImb), MmTvr=as.numeric(MmTvr)  
         , alpha=as.numeric(alpha)
@@ -188,6 +206,11 @@ derivEezy5 <- function(t,x,parms){
         , limE1=as.numeric(limE1), limE2=as.numeric(limE2)
         , decC1=as.numeric(decC1), tvrB=as.numeric(tvrB)
     ))
+}
+
+calcAlphaMatch <- function( cnOpt, B, d1p, d2p, aE, kN1, kN2, kNB, cnS1, cnS2, cnE){
+    
+    
 }
 
 calcS2Steady5 <- function(
@@ -240,13 +263,17 @@ calcESteady5 <- function(
                 iS1 <- 160
             })
     parmsInit <- parms0
-    #parmsInit <- parmsTvr0
+    #parmsInit <- within(parms0, {isFixedS <- TRUE})
+    #parmsInit <- within(parms0, {isAlphaFix <- TRUE})
+    #parmsInit <- within(parms0, {isAlphaMatch <- TRUE})
     derivEezy5(0, x0, parmsInit)
-    times <- seq(0,1000, length.out=101)
+    times <- seq(0,2100, length.out=101)
+    #times <- seq(0,10000, length.out=101)
     res <- res1 <- as.data.frame(lsoda( x0, times, derivEezy5, parms=parmsInit))
     #res <- res1f <- as.data.frame(lsoda( x0, times, derivEezy5, parms=within(parms0, useFixedAlloc<-TRUE) ))
     xE <- unlist(tail(res,1))
     plotRes(res, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100"))
+    #plotRes(res, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100","E1_1000"))
     #calcS2Steady5( parms0$iS2, xE["S1"], parms=parms0, alpha=xE["alpha"] )
     #calcBSteady5( parms0$iS2, xE["S1"], parms=parms0, alpha=xE["alpha"] )
     #trace(derivEezy5, recover) #untrace(derivEezy5)
@@ -257,7 +284,7 @@ calcESteady5 <- function(
                 cnIS2 <- cnIS2*2
                 #plantNUp <- 300/70*4/5  # plant N uptake balancing N inputs
             }) 
-    times <- seq(0,300, length.out=101)
+    times <- seq(0,10, length.out=101)
     res <- res2S <- as.data.frame(lsoda( xE[1:length(x0)+1], times, derivEezy5, parms=parmsC2))
     xE2 <- unlist(tail(res,1))
     plotRes(res, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100"))
@@ -265,7 +292,7 @@ calcESteady5 <- function(
     derivEezy5(0, xE2[1:length(x0)+1], parmsC2)
     
     res <- res3S <- as.data.frame(lsoda( xE2[1:length(x0)+1], times, derivEezy5, parms=parmsInit))
-    plotRes(res, "topright", cls = c("B","respO","Mm","S1r","S2r","alpha100"))
+    plotRes(res, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100"))
     xE3 <- tail(res,1)
     
     parmsC0 <- within(parmsInit, { # double as much C in 
