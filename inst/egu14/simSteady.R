@@ -299,8 +299,9 @@ simPriming <- function(
                 #tmp <- derivEezy5(0, xE2[1:length(x0)+1], parmsC2)
                 
                 # 5 yr control of continued decreased input 
-                t3S <- 5
-                times <- seq(0,t3S, length.out=101)
+                #t3S <- 5
+                t3S <- 50
+                times <- seq(0,t3S, length.out=201)
                 res <- res3Sc <- as.data.frame(lsoda( xE2[1:length(x0)+1], times, derivEezy5, parms=parmsC2))
                 res3Sc$time <- res3Sc$time +t1S + t2I
                 xE3c <- tail(res3Sc,1)
@@ -313,6 +314,8 @@ simPriming <- function(
                 
                 res3S$decC1c <- res3Sc$decC1
                 res3S$decC1p <- res3Sp$decC1
+                res3S$Mmc <- res3Sc$Mm
+                res3S$Mmp <- res3Sp$Mm
                 res3S$respS1c <- with(res3Sc, resp * decC1/(decC1+decC2))  
                 res3S$respS1p <- with(res3Sp, resp * decC1/(decC1+decC2))
                 res3S$scen <- scen
@@ -320,7 +323,7 @@ simPriming <- function(
             })
     resScen <- do.call( rbind, resAll)
     
-    dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("decC1c","decC1p"),variable_name="DecC1")
+    dsp <- melt( subset(resScen, time < 8), id=c("time","scen"), measure.vars=c("decC1c","decC1p"),variable_name="DecC1")
     dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","flexible"))
     levels(dsp$DecC1) <- c("control","amended")
     p3p <- ggplot( dsp, aes(x=time, y=value, lty=DecC1, col=Allocation)) + geom_line(size=1) + 
@@ -329,6 +332,19 @@ simPriming <- function(
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
     p3p + colScale
+    
+    dsp <- melt( subset(resScen, time < 8), id=c("time","scen"), measure.vars=c("Mmc","Mmp"),variable_name="Mm")
+    dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","flexible"))
+    levels(dsp$Mm) <- c("control","amended")
+    p3p <- ggplot( dsp, aes(x=time, y=value, lty=Mm, col=Allocation)) + geom_line(size=1) + 
+            xlab("Time (yr)")+ ylab("Mineralization (gN/m2/yr)") +
+            theme_bw(base_size=10) +
+            #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
+            theme()                
+    p3p + colScale
+    
+    
+    
 }
 
 
