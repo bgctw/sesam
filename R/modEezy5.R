@@ -116,6 +116,7 @@ derivEezy5 <- function(t,x,parms){
         synB <- uCGrowth    # negative
         respSynB <- 0
     }
+    synBC <- synB       # used in calculation of alpha
     uNReq <- synE/cnE + synB/parms$cnB
     effE1 <- (decC1/cnS1)/(uscE1/parms$cnE1)
     effE2 <- (decC2/cnS2)/(uscE2/parms$cnE2)
@@ -146,10 +147,11 @@ derivEezy5 <- function(t,x,parms){
     #alpha <- pCLim*alphaC + pNLim*alphaN / (pCLim + pNLim)
     alpha <- (pCLim*alphaC + pNLim*alphaN) / (pCLim + pNLim)
     if( isTRUE(parms$isAlphaMatch) ){
-        synB0 <- max(0, synB)
-        cnOpt <- (parms$cnE*synE + parms$cnB*synB0)/(synE+synB0)  # optimal biomass ratio
+        synB0 <- max(0, synBC)
+        #cnOpt <- (parms$cnE*synE + parms$cnB*synB0)/(synE+synB0)  # optimal biomass ratio
+        cnOpt <- (synE+synB0)/(synE/cnE + synB0/parms$cnB)  # optimal biomass ratio
         # calcMatchAlphaEnz
-        alpha <- calcMatchAlpha( E=E1+E2, decPotS1=decC1p, decPotS2=decC2p, respMaint=respMaint
+        alpha <- calcMatchAlpha( E=E1+E2, decPotS1=decC1p, decPotS2=decC2p, respMaint=respMaint 
                 ,cnOpt=cnOpt
                 , cnS1 = cnS1, cnS2=cnS2
                 , parms=parms)
@@ -187,15 +189,16 @@ derivEezy5 <- function(t,x,parms){
         }
     }
     dI <- +Mm
-    resp <- respSynE + respSynB + respMaint + respO 
+    respB <- respSynE + respSynB + respMaint + respO 
+    resp <- respB + respTvr
     #
     resDeriv <-structure(as.numeric(c( dB, dE1, dE2, dS1, dSN1, dS2, dSN2, dI)),names=c("dB","dE1","dE2","dS1","dSN1","dS2","dSN2","dI"))
     if( any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
     sqrEps <- sqrt(.Machine$double.eps)
-    if( diff( unlist(c(uC=uC, usage=resp+synB+synE )))^2 > sqrEps )  stop("biomass mass balance C error")
+    if( diff( unlist(c(uC=uC, usage=respB+synB+synE )))^2 > sqrEps )  stop("biomass mass balance C error")
     if( diff( unlist(c(uN=uN, usage=synE/parms$cnE + synB/parms$cnB + MmImb )))^2 > .Machine$double.eps)  stop("biomass mass balance N error")
     if( !isTRUE(parms$isFixedS) ){    
-        if( diff(unlist(c(dB+dE1+dE2+dS1+dS2+resp+respTvr+tvrExC,    parms$iS1+parms$iS2 )))^2 > sqrEps )  stop("mass balance C error")
+        if( diff(unlist(c(dB+dE1+dE2+dS1+dS2+resp+tvrExC,    parms$iS1+parms$iS2 )))^2 > sqrEps )  stop("mass balance C error")
         if( diff(unlist(c((dB)/parms$cnB+(dE1+dE2)/parms$cnE+dSN1+dSN2+dI+tvrExN,    parms$iS1/parms$cnIS1+parms$iS2/parms$cnIS2-plantNUp)))^2 > .Machine$double.eps )  stop("mass balance N error")
     }
     list( resDeriv, c(respO=as.numeric(respO)
@@ -204,7 +207,9 @@ derivEezy5 <- function(t,x,parms){
         , isLimN=as.numeric(uNReq/uN), uNReq=as.numeric(uNReq), uN=as.numeric(uN)
         , cnS1=as.numeric(cnS1), cnS2=as.numeric(cnS2)
         , limE1=as.numeric(limE1), limE2=as.numeric(limE2)
-        , decC1=as.numeric(decC1), tvrB=as.numeric(tvrB)
+        , decC1=as.numeric(decC1), decC2=as.numeric(decC2)
+        , resp=as.numeric(resp), respB=as.numeric(respB), respTvr=as.numeric(respTvr)
+        , tvrB=as.numeric(tvrB)
     ))
 }
 

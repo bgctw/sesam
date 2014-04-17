@@ -60,7 +60,67 @@ myColors <- brewer.pal(5,"Dark2")
 names(myColors) <- names(parmsScen)
 colScale <- scale_colour_manual(name = "Allocation",values = myColors)
 
-simInitSteady <- function(){
+
+simfCNGraph <- function(
+    ### fixing Substrate availability and varying N amount in S2
+){
+    parms0F <- within(parms0,{    isFixedS <- TRUE; kNB = 0     })
+    parmsScenF <- list(
+            flexible = parms0F
+            ,fixed = within(parms0F, {isAlphaFix <- TRUE})
+            ,match = within(parms0F, {isAlphaMatch <- TRUE})
+    )
+    
+    cnS1 <- 6.8
+    cnS2 <- 30
+    x0 <-  x0N <- c( #aE = 0.001*365
+            B = 20                     ##<< microbial biomass 
+            ,E1  = 1.5*parms0$km                  ##<< total enzyme pool
+            ,E2  = 1.5*parms0$km                   ##<< total enzyme pool
+            ,S1 = 800                 ##<< N rich substrate
+            ,SN1 = 800/cnS1    ##<< N rich substrate N pool
+            ,S2 = 400                  ##<< N poor substrate
+            ,SN2 = 400/cnS2    ##<< N poor substrate N pool
+            ,I =  0                    ##<< inorganic pool
+    )
+    
+    cnS2s <- seq( 18,42,by=1)
+    cnS2 <- 23
+    resLC <- lapply( cnS2s, function(cnS2){ 
+                x0N["SN2"] <- x0N["S2"]/cnS2
+                times <- seq(0,10, length.out=101)
+                #times <- seq(0,10000, length.out=101)
+                #scen <- "match"
+                resL <- lapply( names(parmsScenF), function(scen){
+                            parmsInit <- parmsScenF[[scen]]
+                            res <- res1 <- as.data.frame(lsoda( x0N, times, derivEezy5, parms=parmsInit))
+                            xE <- unlist(tail(res,1))
+                            #plotRes(res, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100"))
+                            #trace(derivEezy5, recover) #untrace(derivEezy5)
+                            #tmp <- derivEezy5(0, xE[1:length(x0)+1], parmsInit)
+                            xE
+                        })
+                resScen <- cbind( data.frame(scen=names(parmsScenF), do.call( rbind, resL )))
+            })
+    resC <- resCAll <- do.call( rbind, resLC )
+    resC <- subset(resCAll, cnS2 <= 50)
+    
+    dsp <- melt(resC, id=c("cnS2","scen"), measure.vars=c("alpha","B","MmImb","respO"), variable_name="Measure")
+    #levels(dsp$Measure)
+    levels(dsp$Measure) <- c("alpha","Biomass (gC/m2)","Mineralization Imb (gN/m2/yr)","Overflow respiration (gC/m2/yr)")
+    p8 <- ggplot( dsp, aes(x=cnS2, y=value, col=scen) ) + geom_line(size=1) + 
+            facet_wrap(~Measure, scales = "free_y") + 
+            theme_bw() +
+            theme(axis.title.y = element_blank()) +
+            theme()
+    #twWin(6)
+    p8 + colScale 
+}
+
+
+simInitSteady <- function(
+    ### inspect approaching a steady state (or breakdown of biomass)
+){
     scen <- "flexible"
     resAll <- lapply( c("flexible","fixed","match"), function(scen){
                 parmsInit <- parmsScen[[scen]]
@@ -86,8 +146,11 @@ simInitSteady <- function(){
     p1+ colScale
     
 }
-                
-simCO2Increase <- function(){
+
+               
+simCO2Increase <- function(
+    ### Simulated increase of C-input by 20% during years 10-60
+){
      #scen <- "flexible"
      resAll <- lapply( c("flexible","fixed"), function(scen){
             parmsInit <- parmsScen[[scen]]
@@ -147,7 +210,9 @@ simCO2Increase <- function(){
     p2 + colScale
 }
     
-simBareSoil <- function(){
+simBareSoil <- function(
+    ### Simulated decrease of input to 1/100 during years 10-210
+){
     #scen <- "flexible"
     resAll <- lapply( c("flexible","fixed"), function(scen){
                 parmsInit <- parmsScen[[scen]]
@@ -208,6 +273,63 @@ simBareSoil <- function(){
 }
 
 
+
+simPriming <- function(
+### Simulated decrease of input to 1/100 during years 10-210
+){
+    #scen <- "flexible"
+    resAll <- lapply( c("flexible","fixed"), function(scen){
+                parmsInit <- parmsScen[[scen]]
+                
+                # 500 yr decreased C input    
+                t2I = 500
+                fInputInc = 1.2
+                parmsC2 <- within(parmsInit, { # double as much C in 
+                            iS2 <- iS2/100
+                            #cnIS2 <- cnIS2*fInputInc
+                            #plantNUp <- 300/70*4/5  # plant N uptake balancing N inputs
+                        }) 
+                times <- c(seq(0,t2I, length.out=101), 1:10+t2I)
+                res <- as.data.frame(lsoda( xE[1:length(x0)+1], times, derivEezy5, parms=parmsC2))
+                res2I <- tail(res,10)   # last 10 years
+                xE2 <- unlist(tail(res2I,1))
+                #plotRes(res2I, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100"))
+                #plotRes(res, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100"))
+                #trace(derivEezy5, recover)        #untrace(derivEezy5)
+                #tmp <- derivEezy5(0, xE2[1:length(x0)+1], parmsC2)
+                
+                # 5 yr control of continued decreased input 
+                t3S <- 5
+                times <- seq(0,t3S, length.out=101)
+                res <- res3Sc <- as.data.frame(lsoda( xE2[1:length(x0)+1], times, derivEezy5, parms=parmsC2))
+                res3Sc$time <- res3Sc$time +t1S + t2I
+                xE3c <- tail(res3Sc,1)
+                
+                # 5 yr of continued decreased input but with initial pulse of S2
+                x0P <- xE2; x0P["S2"] <- x0P["S2"] + 50 
+                res <- res3S <- res3Sp <- as.data.frame(lsoda( x0P[1:length(x0)+1], times, derivEezy5, parms=parmsC2))
+                res3Sp$time <- res3Sp$time +t1S + t2I
+                xE3p <- tail(res3Sp,1)
+                
+                res3S$decC1c <- res3Sc$decC1
+                res3S$decC1p <- res3Sp$decC1
+                res3S$respS1c <- with(res3Sc, resp * decC1/(decC1+decC2))  
+                res3S$respS1p <- with(res3Sp, resp * decC1/(decC1+decC2))
+                res3S$scen <- scen
+                res3S
+            })
+    resScen <- do.call( rbind, resAll)
+    
+    dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("decC1c","decC1p"),variable_name="DecC1")
+    dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","flexible"))
+    levels(dsp$DecC1) <- c("control","amended")
+    p3p <- ggplot( dsp, aes(x=time, y=value, lty=DecC1, col=Allocation)) + geom_line(size=1) + 
+            xlab("Time (yr)")+ ylab("Decomposition of S1 (gC/m2/yr)") +
+            theme_bw(base_size=10) +
+            #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
+            theme()                
+    p3p + colScale
+}
 
 
 
