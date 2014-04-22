@@ -4,6 +4,9 @@ library(ggplot2)
 library(reshape)  # melt
 library(RColorBrewer) # brewer.pal
 
+baseFontSize <- 10  # pubs
+baseFontSize <- 16  # presentations
+
 # gC/m2 and gN/m2, /yr
 parms0 <- list(
         cnB = 7.16
@@ -50,7 +53,7 @@ x <- x0
 
 
 parmsScen <- list(
-        flexible = parms0
+        revenue = parms0
         ,fixed = within(parms0, {isAlphaFix <- TRUE})
         ,match = within(parms0, {isAlphaMatch <- TRUE})
 )
@@ -66,14 +69,14 @@ simfCNGraph <- function(
 ){
     parms0F <- within(parms0,{    isFixedS <- TRUE; kNB = 0     })
     parmsScenF <- list(
-            flexible = parms0F
+            revenue = parms0F
             ,fixed = within(parms0F, {isAlphaFix <- TRUE})
             ,match = within(parms0F, {isAlphaMatch <- TRUE})
     )
     
     cnS1 <- 6.8
     cnS2 <- 30
-    x0 <-  x0N <- c( #aE = 0.001*365
+    x0N <- c( #aE = 0.001*365
             B = 20                     ##<< microbial biomass 
             ,E1  = 1.5*parms0$km                  ##<< total enzyme pool
             ,E2  = 1.5*parms0$km                   ##<< total enzyme pool
@@ -110,7 +113,7 @@ simfCNGraph <- function(
     levels(dsp$Measure) <- c("alpha","Biomass (gC/m2)","Mineralization Imb (gN/m2/yr)","Overflow respiration (gC/m2/yr)")
     p8 <- ggplot( dsp, aes(x=cnS2, y=value, col=scen) ) + geom_line(size=1) + 
             facet_wrap(~Measure, scales = "free_y") + 
-            theme_bw() +
+            theme_bw(base_size=baseFontSize) +
             theme(axis.title.y = element_blank()) +
             theme()
     #twWin(6)
@@ -121,10 +124,10 @@ simfCNGraph <- function(
 simInitSteady <- function(
     ### inspect approaching a steady state (or breakdown of biomass)
 ){
-    scen <- "flexible"
-    resAll <- lapply( c("flexible","fixed","match"), function(scen){
+    scen <- "revenue"
+    resAll <- lapply( c("revenue","fixed","match"), function(scen){
                 parmsInit <- parmsScen[[scen]]
-                times <- seq(0,100, length.out=101)
+                times <- seq(0,70, length.out=101)
                 #times <- seq(0,10000, length.out=101)
                 res <- res1 <- as.data.frame(lsoda( x0, times, derivEezy5, parms=parmsInit))
                 #res <- res1f <- as.data.frame(lsoda( x0, times, derivEezy5, parms=within(parms0, useFixedAlloc<-TRUE) ))
@@ -141,7 +144,8 @@ simInitSteady <- function(
     
     p1 <- ggplot( dsp, aes(x=time, y=value, lty=Pool, col=Allocation)) + geom_line(size=1) + 
             xlab("Time (yr)")+ ylab("Carbon stock (gC/m2)") +
-            theme_bw(base_size=10) +
+            theme_bw(base_size=baseFontSize) +
+            ylim(c(300,600))
             theme()                
     p1+ colScale
     
@@ -151,8 +155,8 @@ simInitSteady <- function(
 simCO2Increase <- function(
     ### Simulated increase of C-input by 20% during years 10-60
 ){
-     #scen <- "flexible"
-     resAll <- lapply( c("flexible","fixed"), function(scen){
+     #scen <- "revenue"
+     resAll <- lapply( c("revenue","fixed"), function(scen){
             parmsInit <- parmsScen[[scen]]
             # spinup run
             times <- seq(0,500, length.out=101)
@@ -198,23 +202,97 @@ simCO2Increase <- function(
     resScen <- do.call( rbind, resAll)
 
     dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("S1","S2"),variable_name="Pool")
-    dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","flexible"))
+    dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","revenue"))
     #names(dsp)[names(dsp)=="scen"] <- "Allocation"
     #p1 <- ggplot( dsp, aes(x=time, y=value, fill=Pool, lty=scen)) + geom_area() 
     
     p2 <- ggplot( dsp, aes(x=time, y=value, lty=Pool, col=Allocation)) + geom_line(size=1) + 
             xlab("Time (yr)")+ ylab("Carbon stock (gC/m2)") +
-            theme_bw(base_size=10) +
+            theme_bw(base_size=baseFontSize) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
     p2 + colScale
 }
     
-simBareSoil <- function(
-    ### Simulated decrease of input to 1/100 during years 10-210
+
+
+
+simPriming <- function(
+### Simulated decrease of input to 1/100 during years 10-210
 ){
-    #scen <- "flexible"
-    resAll <- lapply( c("flexible","fixed"), function(scen){
+    #scen <- "revenue"
+    resAll <- lapply( c("revenue","fixed"), function(scen){
+                parmsInit <- parmsScen[[scen]]
+                
+                # 500 yr decreased C input    
+                t2I = 500
+                fInputInc = 1.2
+                parmsC2 <- within(parmsInit, { # double as much C in 
+                            iS2 <- iS2/100
+                            #cnIS2 <- cnIS2*fInputInc
+                            #plantNUp <- 300/70*4/5  # plant N uptake balancing N inputs
+                        }) 
+                times <- c(seq(0,t2I, length.out=101), 1:10+t2I)
+                res <- as.data.frame(lsoda( x0, times, derivEezy5, parms=parmsC2))
+                res2I <- tail(res,10)   # last 10 years
+                xE2 <- unlist(tail(res2I,1))
+                #plotRes(res2I, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100"))
+                #plotRes(res, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100"))
+                #trace(derivEezy5, recover)        #untrace(derivEezy5)
+                #tmp <- derivEezy5(0, xE2[1:length(x0)+1], parmsC2)
+                
+                # 5 yr control of continued decreased input 
+                #t3S <- 5
+                t3S <- 50
+                times <- seq(0,t3S, length.out=201)
+                res <- res3Sc <- as.data.frame(lsoda( xE2[1:length(x0)+1], times, derivEezy5, parms=parmsC2))
+                res3Sc$time <- res3Sc$time 
+                xE3c <- tail(res3Sc,1)
+                
+                # 5 yr of continued decreased input but with initial pulse of S2
+                x0P <- xE2; x0P["S2"] <- x0P["S2"] + 50 
+                res <- res3S <- res3Sp <- as.data.frame(lsoda( x0P[1:length(x0)+1], times, derivEezy5, parms=parmsC2))
+                res3Sp$time <- res3Sp$time 
+                xE3p <- tail(res3Sp,1)
+                
+                res3S$decC1c <- res3Sc$decC1
+                res3S$decC1p <- res3Sp$decC1
+                res3S$Mmc <- res3Sc$Mm
+                res3S$Mmp <- res3Sp$Mm
+                res3S$respS1c <- with(res3Sc, resp * decC1/(decC1+decC2))  
+                res3S$respS1p <- with(res3Sp, resp * decC1/(decC1+decC2))
+                res3S$scen <- scen
+                res3S
+            })
+    resScen <- do.call( rbind, resAll)
+    
+    dsp <- melt( subset(resScen, time < 8), id=c("time","scen"), measure.vars=c("decC1c","decC1p"),variable_name="DecC1")
+    dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","revenue"))
+    levels(dsp$DecC1) <- c("control","amended")
+    p3p <- ggplot( dsp, aes(x=time, y=value, lty=DecC1, col=Allocation)) + geom_line(size=1) + 
+            xlab("Time (yr)")+ ylab("S1 Decompos. (gC/m2/yr)") +
+            theme_bw(base_size=baseFontSize) +
+            #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
+            theme()                
+    p3p + colScale
+    
+    dsp <- melt( subset(resScen, time < 8), id=c("time","scen"), measure.vars=c("Mmc","Mmp"),variable_name="Mm")
+    dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","revenue"))
+    levels(dsp$Mm) <- c("control","amended")
+    p3p <- ggplot( dsp, aes(x=time, y=value, lty=Mm, col=Allocation)) + geom_line(size=1) + 
+            xlab("Time (yr)")+ ylab("Mineralization (gN/m2/yr)") +
+            theme_bw(base_size=baseFontSize) +
+            #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
+            theme()                
+    p3p + colScale
+    
+}
+
+simBareSoil <- function(
+### Simulated decrease of input to 1/100 during years 10-210
+){
+    #scen <- "revenue"
+    resAll <- lapply( c("revenue","fixed"), function(scen){
                 parmsInit <- parmsScen[[scen]]
                 # spinup run
                 times <- seq(0,500, length.out=101)
@@ -255,97 +333,35 @@ simBareSoil <- function(
                 resc <- rbind( res1S, res2I[-1,], res3S[-1,])
                 resc$scen <- scen
                 plotRes(resc, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100"))
+                resc$tvrS1 <- 1/(parmsInit$kS1 * resc$limE1)
                 resc
             })
     resScen <- do.call( rbind, resAll)
+    resScen$Allocation <- factor(resScen$scen, levels=c("fixed","match","revenue"))
     
     dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("S1","S2"),variable_name="Pool")
-    dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","flexible"))
+    dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","revenue"))
     #names(dsp)[names(dsp)=="scen"] <- "Allocation"
     #p1 <- ggplot( dsp, aes(x=time, y=value, fill=Pool, lty=scen)) + geom_area() 
     
     p3 <- ggplot( dsp, aes(x=time, y=value, lty=Pool, col=Allocation)) + geom_line(size=1) + 
             xlab("Time (yr)")+ ylab("Carbon stock (gC/m2)") +
-            theme_bw(base_size=10) +
+            theme_bw(base_size=baseFontSize) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
     p3 + colScale
+    
+    
+    p3b <- ggplot( resScen, aes(x=time, y=tvrS1, col=Allocation)) + geom_line(size=1) + 
+            xlab("Time (yr)")+ ylab("Turnover time S1 (yr)") +
+            theme_bw(base_size=baseFontSize) +
+            #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
+            ylim(c(0,800)) +
+            theme()                
+    p3b + colScale
+    
 }
 
-
-
-simPriming <- function(
-### Simulated decrease of input to 1/100 during years 10-210
-){
-    #scen <- "flexible"
-    resAll <- lapply( c("flexible","fixed"), function(scen){
-                parmsInit <- parmsScen[[scen]]
-                
-                # 500 yr decreased C input    
-                t2I = 500
-                fInputInc = 1.2
-                parmsC2 <- within(parmsInit, { # double as much C in 
-                            iS2 <- iS2/100
-                            #cnIS2 <- cnIS2*fInputInc
-                            #plantNUp <- 300/70*4/5  # plant N uptake balancing N inputs
-                        }) 
-                times <- c(seq(0,t2I, length.out=101), 1:10+t2I)
-                res <- as.data.frame(lsoda( xE[1:length(x0)+1], times, derivEezy5, parms=parmsC2))
-                res2I <- tail(res,10)   # last 10 years
-                xE2 <- unlist(tail(res2I,1))
-                #plotRes(res2I, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100"))
-                #plotRes(res, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100"))
-                #trace(derivEezy5, recover)        #untrace(derivEezy5)
-                #tmp <- derivEezy5(0, xE2[1:length(x0)+1], parmsC2)
-                
-                # 5 yr control of continued decreased input 
-                #t3S <- 5
-                t3S <- 50
-                times <- seq(0,t3S, length.out=201)
-                res <- res3Sc <- as.data.frame(lsoda( xE2[1:length(x0)+1], times, derivEezy5, parms=parmsC2))
-                res3Sc$time <- res3Sc$time +t1S + t2I
-                xE3c <- tail(res3Sc,1)
-                
-                # 5 yr of continued decreased input but with initial pulse of S2
-                x0P <- xE2; x0P["S2"] <- x0P["S2"] + 50 
-                res <- res3S <- res3Sp <- as.data.frame(lsoda( x0P[1:length(x0)+1], times, derivEezy5, parms=parmsC2))
-                res3Sp$time <- res3Sp$time +t1S + t2I
-                xE3p <- tail(res3Sp,1)
-                
-                res3S$decC1c <- res3Sc$decC1
-                res3S$decC1p <- res3Sp$decC1
-                res3S$Mmc <- res3Sc$Mm
-                res3S$Mmp <- res3Sp$Mm
-                res3S$respS1c <- with(res3Sc, resp * decC1/(decC1+decC2))  
-                res3S$respS1p <- with(res3Sp, resp * decC1/(decC1+decC2))
-                res3S$scen <- scen
-                res3S
-            })
-    resScen <- do.call( rbind, resAll)
-    
-    dsp <- melt( subset(resScen, time < 8), id=c("time","scen"), measure.vars=c("decC1c","decC1p"),variable_name="DecC1")
-    dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","flexible"))
-    levels(dsp$DecC1) <- c("control","amended")
-    p3p <- ggplot( dsp, aes(x=time, y=value, lty=DecC1, col=Allocation)) + geom_line(size=1) + 
-            xlab("Time (yr)")+ ylab("Decomposition of S1 (gC/m2/yr)") +
-            theme_bw(base_size=10) +
-            #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
-            theme()                
-    p3p + colScale
-    
-    dsp <- melt( subset(resScen, time < 8), id=c("time","scen"), measure.vars=c("Mmc","Mmp"),variable_name="Mm")
-    dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","flexible"))
-    levels(dsp$Mm) <- c("control","amended")
-    p3p <- ggplot( dsp, aes(x=time, y=value, lty=Mm, col=Allocation)) + geom_line(size=1) + 
-            xlab("Time (yr)")+ ylab("Mineralization (gN/m2/yr)") +
-            theme_bw(base_size=10) +
-            #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
-            theme()                
-    p3p + colScale
-    
-    
-    
-}
 
 
 
