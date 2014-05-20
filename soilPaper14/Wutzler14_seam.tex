@@ -1,0 +1,253 @@
+\introduction  %% \introduction[modified heading if necessary] 
+The global element cycles of carbon and nitrogen are strongly linked and cannot
+be understood without their interactions (XXCStorebyN). The links between nutrient
+cycles are especially strong in dynamic of soil organic matter (SOM) because all
+of the SOM has to be depolymerized and successively mineralized by a microbial
+community with a rather strict homeostatic regulation. Faced with stoichiometric
+imbalances between OM substrates and synthesized biomass, decomposers have to
+lower their carbon use efficiency (CUE) or nutrient use efficiency (NUE)
+(XXSterner, Mooshammer). The regulation of CUE has shown to have large
+consequences on prediction of carbon sequestration in SOM (XX Allison follows,
+Manzoni). Regulation of NUE has consequences for nutrient recycling and loss of
+nutrients from the ecosystem (XXMooshammer) and soil plant feedbacks
+(XXRastetter 97). In addition, however, decomposers could also regulate
+allocation into production of extracellular enzymes to preferentially
+depolymerize food sources of different stoichiometry in order to match their
+requirements (XXSterner, Mooshammer). This hypothesis was recently formalized by
+XXMoorehead with the conceptual EEZY model. While this model showed the
+principle feasibility of this strategy in short term, it did implement feedbacks
+to substrate pools and therefore could no look at consequences for longer term
+SOM cycling. The associated change in CUE and NUE, however, can have severe
+consequences on the long term SOM cycling and our understanding of soil carbon
+sequestration and plant- soil- atmosphere elemental feedbacks.
+
+The aim of this study, therefore, is to further develop the conceptual model of
+enzyme allocation including feedbacks of turnover to the substrate pools and
+explore the different consequences of alternative enzyme allocation schemes on
+long term SOM dynamics and nutrient recycling.
+
+To this end we developed a conceptual model of SOM cycling that explicitly
+represented several extracellular enzyme pools involved in the depolymerization
+of specific substrates which differed in their elemental ratios. Several
+variants were developed that differed by the strategy of enzyme allocation:
+either fixed or flexible, and either based on stoichiometry only or on pool
+sizes too. Simulations scenarios were devised to study effects on mineralization
+fluxes and buildup of SOM. Specifically, we first studied under which ranges of
+substrate stoichiometry decomposers with flexible allocation could use the
+substrate more efficiently and decrease mineralization fluxes (including
+overflow respiration as carbon mineralization). Second, we tested with which
+strategies sustainable microbial communities could develop under constant litter
+input, by simulating a steady state. Third, we were interested in different
+responses of subsoil SOM mineralization and nutrient recycling after amendment
+of fresh litter (priming). And fourth, we studied consequences for development
+of SOM pools in a scenario of CO2 fertilization.
+
+We show that different decomposers enzyme allocation strategies have large
+consequences on long term SOM dynamics and nutrient recycling and suggest
+further ways to study these strategies by both experimental, modelling and
+combined studies.
+
+\section{Methods}
+\subsection{Soil Enzyme Allocation Model (SEAM)}
+We used a conceptual structural dynamic model to explore consequences of enzyme
+allocation strategies for SOM cycling: Soil Enzyme Allocation Model (SEAM). The
+modelled system are the carbon and nitrogen pools in soil organic matter in a
+representative elemental volume of soil. This could be soil in laboratory
+incubation or a soil layer of about $1 \unit{m}^2$ outside roots. Different
+pools of carbon and nitrogen are represented as state variables and the mass
+fluxes between them govern their change by dynamic equations. We assume that the
+single input to the system is by plant litter (both above ground and
+rhizodeposition) and the sole outputs are respired carbon dioxide and
+mineralized nitrogen. 
+
+Key features are the representation of different SOM pools that differ by
+elemental ratios and the explicit representation of specific enzymes that
+depolymerize those SOM pools. The quality spectrum is modelled by two
+classes: a nitrogen rich more easily degradable labile litter pool,
+$\operatorname{L}$, and a pool mainly consisting of nitrogen rich microbial
+residues, $\operatorname{R}$ (Fig. \ref{fig:SEAM}).
+
+\begin{figure}[t] \vspace*{2mm}
+\label{fig:SEAM}
+\begin{center}
+\includegraphics[width=8.3cm]{fig/eezy5}
+\end{center}
+\caption{Model strucutre of SEAM: Two substrate pools ($L$ and
+$R$) are depolymerized by respective enzymes
+($E_L$ and $E_R$). The simple organic
+compounds ($\operatorname{DOM}$) are transported by soil solution and taken up
+by the microbial community  and used for synthesizing
+new biomass ($\operatorname{B}$), new enzymes, and for catabolic respiration. 
+Due to stoichiometric imbalance between $\operatorname{DOM}$ and $\operatorname{B}$
+there will be overflow respiration or mineralization of excess nitrogen. During
+microbial turnover an additional part of the biomass is mineralized and the
+other part is added to the residue pool, $R$. Boxes represent pools, black
+arrows mass fluxes, white arrows othr controls, and disks represent
+partitioning of fluxes.}
+\end{figure}
+
+Appendix \ref{app:SEAM} reports the model equations and details. Here we
+describe the most important assumptions.
+
+C/N ratios, $\beta$ of biomass and enzymes are
+fixed while those of the substrate pools may change over time due to
+fluxes in and out of the pools. Imbalances in stoichiometry of uptake and demand
+in microbial biomass are compensated by overflow respiration or nitrogen
+mineralization.
+
+Total enzyme allocation is a fixed fraction,
+$a_E$, of the microbial biomass, $B$, per time. But microbial community can
+adjust their allocation to produce new enzymes $E_R$ or $E_L$: $\alpha = E_R / (E_R + E_L)$. The different strategies
+of enzyme allocation are explained in section \ref{sec:AllocStrategies}.
+
+The DOM pool is assumed to be in quasi steady state and all the sum of all
+influxes to the DOM pool (decomposition + part of the enzyme turnover) is taken
+up by microbial community.
+
+If expenses for maintenance and enzyme production cannot be met, the biomass
+starves and declines.
+ 
+\subsection{ Enzyme allocation strategies 
+\label{sec:AllocStrategies}}
+
+Three different strategies of allocating investments among production of
+alternative enzymes were explored in this study (Table
+\ref{tab:AllocStrategies}). Microbes invest porportion $\alpha$ of total enzyme
+investments into production of enzymes targeting the nitrogen rich $R$ substrate
+and proportion $1 - \alpha$ into production of enzymes targeting the nitrogen
+poor but betteer degradable $L$ substrate.
+
+The \textbf{fixed} strategy assumes that allocation is independent
+and not changing with changes in substrat availability. 
+\begin{equation}
+\label{eq:allocFixed}
+\alpha = \operatorname{const.}
+\end{equation}
+This strategy corresponds to the models where decomposition rate is a function
+of microbial biomass \citep{Wutzler08}.
+ 
+The \textbf{match} strategy assumes that microbes balance their stoichiometric
+demands \citep{Moorhead12}. The partitioning coefficient is derived by equating
+the C/N ratio of the sum of decomposition fluxes and the C/N ratio of microbial
+biomass and solving for $\alpha$.
+\begin{equation}
+\label{eq:allocMatchCN}
+\beta_B &= \frac{\epsilon (\operatorname{dec}_L + \operatorname{dec}_R - r_M)}{
+\operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R } \text{,}\\
+\end{equation}
+where $\operatorname{dec}_L$, and $\operatorname{dec}_R$ are
+depolymerization fluxes of the labile and residue substrates
+respectively, $r_M$ is maintenance respiration, $\epsilon$ is the intrinsic microbial efficiency, and $\beta$ are C/N ratio of
+the respective pools i.
+In the derivation, the enzyme levels have been assumed in steady state for given
+amounts of substrate and microbial biomass.
+\begin{equation}
+\label{eq:allocMatch}
+\alpha_M &= f_{\operatorname{{\alpha}Fix}}(L,\beta_L,R,\beta_R,B); \,
+\alpha &= \begin{cases}
+  0,  & \text{if} \alpha_M \le 0 \\
+  1,  & \text{if} \alpha_M \ge 1 \\
+  \alpha_M, & \text{otherwise}
+\end{cases} \\  
+\end{equation}
+The bounds to zero and one are necessary because the sole
+allocation to decompose the carbon rich substrate may not suffice to
+cover microbial carbon demands. Then nitrogen mineralization
+has to balance the stoichiometric imbalance. 
+Function $f_{\operatorname{{\alpha}Fix}}$ is given in appendix
+\ref{app:fAlphaFix} and the sympy script of its 
+derivation is given with supplementory material. 
+
+The \textbf{revenue} strategy assumes that microbes invest into enzyme
+production porportional to their revenue, i.e. their return per investment
+regarding the currently limiting element.
+
+The return is the current decomposition flux from respective substrate. The
+investment needs to be equal to enzyme turnover to keep current enzyme levels.
+% : $a_E B = k_{NR} E_R^* + k_{NL} E_L^*$.
+% 
+\begin{subequations}
+\label{eq:allocRev}
+\begin{align}
+\alpha_C &= \frac{e_{RC}}{e_{LC} + e_{RC}} \\
+e_{SC} &= \frac{\text{return}}{\text{investment}} 
+= \frac{\operatorname{dec}_{S,Pot} \frac{E_S^*}{k_{m,S} + E_S^*}} {k_{NS}E_S^*} 
+= \frac{\operatorname{dec}_{S,Pot}} {k_{NS}(k_{m,S} + E_S^*)} \\ 
+e_{SN} &= \frac{\operatorname{dec}_{S,Pot}
+\frac{E_S^*}{k_{m,S} + E_S^*} / \beta_S} {k_{NS} E_S^* / \beta_E} 
+= \frac{\operatorname{dec}_{S,Pot}}{k_{NS} (k_{m,S} + E_S^*)}
+\frac{\beta_E}{\beta_S}
+\text{,} 
+\end{align}
+\end{subequations}
+where $e_S$ is the revenue from given substrate $S$ ($S$ is either $L$ or $R$)
+under carbon and nitrogen limitation respectively.
+$k_{NS}$ is rate of enzyme turnover, $k_{m,S}$ is substrate affinity, $a_E$ is
+total enzyme allocation coefficient, $\operatorname{dec}_{S,Pot} = k_S S$ is
+enzyme saturated decomposition flux, and $\beta$ are C/N ratios of the
+respective pools.
+
+There are two partitionings, $\alpha_C$, with carbon limitated microbial
+biomass, and $\alpha_N$, with nitrogen limited microbial biomass. In order to
+avoid frequent large jumps under near co-limitation, SEAM implements a smooth
+transition between these two cases as a weighted average with weights based
+on ratio of required to available biomass synthesis fluxes (derived in
+appendix \ref{app:SEAM}).
+
+\begin{subequations}
+\label{eq:allocRev}
+\begin{align}
+\alpha &= \frac{w_{\operatorname{CLim}} \alpha_C + w_{\operatorname{NLim}}
+\alpha_N}{w_{\operatorname{CLim}}  + w_{\operatorname{NLim}} } \\
+w_\operatorname{CLim} &= \left( \frac{\text{required}}{\text{available}}
+\right)^\delta 
+= \left( \frac{ N_{\operatorname{synBN}} \beta_B }{ C_{\operatorname{synBC}} }
+\right)^\delta
+\\
+w_\operatorname{NLim} &= \left( \frac{ C_{\operatorname{synBC}} / \beta_B }{
+N_{\operatorname{synBN}} } \right)^\delta
+\text{,} 
+\end{align}
+\end{subequations}
+where $\delta$ controls the steepness of the transition between the two
+limitations. It was arbitrarily set to a value of 200.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{ Simulation scenarios 
+\label{sec:SimScen}}
+
+
+\section{Results}
+
+\section{Discussion}
+Differences to Moorhead12 approach
+
+Both litter pools of two elements
+
+maintenance respiration
+
+allocation part of biomass instead of uptake, decoupled
+
+prediction changing C/N ratios
+
+holistic view on microbial community, upscaling
+
+
+
+
+\conclusions  %% \conclusions[modified heading if necessary]
+TEXT
+

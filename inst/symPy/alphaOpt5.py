@@ -26,7 +26,7 @@ d2 = d2p*E2/(km2+E2)
 
 #------------ optimal biomass ratio
 synE, synB = symbols('synE synB',real=True, positiv=True)   # rates of enzyme and biomass synthesis and maintenance respiration
-knB, cnOpt = symbols('knB cnOpt',real=True, positiv=True)   # rates of enzyme and biomass synthesis and maintenance respiration
+knB, cnOpt = symbols('knB cnOpt',real=True, positiv=True)   # proportion of enzyme tvr to DOM and biomass CN ratio   
 dE1 = knB*kN1*E1
 dE2 = knB*kN2*E2
 rMaint = m*B 

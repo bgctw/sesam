@@ -29,7 +29,7 @@ parms0 <- list(
         ,iS2 = 300         # g/m2 input per year (half NPP)
         #,plantNUp = 300/70*1/4  # plant N uptake balancing N inputs
         ,plantNUp = 0
-        ,useFixedAlloc=FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
+        ,useFixedAlloc=FALSE    ##<< set to true to use Fixed enzyme allocation (alpha = 0.5)
 )
 parms0 <- within(parms0,{
             km1 <- km2 <- km
@@ -53,13 +53,17 @@ x <- x0
 
 
 parmsScen <- list(
-        revenue = parms0
-        ,fixed = within(parms0, {isAlphaFix <- TRUE})
-        ,match = within(parms0, {isAlphaMatch <- TRUE})
+        Revenue = parms0
+        ,Fixed = within(parms0, {isAlphaFix <- TRUE})
+        ,Match = within(parms0, {isAlphaMatch <- TRUE})
 )
 
 # use the same colors in every graph - color-blind friendly
 myColors <- brewer.pal(5,"Dark2")
+.simpleCap <- function(s) {
+    paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
+}
+#names(myColors) <- .simpleCap(names(parmsScen))
 names(myColors) <- names(parmsScen)
 colScale <- scale_colour_manual(name = "Allocation",values = myColors)
 
@@ -69,9 +73,9 @@ simfCNGraph <- function(
 ){
     parms0F <- within(parms0,{    isFixedS <- TRUE; kNB = 0     })
     parmsScenF <- list(
-            revenue = parms0F
-            ,fixed = within(parms0F, {isAlphaFix <- TRUE})
-            ,match = within(parms0F, {isAlphaMatch <- TRUE})
+            Revenue = parms0F
+            ,Fixed = within(parms0F, {isAlphaFix <- TRUE})
+            ,Match = within(parms0F, {isAlphaMatch <- TRUE})
     )
     
     cnS1 <- 6.8
@@ -93,8 +97,9 @@ simfCNGraph <- function(
                 x0N["SN2"] <- x0N["S2"]/cnS2
                 times <- seq(0,10, length.out=101)
                 #times <- seq(0,10000, length.out=101)
-                #scen <- "match"
+                #scen <- "Match"
                 resL <- lapply( names(parmsScenF), function(scen){
+                #resL <- lapply( "Revenue", function(scen){
                             parmsInit <- parmsScenF[[scen]]
                             res <- res1 <- as.data.frame(lsoda( x0N, times, derivEezy5, parms=parmsInit))
                             xE <- unlist(tail(res,1))
@@ -107,25 +112,73 @@ simfCNGraph <- function(
             })
     resC <- resCAll <- do.call( rbind, resLC )
     resC <- subset(resCAll, cnS2 <= 50)
+    resC$MmImbMon <- resC$MmImb/12
+    resC$respOMon <- resC$respO/12
+
+    #p8a <- ggplot(subset(resC, scen=="Revenue"), aes(x=cnS2, y=isLimN)) + geom_line()
+    #p8a
+    resCRev <- subset(resC, scen=="Revenue")
+    cnTER <- resCRev$cnS2[ which.min( abs(1-resCRev$isLimN) ) ]
     
-    dsp <- melt(resC, id=c("cnS2","scen"), measure.vars=c("alpha","B","MmImb","respO"), variable_name="Measure")
-    #levels(dsp$Measure)
-    levels(dsp$Measure) <- c("alpha","Biomass (gC/m2)","Mineralization Imb (gN/m2/yr)","Overflow respiration (gC/m2/yr)")
+    dsp <- melt(resC, id=c("cnS2","scen"), measure.vars=c("MmImbMon","respOMon","alpha","B"), variable_name="Measure")
+    #levels(dsp$Measure) <- c("Allocation_Ratio (alpha)","Biomass (gC/m^2)","Mineralization[Imb] (gN/m^2/yr)","OverflowRespiration (gC/m2/yr)")
+    levels(dsp$Measure) <- c("Allocation to E_SOM (alpha)","Biomass (gC/m2)","Mineralization Imb (gN/m2/month)","OverflowRespiration (gC/m2/month)")
     p8 <- ggplot( dsp, aes(x=cnS2, y=value, col=scen) ) + geom_line(size=1) + 
-            facet_wrap(~Measure, scales = "free_y") + 
+            #facet_grid(Measure~., scales = "free", labeller= label_parsed ) + 
+            facet_wrap(~Measure, scales = "free_y" ) +
+            scale_x_continuous('C/N ratio of Lit') + 
+            #geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
             theme_bw(base_size=baseFontSize) +
             theme(axis.title.y = element_blank()) +
             theme()
     #twWin(6)
-    p8 + colScale 
+    p8 + colScale
+    
+
+    dsp <- melt(resC, id=c("cnS2","scen"), measure.vars=c("alpha","alphaC","alphaN","rNLim", "pCLim", "pNLim"), variable_name="Measure")
+    #levels(dsp$Measure) <- c("Allocation_Ratio (alpha)","Biomass (gC/m^2)","Mineralization[Imb] (gN/m^2/yr)","OverflowRespiration (gC/m2/yr)")
+    #levels(dsp$Measure) <- c("Allocation to E_SOM (alpha)","Biomass (gC/m2)","Mineralization Imb (gN/m2/month)","OverflowRespiration (gC/m2/month)")
+    p8a <- ggplot( dsp, aes(x=cnS2, y=value, col=scen) ) + geom_line(size=1) + 
+            #facet_grid(Measure~., scales = "free", labeller= label_parsed ) + 
+            facet_wrap(~Measure, scales = "free_y" ) +
+            scale_x_continuous('C/N ratio of Lit') + 
+            geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
+            theme_bw(base_size=baseFontSize) +
+            theme(axis.title.y = element_blank()) +
+            theme()
+    #twWin(6)
+    p8a 
+    
+    
+    dspC <- melt(subset(resC, scen=="Revenue"), id=c("cnS2"), measure.vars=c("effE1C","effE2C"), variable_name="Pool"); dspC$Element = "C"
+    levels(dspC$Pool) <- c("SOM","Lit")
+    dspN <- melt(subset(resC, scen=="Revenue"), id=c("cnS2"), measure.vars=c("effE1N","effE2N"), variable_name="Pool"); dspN$Element = "N"
+    levels(dspN$Pool) <- c("SOM","Lit")
+    dsp <- rbind(dspC, dspN)
+    #levels(dsp$Measure) <- c("Allocation_Ratio (alpha)","Biomass (gC/m^2)","Mineralization[Imb] (gN/m^2/yr)","OverflowRespiration (gC/m2/yr)")
+    #levels(dsp$Measure) <- c("Allocation ratio (alpha)","Biomass (gC/m2)","Mineralization Imb (gN/m2/month)","OverflowRespiration (gC/m2/month)")
+    p8b <- ggplot( dsp, aes(x=cnS2, y=value, col=Pool) ) + geom_line(size=1) + 
+            #facet_grid(Measure~., scales = "free", labeller= label_parsed ) + 
+            facet_wrap(~Element, scales = "free_y" ) +
+            scale_x_continuous('C/N ratio of Lit') +
+            geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
+            theme_bw(base_size=baseFontSize) +
+            #theme(axis.title.y = element_blank()) +
+            ylab("Revenue")
+            theme()
+    #twWin(6)
+    p8b 
+    
+    
+    
 }
 
 
 simInitSteady <- function(
     ### inspect approaching a steady state (or breakdown of biomass)
 ){
-    scen <- "revenue"
-    resAll <- lapply( c("revenue","fixed","match"), function(scen){
+    scen <- "Revenue"
+    resAll <- lapply( c("Revenue","Fixed","Match"), function(scen){
                 parmsInit <- parmsScen[[scen]]
                 times <- seq(0,70, length.out=101)
                 #times <- seq(0,10000, length.out=101)
@@ -155,8 +208,12 @@ simInitSteady <- function(
 simCO2Increase <- function(
     ### Simulated increase of C-input by 20% during years 10-60
 ){
-     #scen <- "revenue"
-     resAll <- lapply( c("revenue","fixed"), function(scen){
+     #scen <- "Revenue"
+    t1S <- 10
+    t2I = 50
+    t3S <- 50
+    fInputInc = 1.2
+    resAll <- lapply( c("Revenue","Fixed"), function(scen){
             parmsInit <- parmsScen[[scen]]
             # spinup run
             times <- seq(0,500, length.out=101)
@@ -167,12 +224,9 @@ simCO2Increase <- function(
             plotRes(res, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100"))
             
             # 10 yr steady state
-            t1S <- 10
             res <- res1S <- as.data.frame(lsoda( xE[1:length(x0)+1], 1:t1S, derivEezy5, parms=parmsInit))
             
             # 30 yr double C input    
-            t2I = 50
-            fInputInc = 1.2
             parmsC2 <- within(parmsInit, { # double as much C in 
                         iS2 <- iS2*fInputInc
                         cnIS2 <- cnIS2*fInputInc
@@ -187,7 +241,6 @@ simCO2Increase <- function(
             tmp <- derivEezy5(0, xE2[1:length(x0)+1], parmsC2)
             
             # 30 yr normal input
-            t3S <- 50
             times <- seq(0,t3S, length.out=101)
             res <- res3S <- as.data.frame(lsoda( xE2[1:length(x0)+1], times, derivEezy5, parms=parmsInit))
             res3S$time <- res3S$time +t1S + t2I
@@ -202,16 +255,33 @@ simCO2Increase <- function(
     resScen <- do.call( rbind, resAll)
 
     dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("S1","S2"),variable_name="Pool")
-    dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","revenue"))
+    dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
     #names(dsp)[names(dsp)=="scen"] <- "Allocation"
-    #p1 <- ggplot( dsp, aes(x=time, y=value, fill=Pool, lty=scen)) + geom_area() 
-    
+    #p1 <- ggplot( dsp, aes(x=time, y=value, fill=Pool, lty=scen)) + geom_area()
+
     p2 <- ggplot( dsp, aes(x=time, y=value, lty=Pool, col=Allocation)) + geom_line(size=1) + 
             xlab("Time (yr)")+ ylab("Carbon stock (gC/m2)") +
             theme_bw(base_size=baseFontSize) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
     p2 + colScale
+    
+    dsCN <- data.frame( time=1:(t1S+t2I+t3S), iS2=parmsScen[["Revenue"]]$iS2 )
+    dsCN[ dsCN$time %in% (t1S+1):(t1S+t2I),"iS2"] <- parmsScen[["Revenue"]]$iS2 * fInputInc
+
+    p2b <- ggplot( dsCN, aes(x=time, y=iS2)) + geom_line(size=1) + 
+            xlab("Time (yr)")+ ylab("Input") + ylim(c(0,400)) +
+            theme_bw(base_size=baseFontSize) +
+            #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
+            theme()
+    p2b
+    
+    .tmp.f <- function(){
+        dsCN$graph <- "Litter C Input"
+        dsp2 <- dsp
+        dsp2$graph <- "Substrate Pools"
+        dspM <- rbind( dsCN)
+    }
 }
     
 
@@ -220,8 +290,8 @@ simCO2Increase <- function(
 simPriming <- function(
 ### Simulated decrease of input to 1/100 during years 10-210
 ){
-    #scen <- "revenue"
-    resAll <- lapply( c("revenue","fixed"), function(scen){
+    #scen <- "Revenue"
+    resAll <- lapply( c("Revenue","Fixed"), function(scen){
                 parmsInit <- parmsScen[[scen]]
                 
                 # 500 yr decreased C input    
@@ -266,20 +336,20 @@ simPriming <- function(
             })
     resScen <- do.call( rbind, resAll)
     
-    dsp <- melt( subset(resScen, time < 8), id=c("time","scen"), measure.vars=c("decC1c","decC1p"),variable_name="DecC1")
-    dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","revenue"))
-    levels(dsp$DecC1) <- c("control","amended")
-    p3p <- ggplot( dsp, aes(x=time, y=value, lty=DecC1, col=Allocation)) + geom_line(size=1) + 
-            xlab("Time (yr)")+ ylab("S1 Decompos. (gC/m2/yr)") +
+    dsp <- melt( subset(resScen, time < 8), id=c("time","scen"), measure.vars=c("decC1c","decC1p"),variable_name="Treatment")
+    dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
+    levels(dsp$Treatment) <- c("No Litter input","Litter input pulse")
+    p3p <- ggplot( dsp, aes(x=time, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
+            xlab("Time (yr)")+ ylab("SOM Decompos. (gC/m2/yr)") +
             theme_bw(base_size=baseFontSize) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
     p3p + colScale
     
-    dsp <- melt( subset(resScen, time < 8), id=c("time","scen"), measure.vars=c("Mmc","Mmp"),variable_name="Mm")
-    dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","revenue"))
-    levels(dsp$Mm) <- c("control","amended")
-    p3p <- ggplot( dsp, aes(x=time, y=value, lty=Mm, col=Allocation)) + geom_line(size=1) + 
+    dsp <- melt( subset(resScen, time < 8), id=c("time","scen"), measure.vars=c("Mmc","Mmp"),variable_name="Treatment")
+    dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
+    levels(dsp$Treatment) <- c("No Litter input","Litter input pulse")
+    p3p <- ggplot( dsp, aes(x=time, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
             xlab("Time (yr)")+ ylab("Mineralization (gN/m2/yr)") +
             theme_bw(base_size=baseFontSize) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
@@ -291,8 +361,8 @@ simPriming <- function(
 simBareSoil <- function(
 ### Simulated decrease of input to 1/100 during years 10-210
 ){
-    #scen <- "revenue"
-    resAll <- lapply( c("revenue","fixed"), function(scen){
+    #scen <- "Revenue"
+    resAll <- lapply( c("Revenue","Fixed"), function(scen){
                 parmsInit <- parmsScen[[scen]]
                 # spinup run
                 times <- seq(0,500, length.out=101)
@@ -337,10 +407,10 @@ simBareSoil <- function(
                 resc
             })
     resScen <- do.call( rbind, resAll)
-    resScen$Allocation <- factor(resScen$scen, levels=c("fixed","match","revenue"))
+    resScen$Allocation <- factor(resScen$scen, levels=c("Fixed","Match","Revenue"))
     
     dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("S1","S2"),variable_name="Pool")
-    dsp$Allocation <- factor(dsp$scen, levels=c("fixed","match","revenue"))
+    dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
     #names(dsp)[names(dsp)=="scen"] <- "Allocation"
     #p1 <- ggplot( dsp, aes(x=time, y=value, fill=Pool, lty=scen)) + geom_area() 
     

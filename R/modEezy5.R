@@ -118,16 +118,18 @@ derivEezy5 <- function(t,x,parms){
     }
     synBC <- synB       # used in calculation of alpha
     uNReq <- synE/cnE + synB/parms$cnB
-    effE1 <- (decC1/cnS1)/(uscE1/parms$cnE1)
-    effE2 <- (decC2/cnS2)/(uscE2/parms$cnE2)
-    alphaN <- effE1/(effE1 + effE2)
+    effE1N <- (decC1/cnS1)/(uscE1/parms$cnE1)
+    effE2N <- (decC2/cnS2)/(uscE2/parms$cnE2)
+    alphaN <- effE1N/(effE1N + effE2N)
+    uNSynB <- uN - synE/cnE  
+    synBN <- uNSynB*parms$cnB  # C for both growth and growth respiration
+    uCReq <- (synE + synBN)/parms$eps + respMaint  
     if( uN < uNReq ){
         # N limitation
+        synB <- synBN
         # average cnE reqruired according to enzyme allocation accoording to N efficiencies
         #cnE <- alpha*parms$cnE1 + (1-alpha)*parms$cnE2
         #synE <- min( uC*parms$aE, uN*cnE )
-        uNSynB <- uN - synE/cnE  
-        synB <- uNSynB*parms$cnB  # C for both growth and growth respiration
         if( synB > 0){
             respSynB <- (1-parms$eps)/parms$eps*synB
         }else{
@@ -142,10 +144,14 @@ derivEezy5 <- function(t,x,parms){
     MmTvr <- (1-parms$epsTvr)*tvrB/parms$cnB
     Mm <- MmImb + MmTvr
     #
-    pNLim <- (uNReq/uN)^20
-    pCLim <- ((uC+respO)/uC)^20
-    #alpha <- pCLim*alphaC + pNLim*alphaN / (pCLim + pNLim)
-    alpha <- (pCLim*alphaC + pNLim*alphaN) / (pCLim + pNLim)
+    pNLim <- (uNReq/uN)
+    #pCLim <- ((uC+respO)/uC)  # wrong
+    #pCLim <- (uC/(uC+respO))
+    pCLim <- uCReq/uC
+    pCLimExp <- pCLim^200
+    pNLimExp <- pNLim^200
+    alpha <- (pCLimExp*alphaC + pNLimExp*alphaN) / (pCLimExp + pNLimExp)
+    #alpha <- if( uN < uNReq ) alphaN else alphaC   # solver cannot integrate
     if( isTRUE(parms$isAlphaMatch) ){
         synB0 <- max(0, synBC)
         #cnOpt <- (parms$cnE*synE + parms$cnB*synB0)/(synE+synB0)  # optimal biomass ratio
@@ -204,12 +210,15 @@ derivEezy5 <- function(t,x,parms){
     list( resDeriv, c(respO=as.numeric(respO)
         , Mm=as.numeric(Mm), MmImb=as.numeric(MmImb), MmTvr=as.numeric(MmTvr)  
         , alpha=as.numeric(alpha)
+        , alphaC=as.numeric(alphaC), alphaN=as.numeric(alphaN)
         , isLimN=as.numeric(uNReq/uN), uNReq=as.numeric(uNReq), uN=as.numeric(uN)
         , cnS1=as.numeric(cnS1), cnS2=as.numeric(cnS2)
         , limE1=as.numeric(limE1), limE2=as.numeric(limE2)
         , decC1=as.numeric(decC1), decC2=as.numeric(decC2)
         , resp=as.numeric(resp), respB=as.numeric(respB), respTvr=as.numeric(respTvr)
         , tvrB=as.numeric(tvrB)
+        , effE1C=as.numeric(effE1), effE2C=as.numeric(effE2), effE1N=as.numeric(effE1N), effE2N=as.numeric(effE2N)
+        , rNLim = as.numeric(pNLimExp/(pNLimExp+pCLimExp)), pCLim=as.numeric(pCLim), pNLim=as.numeric(pNLim)
     ))
 }
 

@@ -1,0 +1,179 @@
+\section{\\ \\ \hspace*{-7mm}  SEAM equations \label{app:SEAM}}    %% Appendix A
+
+\subsection{Carbon fluxes}
+\begin{subequations}
+\label{eq:SEAM}
+\begin{align}
+\frac{dB}{dt} &= \operatorname{syn}_B - \operatorname{tvr}_B \\
+\frac{dE_R}{dt} &= \alpha \, \operatorname{syn}_E - \operatorname{tvr}_{ER} \\
+\frac{dE_L}{dt} &= (1 - \alpha)  \, \operatorname{syn}_E -\operatorname{tvr}_{EL}\\
+\frac{dR}{dt} &=  - \operatorname{dec}_R +
+\epsilon_{\operatorname{tvr}}  \operatorname{tvr}_B + (1 -k_{NB})
+(\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})\\
+\frac{dL}{dt} &=  - \operatorname{dec}_L + \operatorname{input}_L
+\text{,} 
+\end{align}
+\end{subequations}
+where $k_{NB}$ is the fraction of enzyme turnover that is transferred to the
+DOM instead of the $R$ pool, and $\operatorname{input}_L$ is the carbon input
+to the system. The specific fluxes are detailed below.
+
+Total enzyme production $\operatorname{syn}_E$, maintenance respiration
+$\operatorname{r}_{M}$, and microbial turnover $\operatorname{tvr}_B$ are
+modelled as a first order kinetics of biomass:
+\begin{subequations}
+\begin{align}
+\label{eq:synE} \operatorname{syn}_E &= a_E B \\
+\label{eq:rM} \operatorname{r}_{M} &= m B \\
+\label{eq:tvrB} \operatorname{tvr}_B &= \tau B 
+\end{align}
+\end{subequations}
+% \begin{equation}
+% \end{equation}
+
+Enzyme turnover ($\operatorname{tvr}_{ER}$ and $\operatorname{tvr}_{EL}$) is
+modelled as first order kinetics of enzyme levels.
+\begin{equation}
+\label{eq:tvrE}
+\operatorname{tvr}_{ES} = k_{NS} E_S \text{,}
+\end{equation}
+where $S$ represents either labile $L$ or residue $R$ substrate pools.  
+
+% \begin{subequations}
+% \begin{align}
+% \operatorname{tvr}_{ER} &= k_{NR} E_R \\
+% \operatorname{tvr}_{EL} &= k_{NL} E_L
+% \end{align}
+% \end{subequations}
+% 
+Substrate depolymerization is modelled first order to substrate
+availability an with a saturating Michaelis-Menten kinetics to enzyme levels:
+\begin{equation}
+\label{eq:dec}
+dec_S = k_S S \frac{E_S}{k_{m,S} + E_S} 
+\end{equation}
+ 
+The DOM pool is assumed to be in fast quasi steady state and all the sum of all
+influxes to the DOM pool (decomposition + part of the enzyme turnover) is taken
+up by microbial community.
+\begin{equation}
+\label{eq:uC}
+u_C = \operatorname{dec}_L + \operatorname{dec}_R +  k_{NB}
+(\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})
+\end{equation}
+
+\subsection{Carbon vs. Nitrogen limited microbes}
+Under carbon limitation, carbon available for synthesis of new biomass,
+$C_{\operatorname{synBC}}$, is the difference between carbon uptake and expenses
+for enzyme synthesis (eq. \ref{eq:synE}) and maintenance respiration (eq.
+\ref{eq:rM}). If this balance is positive, only a fraction $\epsilon$, the
+intrinsic microbial carbon use efficiency, is used for growth and the rest is
+required for catabolic growth respiration $r_G$ to support this synthesis.
+The model assumes that requirements for enzyme synthesis and maintenance must be
+met. Hence, the balance can become negative and microbial biomass starves and
+declines.
+\begin{subequations}
+\label{eq:synB}
+\begin{align}
+\label{eq:synBC} C_{\operatorname{synBC}} &= u_C -
+\operatorname{syn}_E/\epsilon - \operatorname{r}_{M} \\
+\label{eq:NCLim} C_{\operatorname{synB}} &=
+min(C_{\operatorname{synBC}},N_{\operatorname{synBN}}/\beta_B)\\
+\operatorname{syn}_B &= \begin{cases}
+  \epsilon \, C_{\operatorname{synB}},  & \text{if} C_{\operatorname{synB}} >
+  0\\
+  C_{\operatorname{synB}}, & \text{else}
+\end{cases} \\  
+\operatorname{r}_G &= \begin{cases}
+  (1 - \epsilon) \, C_{\operatorname{synB}},  & \text{if}
+  C_{\operatorname{synB}} > 0\\
+  0, & \text{else ,}
+\end{cases}  
+\end{align}
+\end{subequations}
+
+where $N_{\operatorname{synBN}}$ is the nitrogen available for biomass synthesis
+(eq. \ref{eq:synBN}). If is $N_{\operatorname{synBN}}$ smaller than required for
+C-limited biomass synthesis ($N_{\operatorname{synBN}} / \beta_B <
+C_{\operatorname{synBC}}$), then microbial biomass is nitrogen limited and less
+carbon is used for biomass synthesis than available (eq. \ref{eq:NCLim}).  
+
+\subsection{Nitrogen fluxes}
+Nitrogen fluxes and pools are derived by deviding the respective fluxes with the
+C/N ratio, $\beta$, of their source.
+
+The C/N ratio $\beta$ of the microbial biomass and of the enzymes,
+are fixed. The C/N ratio of the litter pools, however, my change over time and
+the N pools are modelled explicitely.
+\begin{subequations}
+\label{eq:SEAMN}
+\begin{align}
+\frac{dR_N}{dt} &=  - \operatorname{dec}_R /\beta_{R} +
+\epsilon_{\operatorname{tvr}} \operatorname{tvr}_B /\beta_{B} + \notag \\
+& \qquad (1 -k_{NB}) (\operatorname{tvr}_{ER} +
+\operatorname{tvr}_{EL})/\beta_{E}   \\
+\frac{dL_N}{dt} &=  - \operatorname{dec}_L /\beta_{L} +
+\operatorname{input}_L/\beta_{\operatorname{input}}
+\text{,} 
+\end{align}
+\end{subequations}
+
+Nitrogen uptake is the sum of influxes to the DOM pool. 
+\begin{equation}
+\label{eq:uN}
+u_N = \operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R +  k_{NB}
+(\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})/\beta_E
+\text{,}
+\end{equation}
+where C/N ratios $\beta_L$ and $\beta_R$ are calculated based on current carbon
+and nitrogen substrate pools.
+
+The nitrogen available for biomass synthesis is the difference of nitrogen
+uptake and expenses for enzyme synthesis.
+\begin{equation}
+\label{eq:synBN}
+N_{\operatorname{synBN}} &= u_N - \operatorname{syn}_E/\beta_E \text{,}
+\end{equation}
+
+\subsection{Imbalance and turnover mineralization fluxes}
+The excess carbon is respired by overflow respiration, $r_O$, and the excess
+nitrogen is mineralized, $M_\operatorname{Imb}$, so that the mass
+balance is closed.
+\begin{subequations}
+\label{eq:imbalance}
+\begin{align}
+r_O &= u_C - (\operatorname{syn}_E/\epsilon  + \operatorname{syn}_B +
+\operatorname{r}_G + r_M )\\
+M_\operatorname{Imb} &= u_N - (\operatorname{syn}_E/\beta_E +
+\operatorname{syn}_B/\beta_B)
+\end{align}
+\end{subequations}
+
+In addition, a part of microbial biomass is mineralized during microbial
+turnover, e.g. by predation. A part $(1-\epsilon_\operatorname{Tvr})$ of the
+biomass is used for catabolic respiration. With assuming that predator biomass
+elemental ratios do not differ very much from the one of microbial biomass, a
+respecitve proportion of the nitrogen must be mineralized. 
+\begin{subequations}
+\label{eq:tvrB}
+\begin{align}
+r_\operatorname{Tvr} &= (1-\epsilon_{\operatorname{Tvr}}) \,
+\operatorname{tvr}_B
+\\
+M_\operatorname{Tvr} &= (1-\epsilon_{\operatorname{Tvr}}) \,
+\operatorname{tvr}_B / \beta_B
+\end{align}
+\end{subequations}
+
+A part of the microbial turnover enters the DOM pool again and is taken up again
+to microbial biomass. The increased uptake nearly cancels with an increased
+turnover. Hence, the shortcut loop is not explicitely considered in the model
+so that fewer model parameters are required.
+Note, however, that turnover, uptake, and carbon use efficiency in the model
+are slightly lower than in the real system where this shortcut operates. 
+
+
+\section{\\ \\ \hspace*{-7mm}  SEAM equations \label{app:fAlphaFix}}    %%
+% Appendix B
+
+
