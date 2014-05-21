@@ -1,11 +1,18 @@
+isPaperBGC <- ("paperBGC" %in% commandArgs(trailingOnly = TRUE))
+#isPaperBGC <- TRUE
+
 # simulating CO2 increase and bare soil, based on modEezy5
+baseFontSize <- 16  # presentations
 # based on 
+if( isPaperBGC){
+    library(twDev)
+    loadPkg()
+    baseFontSize <- 10  # pubs
+}
 library(ggplot2)
 library(reshape)  # melt
 library(RColorBrewer) # brewer.pal
 
-baseFontSize <- 10  # pubs
-baseFontSize <- 16  # presentations
 
 # gC/m2 and gN/m2, /yr
 parms0 <- list(
@@ -120,13 +127,13 @@ simfCNGraph <- function(
     resCRev <- subset(resC, scen=="Revenue")
     cnTER <- resCRev$cnS2[ which.min( abs(1-resCRev$isLimN) ) ]
     
-    dsp <- melt(resC, id=c("cnS2","scen"), measure.vars=c("MmImbMon","respOMon","alpha","B"), variable_name="Measure")
+    dsp <- melt(resC, id=c("cnS2","scen"), measure.vars=c("alpha","B","MmImbMon","respOMon"), variable_name="Measure")
     #levels(dsp$Measure) <- c("Allocation_Ratio (alpha)","Biomass (gC/m^2)","Mineralization[Imb] (gN/m^2/yr)","OverflowRespiration (gC/m2/yr)")
-    levels(dsp$Measure) <- c("Allocation to E_SOM (alpha)","Biomass (gC/m2)","Mineralization Imb (gN/m2/month)","OverflowRespiration (gC/m2/month)")
+    levels(dsp$Measure) <- c("Allocation to R (alpha)","Biomass (gC/m2)","Min Imb (gN/m2/month)","Overflow (gC/m2/month)")
     p8 <- ggplot( dsp, aes(x=cnS2, y=value, col=scen) ) + geom_line(size=1) + 
             #facet_grid(Measure~., scales = "free", labeller= label_parsed ) + 
             facet_wrap(~Measure, scales = "free_y" ) +
-            scale_x_continuous('C/N ratio of Lit') + 
+            scale_x_continuous('C/N ratio of Litter') + 
             #geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
             theme_bw(base_size=baseFontSize) +
             theme(axis.title.y = element_blank()) +
@@ -134,6 +141,11 @@ simfCNGraph <- function(
     #twWin(6)
     p8 + colScale
     
+    if (isPaperBGC){
+        twWin(width=3.3, height=2.8, pointsize=9, pdf="soilPaper14/fig/VarNNoFeedback.pdf")
+        p8 + colScale + theme(legend.position = c(0.9,0.5), legend.justification=c(1,1)) 
+        dev.off()
+    }
 
     dsp <- melt(resC, id=c("cnS2","scen"), measure.vars=c("alpha","alphaC","alphaN","rNLim", "pCLim", "pNLim"), variable_name="Measure")
     #levels(dsp$Measure) <- c("Allocation_Ratio (alpha)","Biomass (gC/m^2)","Mineralization[Imb] (gN/m^2/yr)","OverflowRespiration (gC/m2/yr)")
@@ -190,14 +202,22 @@ simInitSteady <- function(
     
     dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("S1","S2"),variable_name="Pool")
     names(dsp)[names(dsp)=="scen"] <- "Allocation"
+    levels(dsp$Pool) <- c("R","L")
     #p1 <- ggplot( dsp, aes(x=time, y=value, fill=Pool, lty=scen)) + geom_area() 
     
     p1 <- ggplot( dsp, aes(x=time, y=value, lty=Pool, col=Allocation)) + geom_line(size=1) + 
-            xlab("Time (yr)")+ ylab("Carbon stock (gC/m2)") +
             theme_bw(base_size=baseFontSize) +
-            ylim(c(300,600))
+            ylim(c(300,600)) +
+            labs(x="Time (yr)", y="Carbon stock (gC/m2)", linetype="Substrate pool") +
             theme()                
     p1+ colScale
+    
+    if (isPaperBGC){
+        twWin(width=3.3, height=2, pointsize=9, pdf="soilPaper14/fig/SimSteady.pdf")
+        p1 + colScale #+ theme(legend.position = c(0.9,1.05), legend.justification=c(1,1)) 
+        dev.off()
+    }
+    
     
 }
 
@@ -252,17 +272,26 @@ simCO2Increase <- function(
     resScen <- do.call( rbind, resAll)
 
     dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("S1","S2"),variable_name="Pool")
+    levels(dsp$Pool) <- c("R","L")
     dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
     #names(dsp)[names(dsp)=="scen"] <- "Allocation"
     #p1 <- ggplot( dsp, aes(x=time, y=value, fill=Pool, lty=scen)) + geom_area()
 
     p2 <- ggplot( dsp, aes(x=time, y=value, lty=Pool, col=Allocation)) + geom_line(size=1) + 
-            xlab("Time (yr)")+ ylab("Carbon stock (gC/m2)") +
+            xlab("Time (yr)")+ ylab("Carbon stock (gC/m2)") + labs(linetype="Substrate pool") +
             theme_bw(base_size=baseFontSize) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
     p2 + colScale
     
+    if (isPaperBGC){
+        twWin(width=3.3, height=2, pointsize=9, pdf="soilPaper14/fig/CO2Increase.pdf")
+        p2 + colScale #+ theme(legend.position = c(0.9,1.05), legend.justification=c(1,1)) 
+        dev.off()
+    }
+    
+    
+    # graph of inputs
     dsCN <- data.frame( time=1:(t1S+t2I+t3S), iS2=parmsScen[["Revenue"]]$iS2 )
     dsCN[ dsCN$time %in% (t1S+1):(t1S+t2I),"iS2"] <- parmsScen[["Revenue"]]$iS2 * fInputInc
 
@@ -272,6 +301,30 @@ simCO2Increase <- function(
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()
     p2b
+    
+    # imbalance fluxes
+    dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("respO","MmImb"),variable_name="Pool")
+    levels(dsp$Pool) <- c("Overflow respiration","N Mineralization")
+    #dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("resp","respO","Mm","MmImb","B","SN1"),variable_name="Pool")
+    dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
+    #names(dsp)[names(dsp)=="scen"] <- "Allocation"
+    #p1 <- ggplot( dsp, aes(x=time, y=value, fill=Pool, lty=scen)) + geom_area()
+    
+    p2 <- ggplot( dsp, aes(x=time, y=value, col=Allocation)) + geom_line(size=1) +
+            facet_grid(Pool ~ .,scales="free_y") + 
+            xlab("Time (yr)")+ ylab("Imbalance flux (g(C or N)/m2/yr)") + labs(linetype="Ouput fluxes") +
+            theme_bw(base_size=baseFontSize) +
+            #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
+            theme(legend.position = c(0.95,1.0), legend.justification=c(1,1)) +
+            theme()                
+    p2 + colScale
+
+    if (isPaperBGC){
+        twWin(width=3.3, height=2.8, pointsize=9, pdf="soilPaper14/fig/CO2IncreaseImb.pdf")
+        p2 + colScale  
+        dev.off()
+    }
+    
     
     .tmp.f <- function(){
         dsCN$graph <- "Litter C Input"
@@ -337,11 +390,18 @@ simPriming <- function(
     dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
     levels(dsp$Treatment) <- c("No Litter input","Litter input pulse")
     p3p <- ggplot( dsp, aes(x=time, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
-            xlab("Time (yr)")+ ylab("SOM Decompos. (gC/m2/yr)") +
+            xlab("Time (yr)")+ ylab("R Decompos. (gC/m2/yr)") +
             theme_bw(base_size=baseFontSize) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
     p3p + colScale
+    
+    if (isPaperBGC){
+        twWin(width=3.3, height=2, pointsize=9, pdf="soilPaper14/fig/PrimingDec.pdf")
+        p3p + colScale #+ theme(legend.position = c(0.9,1.05), legend.justification=c(1,1)) 
+        dev.off()
+    }
+    
     
     dsp <- melt( subset(resScen, time < 8), id=c("time","scen"), measure.vars=c("Mmc","Mmp"),variable_name="Treatment")
     dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
@@ -352,6 +412,12 @@ simPriming <- function(
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
     p3p + colScale
+
+    if (isPaperBGC){
+        twWin(width=3.3, height=2, pointsize=9, pdf="soilPaper14/fig/PrimingMin.pdf")
+        p3p + colScale #+ theme(legend.position = c(0.9,1.05), legend.justification=c(1,1)) 
+        dev.off()
+    }
     
 }
 
@@ -431,4 +497,33 @@ simBareSoil <- function(
 
 
 
+
+#isPaperBGC <- TRUE
+if (isPaperBGC){
+    twWin(width=3.3, height=2.8, pointsize=9)
+    p <- simfCNGraph()    
+    
+    plotTExWeigh(doMCMC=FALSE)
+    savePlot("paperOverfitting/fig/twoMeansBigBias.emf",type="emf")
+    #ggsave("paperOverfitting/fig/twoMeansBigBias.emf")
+    twWin(width=3.3, height=2.8, pointsize=9, pdf="paperOverfitting/fig/VarNNoFeedback.pdf")
+    plotTExWeigh(doMCMC=FALSE)
+    dev.off()
+    
+    twWin(width=3.3, height=2.8, pointsize=9)
+    plotTExWeigh(mks=c(-0.3, +0.3)/2.99, doMCMC=FALSE)
+    savePlot("paperOverfitting/fig/twoMeansSmallBias.emf",type="emf")
+    twWin(width=3.3, height=2.8, pointsize=9, pdf="paperOverfitting/fig/twoMeansSmallBias.pdf")
+    plotTExWeigh(mks=c(-0.3, +0.3)/2.99, doMCMC=FALSE)
+    #plotTExWeigh(mks=c(-0.3, +0.3)/2.99, doMCMC=TRUE)
+    dev.off()
+    
+    twWin(width=3.3, height=2.8, pointsize=9)
+    plotTExWeigh(sd0=c(1,1.5), doMCMC=FALSE)
+    savePlot("paperOverfitting/fig/twoMeansDiffVariance.emf",type="emf")
+    twWin(width=3.3, height=2.8, pointsize=9, pdf="paperOverfitting/fig/twoMeansDiffVariance.pdf")
+    plotTExWeigh(sd0=c(1,1.5), doMCMC=FALSE)
+    #plotTExWeigh(sd0=c(1,1.5), doMCMC=TRUE)
+    dev.off()
+}
 

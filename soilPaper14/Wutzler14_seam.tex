@@ -117,7 +117,23 @@ investments into production of enzymes targeting the nitrogen rich $R$ substrate
 and proportion $1 - \alpha$ into production of enzymes targeting the nitrogen
 poor but betteer degradable $L$ substrate.
 
-The \textbf{fixed} strategy assumes that allocation is independent
+\begin{table}[t]
+\caption{Simulation scenarios \label{tab:AllocStrategies}}
+\vskip4mm
+\centering
+\begin{tabular}{ll}
+\tophline
+Strategy &  Allocation is \\
+\middlehline
+Fixed & independent, constant \\
+Match & adjusted to achieve balanced growth \\
+Revenue & proportional to return per investments into enzymes \\
+\bottomhline
+\end{tabular}
+\end{table}
+
+
+The \textbf{Fixed} strategy assumes that allocation is independent
 and not changing with changes in substrat availability. 
 \begin{equation}
 \label{eq:allocFixed}
@@ -126,21 +142,24 @@ and not changing with changes in substrat availability.
 This strategy corresponds to the models where decomposition rate is a function
 of microbial biomass \citep{Wutzler08}.
  
-The \textbf{match} strategy assumes that microbes balance their stoichiometric
+The \textbf{Match} strategy assumes that microbes balance their stoichiometric
 demands \citep{Moorhead12}. The partitioning coefficient is derived by equating
 the C/N ratio of the sum of decomposition fluxes and the C/N ratio of microbial
-biomass and solving for $\alpha$.
+biomass, $\beta_B$.
 \begin{equation}
 \label{eq:allocMatchCN}
-\beta_B &= \frac{\epsilon (\operatorname{dec}_L + \operatorname{dec}_R - r_M)}{
-\operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R } \text{,}\\
+\frac{\epsilon (\operatorname{dec}_L + \operatorname{dec}_R - r_M)}{
+\operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R } = \beta_B
+\text{,}
 \end{equation}
 where $\operatorname{dec}_L$, and $\operatorname{dec}_R$ are
 depolymerization fluxes of the labile and residue substrates
-respectively, $r_M$ is maintenance respiration, $\epsilon$ is the intrinsic microbial efficiency, and $\beta$ are C/N ratio of
+respectively, $r_M$ is maintenance respiration, $\epsilon$ is the 
+intrinsic microbial efficiency, and $\beta$ are C/N ratio of
 the respective pools i.
-In the derivation, the enzyme levels have been assumed in steady state for given
-amounts of substrate and microbial biomass.
+When enzyme levels are assumed to be in steady state for
+given amounts of substrate and microbial biomass, then equation
+\ref{eq:allocMatchCN} can be solved for allocation paritioning, $\alpha$.
 \begin{equation}
 \label{eq:allocMatch}
 \alpha_M &= f_{\operatorname{{\alpha}Fix}}(L,\beta_L,R,\beta_R,B); \,
@@ -152,13 +171,13 @@ amounts of substrate and microbial biomass.
 \end{equation}
 The bounds to zero and one are necessary because the sole
 allocation to decompose the carbon rich substrate may not suffice to
-cover microbial carbon demands. Then nitrogen mineralization
-has to balance the stoichiometric imbalance. 
+cover microbial carbon demands and solving eq. \ref{eq:allocMatchCN} for
+$\alpha$ then leads to unreasonable solutions.
 Function $f_{\operatorname{{\alpha}Fix}}$ is given in appendix
 \ref{app:fAlphaFix} and the sympy script of its 
 derivation is given with supplementory material. 
 
-The \textbf{revenue} strategy assumes that microbes invest into enzyme
+The \textbf{Revenue} strategy assumes that microbes invest into enzyme
 production porportional to their revenue, i.e. their return per investment
 regarding the currently limiting element.
 
@@ -213,26 +232,244 @@ where $\delta$ controls the steepness of the transition between the two
 limitations. It was arbitrarily set to a value of 200.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 \subsection{ Simulation scenarios 
 \label{sec:SimScen}}
 
+The consequences of different microbial enzyme allocation strategies for SOM
+dynamics are explored by several simulation scenarios (Table \ref{tab:SimScen}). 
+All scenarios used parameter values are given in Table \ref{tab:pars}, if not
+stated otherwise below. We chose a very low minimum turnover time of the
+residue SOM pool of 10 years in order to demonstrate and plot changes together
+with the faster litter pool.
+
+\begin{table}[t]
+\caption{Simulation scenarios \label{tab:SimScen}}
+\vskip4mm
+\centering
+\begin{tabular}{lp{5.3cm}}
+\tophline
+Scenario & Explored issue\\
+\middlehline
+VarN-Incubation & Efficieny of using given fixed substrate levels that
+vary by N content \\
+Feedback-Steady & Possibility and size of steady state substrate pools\\
+Priming & Increased substrate decomposition and mineralization after
+addition of fresh litter\\
+CO2-Fertilization & SOM dynamics after increased carbon inputs\\
+\bottomhline
+\end{tabular}
+\end{table}
+
+The \textbf{VarN-Incubation} scenario explored how substrates of given
+stoichiometry are used more or less efficiently with different enzyme allocation
+scenarios. It used a simplified model where all the inputs and feedbacks to the
+substrate pools ($L$ and $R$) were neglected and these pools were kept constant
+($dL/dt = dR/dt = 0$). We reported the values and fluxes after Hence it
+simulates the microbes and enzyme levels have grown into a quasi steady state
+with the given substrate supply. Hence, it simulated the end of a short term
+incubation. Can microbes adapt their allocation to the given resource
+stoichiometries and grow in a balanced fashion where they do not need to discard
+excess carbon or nitrogen?
+
+Specifically, we fixed substrate carbon stocks to $L=400 gC/m^2$ and
+$R=800gC/m^2$. C/N ratio of the residue pool was set to $\beta_R=6.8$, and the
+we explored steady state conditions for a range of C/N ratios for the litter
+($\beta_L = [18,..,42]$). 
+
+The \textbf{Feedback-Steady} scenario explored the long term trajectories of
+the entire system including feedbacks to the subsrate pools. Specifically, litter
+input was set to $\operatorname{input}_L = 300 gC/m^2/yr$ with C/N ratio
+$\beta_{\operatorname{input}_L} = 30$. Does the system reach a steady state for
+given litter inputs? How much microbial biomass can be sustained?
+
+The \textbf{Priming} scenario explored the effect of rhizosphere priming, i.e
+the input of fresh carbon into a bulk subsoil. It looked at the fluxes during
+the time the addition of $50 g$ of litter on a soil that otherwise
+received a litter input of only $0.3 gC/m^2/yr$. Is there an increased
+depolymerization of the residue pool? Are there changes in nitrogen
+mineralization?
+
+The \textbf{CO2-Fertilization} scenario explored the effect of continuous
+increased carbon litter input that is expected with elevated athmospheric CO2.
+It started from steady state for a litter input of $\operatorname{input}_L = 300
+gC/m^2/yr$ with C/N ratio $\beta_{\operatorname{input}_L} = 30$. During period
+years 10 to 60, the carbon input, and hence also the C/N ratio was increased by
+20\%, and returned to normal for the next 50 years. Do all the pools increase
+due to the increased input? Can the microbes use the Nitrogen stored in the $R$
+pool to make better use of the increased carbon availability?
 
 \section{Results}
 
+With the \textbf{VarN-Incubation} scenario, there were differences among
+allocation strategies for the dependence of allocation $\alpha$ on the nitrogen
+content of the litter substrate. These caused marked changes in
+biomass and imbalance fluxes (Fig.
+\ref{fig:VarNNoFeedback}).
+
+\begin{figure}[t]
+\vspace*{2mm}
+\begin{center}
+\includegraphics[width=8.3cm]{fig/VarNNoFeedback}
+\end{center}
+\caption{Allocation partitioning,
+microbial biomass stocks, and imbalance N and C
+fluxes at steady state with the VarN-Incubation scenario.
+\label{fig:VarNNoFeedback}}
+\end{figure}
+
+With the Match strategy, when the litter contained enough N, all resources were
+invested into litter degrading enzymes. This allowed a balanced growth without
+stoichiometric imbalance fluxes, i.e. mineralization of excess N or overflow
+respiration of excess C, across a wide range of litter C/N
+ratios (20 to 42).
+It also allowed higher microbial biomass stocks for litter C/N ratio below
+35 than with the Fixed stratey. However, although the
+substrate was used more efficiently, biomass stocks were lower for litter
+CN-ratios below 24. This was because we prescribed smaller stocks of litter,
+$L$ than residue substrate, $R$.
+
+With the Revenue strategy enzyme allocation also varied with litter N content.
+However, under conditions where L contained enough N, about 30\% of the efforts
+were invested into R degrading enzymes. This resulted in excretion of
+excess N, but in turn allowed for a higher microbial biomass. Imbalance fluxes,
+were smaller than with the Fixed strategy.
+
+When including feedbacks to the substrate pools within the model with the
+\textbf{SimSteady} scenario, substrate pools approached steady state with the
+Fixed and the Revenue strategies, but there was no reasonable steady state for
+the Match strategy (Fig. \ref{fig:SimSteady}).
+
+\begin{figure}[t]
+\vspace*{2mm}
+\begin{center}
+\includegraphics[width=8.3cm]{fig/SimSteady}
+\end{center}
+\caption{Development of substrate pools resulting from constant litter input and
+turnover fluxes with the SimSteady scenario.
+\label{fig:SimSteady}}
+\end{figure}
+
+With the match strategy microbes grew mostly on the
+nitrogen rich residues pool and only partly on the litter pool. This led to an
+accumulation of the litter and a degradation of the residue pool. Together with
+diminishing return from residue pool, microbes starved and declined.
+Because of the Match strategy was not able to simulate reasonable
+stocks when including feedback to substrate pools in the model, it was omitted
+from the remaining simulation scenarios.
+
+After amending a starved subsoil with a pulse of litter in the
+\textbf{Priming} scenario, a clear real priming effect was simulated. The
+decomposition of the soil residues pool was strongly enhanced after the
+amendment. The priming was stronger with the Revenue strategy than with the
+Fixed strategy (Fig. \ref{fig:PrimingDec}). 
+
+\begin{figure}[t]
+\vspace*{2mm}
+\begin{center}
+\includegraphics[width=8.3cm]{fig/PrimingDec}
+\end{center}
+\caption{Increase of residue depolymerization flux after amending a starved
+subsoil with a puls of fresh litter with the Priming scenario.
+\label{fig:PrimingDec}}
+\end{figure}
+
+This stronger priming was due to a higher microbial biomass with Revenue
+strategy. Therefore also the mineralization fluxes due to microbial turnover
+followed the same shape (Supplementory Fig. XX) and were larger
+with the Revenue strategy.
+
+The most marked difference between enzyme allocation strategies was simulated
+with the \textbf{CO2-Fertilization} scenario (Fig. \ref{fig:CO2Increase}).
+
+\begin{figure}[t]
+\vspace*{2mm}
+\begin{center}
+\includegraphics[width=8.3cm]{fig/CO2Increase}
+\end{center}
+\caption{Nitrogen-mining during increased of carbon litter inputs in years 10
+to 60 with Revenue strategy under the CO2-Fertilization scenario.
+\label{fig:CO2Increase}}
+\end{figure}
+
+\begin{figure}[t] \vspace*{2mm}
+\begin{center}
+\includegraphics[width=8.3cm]{fig/CO2IncreaseImb}
+\end{center}
+\caption{Decreased overflow and N mineralization due to imbalance with Revenue 
+strategy under the CO2-Fertilization scenario.
+\label{fig:CO2IncreaseImb}}
+\end{figure}
+
+With both, Fixed and Revenue strategies, the litter stock,$L$ increased. The
+residues stock $R$, however, slighly increased with the Fixed strategy but
+declined with the Revenue strategy. With the Revenue strategy, in addition, the
+overflow respiration during increased carbon inputs and the N mineralization
+in the period of decreased carbon input was lower compared to the Fixed
+strategy (Fig. \ref{fig:CO2IncreaseImb}).
+
+
 \section{Discussion}
+\subsection{Importance of pool sizes}
+The Match strategy proposed that microbes can achieve balanced growth under a
+wide range of resource stoichiometry when modelling incubation experiemnts
+\citp{Moorhead12, Ballentine14}.
+However, both in the VarN-Incubation scenario (Fig.
+\ref{fig:VarNNoFeedback}) and in the SimSteady scenarios (Fig.
+\ref{fig:SimSteady}), microbial biomass stocks with the Match strategy declined
+when focusing enzyme production on pools that matched stoichiometry demands but
+were small compared to the other pools.
+Microbes that have a huge amount of N available in large but stoichiometric
+imbalanced litter pool (Fig. \ref{fig:SimSteady}) invest enzymes into
+depolymerizing a small but stoichiometrically balanced residues pool. This leads
+to the further accumulation of the litter pool and the exhaustion of both the
+residues pool and the microbial biomass. This clearly implies, that considering
+the pool sizes is important, and that the Match strategy can not be applied.
+
+\subsection{Increased Biomass and decreased imbalance fluxes}
+With the VarN-Incubation scenario (Fig.
+\ref{fig:VarNNoFeedback}) the Revenue strategy supported consistently higher
+biomass than the Fixed strategy, and consistently had lower N mineralization
+fluxes due to stoichiometric imbalance at high N contents, i.e low C/N ratios.
+With the SimSteady scenarios (Fig. \ref{fig:SimSteady}) also had higher biomass
+(XX vs XX) at steady state and lower XX fluxes (XX vs XX). Same pattern appeared
+in the CO2-Fertilization scenario (Fig. \ref{fig:CO2IncreaseImb}).
+
+The Revenue allocation strategy made better use of the available
+food and sustained more biomass for the same litter inputs and environmental
+conditions. Hence, it used the food more for productive respiration and turnover
+that sustains a food chain instead of imbalance waste fluxes.  
+
+This implies XX
+
+\subsection{Bank mechanism}
+The Revenue strategy led to a redistribution of substrate types during high
+and low carbon inputs with the  CO2-Fertilization scenario (Fig.
+\ref{fig:CO2Increase}). When there was excess litter carbon, microbes
+preferentially depolymerized the nitrogen rich residue pool in order to make use of available
+carbon. Otherwise, excess nitrogen was used to build the residue pool again
+instead of reasing it as N mineralization.
+ 
+Ultimately, on the long term, the inputs to the system have to balance the
+outputs of the system. Hence there are constraints on possible alteration of
+total respiration and N mineralization. However, until there is a big reserve of
+depositing excess nitrogen or mining for required nitrogen in the residue pool.
+The limits of this bank capapcity is the difference in steady states between
+inputs levels. In our simulations this was about twice the annual N
+litter input. Because the real turnover time and stock of residue pool higher
+than in our simulations, also the capacity to deposit N is higher in reality.
+
+This implies an important point in interpreting the feedbacks and consequences
+of global change.  First, the additional storage i
+
+
+
+
+
+
+ 
+ 
+ 
+
 Differences to Moorhead12 approach
 
 Both litter pools of two elements
@@ -244,6 +481,12 @@ allocation part of biomass instead of uptake, decoupled
 prediction changing C/N ratios
 
 holistic view on microbial community, upscaling
+
+
+The Match strategy adjusts enzyme production solely based on stoichiometry but
+ignores the sizes of the substrate pools. Hence
+
+Duration of priming - litter one year
 
 
 
