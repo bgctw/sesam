@@ -148,8 +148,8 @@ derivEezy5 <- function(t,x,parms){
     #pCLim <- ((uC+respO)/uC)  # wrong
     #pCLim <- (uC/(uC+respO))
     pCLim <- uCReq/uC
-    pCLimExp <- pCLim^200
-    pNLimExp <- pNLim^200
+    pCLimExp <- min(pCLim^200, 1e10)
+    pNLimExp <- min(pNLim^200, 1e10)
     alpha <- (pCLimExp*alphaC + pNLimExp*alphaN) / (pCLimExp + pNLimExp)
     #alpha <- if( uN < uNReq ) alphaN else alphaC   # solver cannot integrate
     if( isTRUE(parms$isAlphaMatch) ){

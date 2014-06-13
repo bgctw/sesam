@@ -7,9 +7,10 @@ baseFontSize <- 16  # presentations
 if( isPaperBGC){
     library(twDev)
     loadPkg()
-    baseFontSize <- 10  # pubs
+    baseFontSize <- 9  # pubs
 }
 library(ggplot2)
+library(grid)   #unit
 library(reshape)  # melt
 library(RColorBrewer) # brewer.pal
 
@@ -20,13 +21,14 @@ parms0 <- list(
         ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
         ,cnIS1 = 4.5      ##<< between micr and enzyme signal
         ,cnIS2 = 30 ##<< N poor substrate
-        ,kN= 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
-        ,kNB = 0.8     ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of S1)
+        #,kN= 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
+        ,kN= 1/(1/12)  ##<< 1 month (Blagodatskaya 60 days priming)
+        ,kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of S1)
         #,kS1 = 1/(50)        ##<< 1/(x years) 
         ,kS1 = 1/(10)        ##<< 1/(x years)       # to demonstrate changes on short time scale
-        ,kS2 = 1/(1)        ##<< 1/(x years) 
+        ,kS2 = 1/(0.33)        ##<< 1/(x years)     # formerly 1 year
         ,aE = 0.001*365   ##<< C biomass allocated to enzymes gC/day /microbial biomass
-        ,km = 0.3     ##<< enzyme half-saturation constant
+        ,km = 0.05     ##<< enzyme half-saturation constant
         #,km = 0.03     ##<< enzyme half-saturation constant
         ,m = 0.02*365    ##<< maintenance respiration rate   gC/day /microbial biomass
         ,tau = 1/60*365  ##<< biomass turnover rate (12 days)
@@ -47,13 +49,13 @@ parms0 <- within(parms0,{
 parms <- parms0
 
 x0 <- x0Orig <- c( #aE = 0.001*365
-        B = 20                     ##<< microbial biomass 
-        ,E1  = 1.5*parms0$km                  ##<< total enzyme pool
-        ,E2  = 1.5*parms0$km                   ##<< total enzyme pool
-        ,S1 = 490                 ##<< N rich substrate
-        ,SN1 = 490/parms0$cnIS1    ##<< N rich substrate N pool
-        ,S2 = 380                  ##<< N poor substrate
-        ,SN2 = 380/parms0$cnIS2    ##<< N poor substrate N pool
+        B = 17                     ##<< microbial biomass 
+        ,E1  = 2*parms0$km                  ##<< total enzyme pool
+        ,E2  = 4*parms0$km                   ##<< total enzyme pool
+        ,S1 = 400                 ##<< N rich substrate
+        ,SN1 = 400/parms0$cnIS1    ##<< N rich substrate N pool
+        ,S2 = 100                  ##<< N poor substrate
+        ,SN2 = 100/parms0$cnIS2    ##<< N poor substrate N pool
         ,I =  0                    ##<< inorganic pool
 )
 x <- x0
@@ -91,20 +93,24 @@ simfCNGraph <- function(
             B = 20                     ##<< microbial biomass 
             ,E1  = 1.5*parms0$km                  ##<< total enzyme pool
             ,E2  = 1.5*parms0$km                   ##<< total enzyme pool
-            ,S1 = 800                 ##<< N rich substrate
-            ,SN1 = 800/cnS1    ##<< N rich substrate N pool
-            ,S2 = 400                  ##<< N poor substrate
-            ,SN2 = 400/cnS2    ##<< N poor substrate N pool
+            ,S1 = 400                 ##<< N rich substrate
+            ,SN1 = 400/cnS1    ##<< N rich substrate N pool
+            ,S2 = 100                  ##<< N poor substrate
+            ,SN2 = 100/cnS2    ##<< N poor substrate N pool
             ,I =  0                    ##<< inorganic pool
     )
     
-    cnS2s <- seq( 18,42,by=1)
+    cnS2s <- seq( 18,90,by=1)
+    #cnS2s <- seq( 18,80,by=0.5)
+    #cnS2s <- seq( 18,160,by=5)
     cnS2 <- 23
     resLC <- lapply( cnS2s, function(cnS2){ 
+                cat(cnS2,", ")
                 x0N["SN2"] <- x0N["S2"]/cnS2
                 times <- seq(0,10, length.out=101)
                 #times <- seq(0,10000, length.out=101)
                 #scen <- "Match"
+                #scen <- "Revenue"
                 resL <- lapply( names(parmsScenF), function(scen){
                 #resL <- lapply( "Revenue", function(scen){
                             parmsInit <- parmsScenF[[scen]]
@@ -118,7 +124,7 @@ simfCNGraph <- function(
                 resScen <- cbind( data.frame(scen=names(parmsScenF), do.call( rbind, resL )))
             })
     resC <- resCAll <- do.call( rbind, resLC )
-    resC <- subset(resCAll, cnS2 <= 50)
+    resC <- subset(resCAll, cnS2 <= 160)
     resC$MmImbMon <- resC$MmImb/12
     resC$respOMon <- resC$respO/12
 
@@ -143,7 +149,7 @@ simfCNGraph <- function(
     
     if (isPaperBGC){
         twWin(width=3.3, height=2.8, pointsize=9, pdf="soilPaper14/fig/VarNNoFeedback.pdf")
-        p8 + colScale + theme(legend.position = c(0.9,0.5), legend.justification=c(1,1)) 
+        print( p8 + colScale + theme(legend.position = c(0.1,0.5), legend.justification=c(0,1)) ) 
         dev.off()
     }
 
@@ -152,7 +158,8 @@ simfCNGraph <- function(
     #levels(dsp$Measure) <- c("Allocation to E_SOM (alpha)","Biomass (gC/m2)","Mineralization Imb (gN/m2/month)","OverflowRespiration (gC/m2/month)")
     p8a <- ggplot( dsp, aes(x=cnS2, y=value, col=scen) ) + geom_line(size=1) + 
             #facet_grid(Measure~., scales = "free", labeller= label_parsed ) + 
-            facet_wrap(~Measure, scales = "free_y" ) +
+            #facet_wrap(~Measure, scales = "free_y" ) +
+            facet_wrap(~Measure ) +
             scale_x_continuous('C/N ratio of Lit') + 
             geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
             theme_bw(base_size=baseFontSize) +
@@ -182,6 +189,21 @@ simfCNGraph <- function(
     p8b 
 }
 
+# sim Steady
+scen <- "Revenue"
+xSteady <- do.call( rbind, lapply( c("Revenue","Fixed","Match"), function(scen){
+            parmsInit <- parmsScen[[scen]]
+            times <- seq(0,1000, length.out=2)
+            #times <- seq(0,10000, length.out=101)
+            #trace(derivEezy5, recover)     # untrace(derivEezy5)
+            res <- res1 <- as.data.frame(lsoda( x0, times, derivEezy5, parms=parmsInit))
+            #res <- res1f <- as.data.frame(lsoda( x0, times, derivEezy5, parms=within(parms0, useFixedAlloc<-TRUE) ))
+            xE <- tail(res,1)
+            xE$scen <- scen
+            xE
+        }))
+
+
 
 simInitSteady <- function(
     ### inspect approaching a steady state (or breakdown of biomass)
@@ -189,12 +211,16 @@ simInitSteady <- function(
     scen <- "Revenue"
     resAll <- lapply( c("Revenue","Fixed","Match"), function(scen){
                 parmsInit <- parmsScen[[scen]]
-                times <- seq(0,70, length.out=101)
+                times <- seq(0,150, length.out=301)
                 #times <- seq(0,10000, length.out=101)
                 res <- res1 <- as.data.frame(lsoda( x0, times, derivEezy5, parms=parmsInit))
                 #res <- res1f <- as.data.frame(lsoda( x0, times, derivEezy5, parms=within(parms0, useFixedAlloc<-TRUE) ))
                 xE <- unlist(tail(res,1))
                 plotRes(res, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100"))
+                plotRes(res, "topright", cls = c("E1","E2"))
+                tail(res[,1:8])
+                head(res[,c("limE1","limE2")])
+                tail(res[,c("limE1","limE2")])
                 res$scen <- scen
                 res
             })
@@ -204,17 +230,29 @@ simInitSteady <- function(
     names(dsp)[names(dsp)=="scen"] <- "Allocation"
     levels(dsp$Pool) <- c("R","L")
     #p1 <- ggplot( dsp, aes(x=time, y=value, fill=Pool, lty=scen)) + geom_area() 
-    
-    p1 <- ggplot( dsp, aes(x=time, y=value, lty=Pool, col=Allocation)) + geom_line(size=1) + 
+
+    .tmp.f <- function(){
+        p1 <- ggplot( dsp, aes(x=time, y=value, lty=Pool, col=Allocation)) + geom_line(size=1) + 
+                theme_bw(base_size=baseFontSize) +
+                ylim(c(100,3000)) +
+                labs(x="Time (yr)", y="Carbon stock (gC/m2)", linetype="Substrate pool") +
+                theme()                
+        p1+ colScale
+    }
+   
+    dsp$value[ dsp$value > 700] <- NA
+    p1b <- ggplot( dsp, aes(x=time, y=value, col=Allocation)) + geom_line(size=1) +
+            facet_wrap( ~ Pool,scales="free_y") + 
             theme_bw(base_size=baseFontSize) +
-            ylim(c(300,600)) +
             labs(x="Time (yr)", y="Carbon stock (gC/m2)", linetype="Substrate pool") +
             theme()                
-    p1+ colScale
+    p1b+ colScale
+    
     
     if (isPaperBGC){
         twWin(width=3.3, height=2, pointsize=9, pdf="soilPaper14/fig/SimSteady.pdf")
-        p1 + colScale #+ theme(legend.position = c(0.9,1.05), legend.justification=c(1,1)) 
+        print(p1b + colScale + theme(legend.position = c(1.05,1.05), legend.justification=c(1,1))
+                )
         dev.off()
     }
     
@@ -233,7 +271,7 @@ simCO2Increase <- function(
     resAll <- lapply( c("Revenue","Fixed"), function(scen){
             parmsInit <- parmsScen[[scen]]
             # spinup run
-            times <- seq(0,500, length.out=101)
+            times <- seq(0,100, length.out=101)
             #times <- seq(0,10000, length.out=101)
             res <- res1 <- as.data.frame(lsoda( x0, times, derivEezy5, parms=parmsInit))
             #res <- res1f <- as.data.frame(lsoda( x0, times, derivEezy5, parms=within(parms0, useFixedAlloc<-TRUE) ))
@@ -277,16 +315,27 @@ simCO2Increase <- function(
     #names(dsp)[names(dsp)=="scen"] <- "Allocation"
     #p1 <- ggplot( dsp, aes(x=time, y=value, fill=Pool, lty=scen)) + geom_area()
 
-    p2 <- ggplot( dsp, aes(x=time, y=value, lty=Pool, col=Allocation)) + geom_line(size=1) + 
+    .tmp.f <- function(){
+        p2 <- ggplot( dsp, aes(x=time, y=value, lty=Pool, col=Allocation)) + geom_line(size=1) + 
+                xlab("Time (yr)")+ ylab("Carbon stock (gC/m2)") + labs(linetype="Substrate pool") +
+                theme_bw(base_size=baseFontSize) +
+                #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
+                theme()                
+        p2 + colScale
+    }
+
+    p2f <- ggplot( dsp, aes(x=time, y=value, col=Allocation)) + geom_line(size=1) + 
+            facet_grid(Pool ~ .,scales="free_y") + 
             xlab("Time (yr)")+ ylab("Carbon stock (gC/m2)") + labs(linetype="Substrate pool") +
             theme_bw(base_size=baseFontSize) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
-    p2 + colScale
+    p2f + colScale
     
     if (isPaperBGC){
-        twWin(width=3.3, height=2, pointsize=9, pdf="soilPaper14/fig/CO2Increase.pdf")
-        p2 + colScale #+ theme(legend.position = c(0.9,1.05), legend.justification=c(1,1)) 
+        twWin(width=3.3, height=2.3, pointsize=9, pdf="soilPaper14/fig/CO2Increase.pdf")
+        print(p2f + colScale+ theme(legend.position = c(1.0,0.55), legend.justification=c(1,1)) +theme( plot.margin = unit( c(0,0,0,0) , "in" ) )
+        )
         dev.off()
     }
     
@@ -320,8 +369,8 @@ simCO2Increase <- function(
     p2 + colScale
 
     if (isPaperBGC){
-        twWin(width=3.3, height=2.8, pointsize=9, pdf="soilPaper14/fig/CO2IncreaseImb.pdf")
-        p2 + colScale  
+        twWin(width=3.3, height=2.35, pointsize=9, pdf="soilPaper14/fig/CO2IncreaseImb.pdf")
+        print(p2 + colScale)  
         dev.off()
     }
     
@@ -343,17 +392,26 @@ simPriming <- function(
     #scen <- "Revenue"
     resAll <- lapply( c("Revenue","Fixed"), function(scen){
                 parmsInit <- parmsScen[[scen]]
+                parmsInit$kS2 = 1/(1/365)       # use a easily degradable substrate               
+                # sim steady state
+                times <- seq(0,500, length.out=2)
+                #times <- seq(0,500, length.out=101)
+                res <-  as.data.frame(lsoda( x0, times, derivEezy5, parms=parmsInit))
+                #res <- res1f <- as.data.frame(lsoda( x0, times, derivEezy5, parms=within(parms0, useFixedAlloc<-TRUE) ))
+                #plotRes(res, "topright", cls = c("B10","S2","S1","alpha100"))
+                xESteadyP <- xE <- tail(res,1)
+                xE
                 
-                # 500 yr decreased C input    
-                t2I = 500
+                # X yr decreased C input    
+                t2I = 50
                 fInputInc = 1.2
-                parmsC2 <- within(parmsInit, { # double as much C in 
-                            iS2 <- iS2/100
+                parmsC2 <- within(parmsInit, {  
+                            iS2 <- iS2/10
                             #cnIS2 <- cnIS2*fInputInc
                             #plantNUp <- 300/70*4/5  # plant N uptake balancing N inputs
                         }) 
-                times <- c(seq(0,t2I, length.out=101), 1:10+t2I)
-                res <- as.data.frame(lsoda( x0, times, derivEezy5, parms=parmsC2))
+                times <- c(seq(0,t2I, length.out=101))
+                res <- as.data.frame(lsoda( unlist(xESteadyP[1:length(x0)+1]), times, derivEezy5, parms=parmsC2))
                 res2I <- tail(res,10)   # last 10 years
                 xE2 <- unlist(tail(res2I,1))
                 #plotRes(res2I, "topright", cls = c("B10","respO","Mm","S1r","S2r","alpha100"))
@@ -363,9 +421,10 @@ simPriming <- function(
                 
                 # 5 yr control of continued decreased input 
                 #t3S <- 5
-                t3S <- 50
+                t3S <- 3
                 times <- seq(0,t3S, length.out=201)
                 res <- res3Sc <- as.data.frame(lsoda( xE2[1:length(x0)+1], times, derivEezy5, parms=parmsC2))
+                #plotRes(res, "topright", cls = c("B10","S1r","S2r","alpha100","E1_1000","E2_1000"))
                 res3Sc$time <- res3Sc$time 
                 xE3c <- tail(res3Sc,1)
                 
@@ -385,37 +444,45 @@ simPriming <- function(
                 res3S
             })
     resScen <- do.call( rbind, resAll)
+    resScen$timeDay <- resScen$time*365
     
-    dsp <- melt( subset(resScen, time < 8), id=c("time","scen"), measure.vars=c("decC1c","decC1p"),variable_name="Treatment")
-    dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
+    endTimeDay <- 200
+    dsp <- melt( subset(resScen, timeDay < endTimeDay), id=c("timeDay","scen"), measure.vars=c("decC1c","decC1p"),variable_name="Treatment")
     levels(dsp$Treatment) <- c("No Litter input","Litter input pulse")
-    p3p <- ggplot( dsp, aes(x=time, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
-            xlab("Time (yr)")+ ylab("R Decompos. (gC/m2/yr)") +
+    #dsp <- melt( subset(resScen, time < endTime), id=c("timeDay","scen"), measure.vars=c("S2"),variable_name="Treatment")
+    #dsp <- melt( subset(resScen, time < endTime), id=c("timeDay","scen"), measure.vars=c("B"),variable_name="Treatment")
+    #dsp <- melt( subset(resScen, time < endTime), id=c("timeDay","scen"), measure.vars=c("limE1","limE2"),variable_name="Treatment")
+    #dsp <- melt( subset(resScen, time < endTime), id=c("timeDay","scen"), measure.vars=c("E1","E2"),variable_name="Treatment")
+    dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
+    p3p <- ggplot( dsp, aes(x=timeDay, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
+            xlab("Time (day)")+ ylab("R Decompos. (gC/m2/yr)") +
             theme_bw(base_size=baseFontSize) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
-    p3p + colScale
+    p3p + colScale + theme( plot.margin = unit( c(0,0,0,0) , "in" ) )
     
     if (isPaperBGC){
-        twWin(width=3.3, height=2, pointsize=9, pdf="soilPaper14/fig/PrimingDec.pdf")
-        p3p + colScale #+ theme(legend.position = c(0.9,1.05), legend.justification=c(1,1)) 
+        twWin(width=3.3, height=2.0, pointsize=9, pdf="soilPaper14/fig/PrimingDec.pdf")
+        print( p3p + colScale + theme(legend.position = c(0.9,1.05), legend.justification=c(1,1)) +
+        theme( plot.margin = unit( c(0,0,0,0) , "in" ) ) )
         dev.off()
     }
     
     
-    dsp <- melt( subset(resScen, time < 8), id=c("time","scen"), measure.vars=c("Mmc","Mmp"),variable_name="Treatment")
+    dsp <- melt( subset(resScen, timeDay < endTimeDay), id=c("timeDay","scen"), measure.vars=c("Mmc","Mmp"),variable_name="Treatment")
     dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
     levels(dsp$Treatment) <- c("No Litter input","Litter input pulse")
-    p3p <- ggplot( dsp, aes(x=time, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
-            xlab("Time (yr)")+ ylab("Mineralization (gN/m2/yr)") +
+    p3p <- ggplot( dsp, aes(x=timeDay, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
+            xlab("Time (day)")+ ylab("N -Mineralization (gN/m2/yr)") +
             theme_bw(base_size=baseFontSize) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
     p3p + colScale
 
     if (isPaperBGC){
-        twWin(width=3.3, height=2, pointsize=9, pdf="soilPaper14/fig/PrimingMin.pdf")
-        p3p + colScale #+ theme(legend.position = c(0.9,1.05), legend.justification=c(1,1)) 
+        twWin(width=3.3, height=3.0, pointsize=9, pdf="soilPaper14/fig/PrimingMin.pdf")
+        print(p3p + colScale + theme(legend.position = c(0.9,0.53), legend.justification=c(1,1)) + theme( plot.margin = unit( c(0,0,0,0) , "in" ) ) +
+        theme( plot.margin = unit( c(0,0,0,0) , "in" ) ) )
         dev.off()
     }
     
@@ -500,30 +567,9 @@ simBareSoil <- function(
 
 #isPaperBGC <- TRUE
 if (isPaperBGC){
-    twWin(width=3.3, height=2.8, pointsize=9)
-    p <- simfCNGraph()    
-    
-    plotTExWeigh(doMCMC=FALSE)
-    savePlot("paperOverfitting/fig/twoMeansBigBias.emf",type="emf")
-    #ggsave("paperOverfitting/fig/twoMeansBigBias.emf")
-    twWin(width=3.3, height=2.8, pointsize=9, pdf="paperOverfitting/fig/VarNNoFeedback.pdf")
-    plotTExWeigh(doMCMC=FALSE)
-    dev.off()
-    
-    twWin(width=3.3, height=2.8, pointsize=9)
-    plotTExWeigh(mks=c(-0.3, +0.3)/2.99, doMCMC=FALSE)
-    savePlot("paperOverfitting/fig/twoMeansSmallBias.emf",type="emf")
-    twWin(width=3.3, height=2.8, pointsize=9, pdf="paperOverfitting/fig/twoMeansSmallBias.pdf")
-    plotTExWeigh(mks=c(-0.3, +0.3)/2.99, doMCMC=FALSE)
-    #plotTExWeigh(mks=c(-0.3, +0.3)/2.99, doMCMC=TRUE)
-    dev.off()
-    
-    twWin(width=3.3, height=2.8, pointsize=9)
-    plotTExWeigh(sd0=c(1,1.5), doMCMC=FALSE)
-    savePlot("paperOverfitting/fig/twoMeansDiffVariance.emf",type="emf")
-    twWin(width=3.3, height=2.8, pointsize=9, pdf="paperOverfitting/fig/twoMeansDiffVariance.pdf")
-    plotTExWeigh(sd0=c(1,1.5), doMCMC=FALSE)
-    #plotTExWeigh(sd0=c(1,1.5), doMCMC=TRUE)
-    dev.off()
+    simfCNGraph()
+    simInitSteady()
+    simCO2Increase()
+    simPriming()
 }
 

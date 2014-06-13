@@ -178,7 +178,7 @@ Function $f_{\operatorname{{\alpha}Fix}}$ is given in appendix
 derivation is given with supplementory material. 
 
 The \textbf{Revenue} strategy assumes that microbes invest into enzyme
-production porportional to their revenue, i.e. their return per investment
+production proportional to their revenue, i.e. their return per investment
 regarding the currently limiting element.
 
 The return is the current decomposition flux from respective substrate. The
@@ -188,18 +188,19 @@ investment needs to be equal to enzyme turnover to keep current enzyme levels.
 \begin{subequations}
 \label{eq:allocRev}
 \begin{align}
-\alpha_C &= \frac{e_{RC}}{e_{LC} + e_{RC}} \\
-e_{SC} &= \frac{\text{return}}{\text{investment}} 
+\alpha_C &= \frac{\operatorname{rev}_{RC}}{\operatorname{rev}_{LC} + \operatorname{rev}_{RC}} \\
+\alpha_N &= \frac{\operatorname{rev}_{RN}}{\operatorname{rev}_{LN} + \operatorname{rev}_{RN}} \\
+\operatorname{rev}_{SC} &= \frac{\text{return}}{\text{investment}} 
 = \frac{\operatorname{dec}_{S,Pot} \frac{E_S^*}{k_{m,S} + E_S^*}} {k_{NS}E_S^*} 
 = \frac{\operatorname{dec}_{S,Pot}} {k_{NS}(k_{m,S} + E_S^*)} \\ 
-e_{SN} &= \frac{\operatorname{dec}_{S,Pot}
+\operatorname{rev}_{SN} &= \frac{\operatorname{dec}_{S,Pot}
 \frac{E_S^*}{k_{m,S} + E_S^*} / \beta_S} {k_{NS} E_S^* / \beta_E} 
 = \frac{\operatorname{dec}_{S,Pot}}{k_{NS} (k_{m,S} + E_S^*)}
 \frac{\beta_E}{\beta_S}
 \text{,} 
 \end{align}
 \end{subequations}
-where $e_S$ is the revenue from given substrate $S$ ($S$ is either $L$ or $R$)
+where $\operatorname{rev}_S$ is the revenue from given substrate $S$ ($S$ is either $L$ or $R$)
 under carbon and nitrogen limitation respectively.
 $k_{NS}$ is rate of enzyme turnover, $k_{m,S}$ is substrate affinity, $a_E$ is
 total enzyme allocation coefficient, $\operatorname{dec}_{S,Pot} = k_S S$ is
@@ -285,11 +286,11 @@ given litter inputs? How much microbial biomass can be sustained?
 The \textbf{Priming} scenario explored the effect of rhizosphere priming, i.e
 the input of fresh carbon into a bulk subsoil. It looked at the fluxes during
 the time the addition of $50 g$ of litter on a soil that otherwise
-received a litter input of only $0.3 gC/m^2/yr$. Is there an increased
-depolymerization of the residue pool? Are there changes in nitrogen
+received a litter input of only $30 gC/m^2/yr$ for 20 years. Is
+there an increased depolymerization of the residue pool? Are there changes in nitrogen
 mineralization?
 
-The \textbf{CO2-Fertilization} scenario explored the effect of continuous
+The \textbf{CO2-Fertilization} scenario explored the effect of continuous 
 increased carbon litter input that is expected with elevated athmospheric CO2.
 It started from steady state for a litter input of $\operatorname{input}_L = 300
 gC/m^2/yr$ with C/N ratio $\beta_{\operatorname{input}_L} = 30$. During period
@@ -373,14 +374,24 @@ subsoil with a puls of fresh litter with the Priming scenario.
 \label{fig:PrimingDec}}
 \end{figure}
 
+\begin{figure}[t]
+\vspace*{2mm}
+\begin{center}
+\includegraphics[width=8.3cm]{fig/PrimingMin}
+\end{center}
+\caption{Increase of residue depolymerization flux after amending a starved
+subsoil with a puls of fresh litter with the Priming scenario.
+\label{fig:PrimingMin}}
+\end{figure}
+
 This stronger priming was due to a higher microbial biomass with Revenue
-strategy. Therefore also the mineralization fluxes due to microbial turnover
-followed the same shape (Supplementory Fig. XX) and were larger
-with the Revenue strategy.
+strategy. Therefore also the N-mineralization flux due to microbial turnover
+was larger with the Revenue strategy. After an initial phase of reduced
+N-mineralization due to reduced imbalance, the N in mineral biomass was
+mineralized by turnover (Fig. \ref{fig:PrimingMin}).
 
 The most marked difference between enzyme allocation strategies was simulated
 with the \textbf{CO2-Fertilization} scenario (Fig. \ref{fig:CO2Increase}).
-
 \begin{figure}[t]
 \vspace*{2mm}
 \begin{center}
@@ -390,7 +401,6 @@ with the \textbf{CO2-Fertilization} scenario (Fig. \ref{fig:CO2Increase}).
 to 60 with Revenue strategy under the CO2-Fertilization scenario.
 \label{fig:CO2Increase}}
 \end{figure}
-
 \begin{figure}[t] \vspace*{2mm}
 \begin{center}
 \includegraphics[width=8.3cm]{fig/CO2IncreaseImb}
@@ -399,7 +409,6 @@ to 60 with Revenue strategy under the CO2-Fertilization scenario.
 strategy under the CO2-Fertilization scenario.
 \label{fig:CO2IncreaseImb}}
 \end{figure}
-
 With both, Fixed and Revenue strategies, the litter stock,$L$ increased. The
 residues stock $R$, however, slighly increased with the Fixed strategy but
 declined with the Revenue strategy. With the Revenue strategy, in addition, the
@@ -461,7 +470,105 @@ than in our simulations, also the capacity to deposit N is higher in reality.
 This implies an important point in interpreting the feedbacks and consequences
 of global change.  First, the additional storage i
 
+\subsection{Nutrient recycling by priming}
+There was a simulated priming effect for both strategies (Fig.
+\ref{fig:PrimingDec}) associated with an increased nitrogen mineralization flux
+with both fixed and revenue strategy. Hence, the plants could influence the
+recycling of Nutrients from SOM. Moreover, nutrient recycling is the other side
+of the bank mechanism. If carbon is sequestered in SOM, then nutrients become
+less for plants. With the revenue strategy, however, plants could influence the
+partitioning of SOM between a low C/N SOM pool and a high C/N pool (Fig.
+\ref{fig:CO2Increase}) and, hence, also influence the distribution of nitrogen
+with in the ecosystem and availability for plants. This active role of plants
+has already demonstrated in a soil incubation experiment \ref{Fontaine11} and
+has been further conceptualized with the SYMPHONY model \ref{Perveen14}. Our
+results are in line with these studies, although our explanation is on a more abstract
+level (section \ref{sec:sec:Holistic}). The implications of 
 
+\subsection{How long are enzymes active?}
+SEAM simulations showed a rather long time scale of the priming effect
+\ref{fig:PrimingDec}) of several month, despite the $L$ substrate puls was used
+up within about 50 days. This is in contrast with incubation studies that
+observe priming effects within days or weeks that rapidely declines after the
+substrate has been used up e.g. \citep{Blagodatskaya14}.
+This is caused by simulated enzyme turnover, which we modelled using first
+order kinetics with a turnover time of one month. \citep{XXBurnsEnzymeReview}
+
+In order to model the observed decline of priming after the substrate has
+been used up the turnover time of enzymes can be decreased to a few days. This,
+however, would require an immense effort of producting enzymes by microbial
+biomass. More sophisticated models of enzyme turnover might however be able to
+resolve this contradiction.
+
+An alternative explanations is that enzymes may need to be fueled by fresh
+organic matter themselves \citep{XXPrimingWorkshop Denmark}. This would imply,
+however, that enzyme activity and decomposition of SOM becomes decoupled from
+enzyme production and microbial dynamics to a large extent in the short term.
+This is contrary to the assumption of most models of the priming effect. While
+those assumptions would greatly complicate comparison between model and data, we
+argue the patterns of enzyme allocation and SOM turnover is still robust in the
+long term where enzyme production still determines integrated enzyme activity.
+ 
+\subsection{Holisctic view for upscaling
+\label{sec:Holistic}} 
+
+The presented SEAM conceptual model does not explicitely
+describe microbial diversity. In this respect it differs from SYMPHONY model
+\citep{Perveen14} and similar conceptual models \citep{Fontaine03}, that
+explicitely modelled several microbial groups, specifically SOM builders that grow solely on
+fresh low nutrient material (here $L$), and SOM builders that can use both
+substrates (here $L$ and $S$). The effective model behaviour, however, is
+similar. The SEAM model applies a holistic view on the microbial community
+\citep{Panikov10}, where the resulting ecosystem functions that depend on the
+competition of microbial groups within the community is largely determined by
+the external drivers outside the community. The SEAM model describes a modified
+allocation of resources into breakdown of different substrates with changed
+resource availability by assuming that the community will optimize its revenue.
+The SYMPHONY model applies a meristic paradigm and explicitly models this
+optimization by shifts between microbial groups. While the meristic approach
+gives more detailed understanding of the mechanism, we hypothize, that the
+holistic approach is more suitable for simplification \citep{Wutzler13} and
+application in larger-scale models, such as land surface components of earth
+system models.
+This implies that that the proposed abstraction of microbial competition by the
+revenue strategy is a step forward of better representing couplings of soil
+carbon and nutrient cycles in earth system models and a step forward to improved
+predictions of long term carbon sequestration.
+
+\subsection{Testable predictions: Change of SOM C/N ratios}
+So far the SEAM model has not be compared to observations or experimental data.
+This is, indeed, a difficult task because the model is designed with the purpose
+to model the long-term patterns of change substrate stoichiometry and
+availability and abstract from many processes that are relevant at time scales
+up to years and decades.
+However, the model can be used to predict long term patterns of SOM cycling
+after change in resource stoichiometry and these can serve provide evidence for
+or against the modelling assumptions \ref{XXEintstein}.
+Specifically, we predicted a change in proportions of the litter pool and the
+SOM pool. While these abstract pools are not directly comparable to observations
+the overall effect is a change in total SOM C/N ratio. The C/N pool is
+predicted to increase quite fast in all scnearios, but only with
+the Renveue strategy it should it should still increase after a few decades of
+FACE and unchanged N inputs/outputs (Fig. \ref{fig:CO2Increase}).
+ 
+\subsection{Outlook}
+The biggest limitation of the SEAM model is its focus on a single
+process: enzyme allocation. In order to focus we had to ignore the other
+microbial strategy of copomg with resource stoichiometric imbalance by adapting their
+biomass ratio \citep{XXRastetter}. Although the potential of this biomass
+adaptation is thougth to be quite limited \citep{Mooshammer14}, it will be
+tested whether these two strategies can be combined within a model.  
+
+A second route forward is to try of further simplify SEAM by assuming
+quasi-steady state of biomass or 
+
+Explore N-immolization, short term
+
+
+
+
+
+ 
 
 
 
@@ -488,7 +595,7 @@ ignores the sizes of the substrate pools. Hence
 
 Duration of priming - litter one year
 
-
+Other limiting nutrients incorporated into minimum function.
 
 
 \conclusions  %% \conclusions[modified heading if necessary]
