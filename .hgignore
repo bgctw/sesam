@@ -21,3 +21,5 @@ syntax: glob
 *.synctex.gz
 syntax: regexp
 ^soilPaper14/tmp$
+syntax: regexp
+\.Rout$

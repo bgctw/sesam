@@ -5,7 +5,7 @@ cycles are especially strong in dynamic of soil organic matter (SOM) because all
 of the SOM has to be depolymerized and successively mineralized by a microbial
 community with a rather strict homeostatic regulation. Faced with stoichiometric
 imbalances between OM substrates and synthesized biomass, decomposers have to
-lower their carbon use efficiency (CUE) or nutrient use efficiency (NUE)
+lower their carbon use efficiency (CUE) or nutrient use efficiency (NUE) 
 (XXSterner, Mooshammer). The regulation of CUE has shown to have large
 consequences on prediction of carbon sequestration in SOM (XX Allison follows,
 Manzoni). Regulation of NUE has consequences for nutrient recycling and loss of
@@ -70,20 +70,22 @@ residues, $\operatorname{R}$ (Fig. \ref{fig:SEAM}).
 \begin{figure}[t] \vspace*{2mm}
 \label{fig:SEAM}
 \begin{center}
-\includegraphics[width=8.3cm]{fig/eezy5}
+\includegraphics[width=8.3cm]{fig/seam2}
 \end{center}
 \caption{Model strucutre of SEAM: Two substrate pools ($L$ and
 $R$) are depolymerized by respective enzymes
 ($E_L$ and $E_R$). The simple organic
 compounds ($\operatorname{DOM}$) are transported by soil solution and taken up
 by the microbial community  and used for synthesizing
-new biomass ($\operatorname{B}$), new enzymes, and for catabolic respiration. 
-Due to stoichiometric imbalance between $\operatorname{DOM}$ and $\operatorname{B}$
-there will be overflow respiration or mineralization of excess nitrogen. During
-microbial turnover an additional part of the biomass is mineralized and the
+new biomass (${B}$), new enzymes, and for catabolic respiration. 
+Due to stoichiometric imbalance between $\operatorname{DOM}$ and ${B}$
+there will be overflow respiration or mineralization of excess nitrogen to
+inorganic N pool ($I$).
+During microbial turnover an additional part of the biomass is mineralized and the
 other part is added to the residue pool, $R$. Boxes represent pools, black
-arrows mass fluxes, white arrows othr controls, and disks represent
-partitioning of fluxes.}
+arrows mass fluxes, white arrows other controls, and disks represent
+partitioning of fluxes. Solid lines represent fluxes of both C and N, while
+dotted and dashed lines represent separate C or N fluxes respectively.}
 \end{figure}
 
 Appendix \ref{app:SEAM} reports the model equations and details. Here we
@@ -144,31 +146,37 @@ of microbial biomass \citep{Wutzler08}.
  
 The \textbf{Match} strategy assumes that microbes balance their stoichiometric
 demands \citep{Moorhead12}. The partitioning coefficient is derived by equating
-the C/N ratio of the sum of decomposition fluxes and the C/N ratio of microbial
-biomass, $\beta_B$.
+the C/N ratio of the sum of decomposition and immobilization fluxes and the C/N
+ratio of microbial biomass, $\beta_B$.
 \begin{equation}
 \label{eq:allocMatchCN}
 \frac{\epsilon (\operatorname{dec}_L + \operatorname{dec}_R - r_M)}{
-\operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R } = \beta_B
+\operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R  +
+\phi_{\operatorname{imm}} } =
+\beta_B
 \text{,}
 \end{equation}
 where $\operatorname{dec}_L$, and $\operatorname{dec}_R$ are
 depolymerization fluxes of the labile and residue substrates
 respectively, $r_M$ is maintenance respiration, $\epsilon$ is the 
 intrinsic microbial efficiency, and $\beta$ are C/N ratio of
-the respective pools i.
-When enzyme levels are assumed to be in steady state for
-given amounts of substrate and microbial biomass, then equation
-\ref{eq:allocMatchCN} can be solved for allocation paritioning, $\alpha$.
-\begin{equation}
+the respective pools $i$, and $\phi_{\operatorname{imm}}$ is the immobilization
+flux from mineral N pool to microbes.
+When the current sum of enzyme levels, $E$ is assumed to be in quasi steady
+state for given amounts of substrate and microbial biomass, then equation
+\ref{eq:allocMatchCN} can be solved for allocation partitioning, $\alpha$.
+\begin{subequations}
 \label{eq:allocMatch}
-\alpha_M &= f_{\operatorname{{\alpha}Fix}}(L,\beta_L,R,\beta_R,B); \,
+\begin{align}
+\alpha_M &= f_{\operatorname{{\alpha}Fix}}(L,\beta_L,R,\beta_R, E); \,
 \alpha &= \begin{cases}
   0,  & \text{if} \alpha_M \le 0 \\
   1,  & \text{if} \alpha_M \ge 1 \\
   \alpha_M, & \text{otherwise}
 \end{cases} \\  
-\end{equation}
+\end{align}
+\end{subequations}
+
 The bounds to zero and one are necessary because the sole
 allocation to decompose the carbon rich substrate may not suffice to
 cover microbial carbon demands and solving eq. \ref{eq:allocMatchCN} for
@@ -218,13 +226,14 @@ appendix \ref{app:SEAM}).
 \label{eq:allocRev}
 \begin{align}
 \alpha &= \frac{w_{\operatorname{CLim}} \alpha_C + w_{\operatorname{NLim}}
-\alpha_N}{w_{\operatorname{CLim}}  + w_{\operatorname{NLim}} } \\
-w_\operatorname{CLim} &= \left( \frac{\text{required}}{\text{available}}
+\alpha_N}{w_{\operatorname{CLim}}  + w_{\operatorname{NLim}} } 
+\\
+w_{\operatorname{CLim}} &= \left( \frac{\text{required}}{\text{available}}
 \right)^\delta 
 = \left( \frac{ N_{\operatorname{synBN}} \beta_B }{ C_{\operatorname{synBC}} }
 \right)^\delta
 \\
-w_\operatorname{NLim} &= \left( \frac{ C_{\operatorname{synBC}} / \beta_B }{
+w_{\operatorname{NLim}} &= \left( \frac{ C_{\operatorname{synBC}} / \beta_B }{
 N_{\operatorname{synBN}} } \right)^\delta
 \text{,} 
 \end{align}
@@ -421,7 +430,7 @@ strategy (Fig. \ref{fig:CO2IncreaseImb}).
 \subsection{Importance of pool sizes}
 The Match strategy proposed that microbes can achieve balanced growth under a
 wide range of resource stoichiometry when modelling incubation experiemnts
-\citp{Moorhead12, Ballentine14}.
+\citep{Moorhead12, Ballentine14}.
 However, both in the VarN-Incubation scenario (Fig.
 \ref{fig:VarNNoFeedback}) and in the SimSteady scenarios (Fig.
 \ref{fig:SimSteady}), microbial biomass stocks with the Match strategy declined

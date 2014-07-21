@@ -1,9 +1,10 @@
 #library(deSolve)
-# Refactoring of Easy5 with terminology corresponding to SoilPaper14 
+# now explicitely modelling immoilization of inorganic N pool I 
+ 
 
 # gC/m2 and gN/m2, /yr
 
-derivSeam1 <- function(t,x,parms){
+derivSeam2 <- function(t,x,parms){
     x <- pmax(unlist(x),1e-16)      # no negative masses
     #
     ER <- x["ER"]
@@ -33,7 +34,9 @@ derivSeam1 <- function(t,x,parms){
     # Nitrogen balance
     decN <- decR/cnR + decL/cnL + tvrERecycling/parms$cnE
     plantNUp <- pmin(parms$plantNUp, decN/2)    # plants get at maximum halv of the available N
-    uN <-  decN - plantNUp
+    # immobilization flux
+    imm <- parms$iB * x["I"]
+    uN <-  imm +decN -plantNUp    # uptake also of inorganic N
     NsynBN <- uN - synE/cnE
     CsynBN <- (cnB * NsynBN)/parms$eps      # C available for biomass growth and growth respiration
     #
@@ -76,10 +79,12 @@ derivSeam1 <- function(t,x,parms){
         #cnOpt <- (parms$cnE*synE + parms$cnB*synB0)/(synE+synB0)  # optimal biomass ratio
         cnOpt <- (synE+synB0)/(synE/cnE + synB0/parms$cnB)  # optimal biomass ratio
         # calcMatchAlphaEnz
-        alpha <- calcMatchAlphaSeam( E=ER+EL, decPotR=decRp, decPotL=decLp, respMaint=rM 
+        alpha <- calcMatchAlphaSeam2( E=ER+EL, decPotR=decRp, decPotL=decLp, rMaint=rM 
                 ,cnOpt=cnOpt
                 , cnR = cnR, cnL=cnL
-                , parms=parms)
+                , parms=parms
+                , imm = imm
+        )
     }
     if( isTRUE(parms$isAlphaFix) ){
         alpha <- 0.5
@@ -98,10 +103,11 @@ derivSeam1 <- function(t,x,parms){
     dLN <- -decL/cnL  +parms$iL/parms$cnIL 
     dR <- -decR +parms$iR +tvrC 
     dRN <- -decR/cnR +parms$iR/parms$cnIR +tvrN 
+    dI <- +parms$iI +Mm -imm -(parms$iP+parms$l)*x["I"]
     #
     if( isTRUE(parms$isFixedS) ){
         # scenario of fixed substrate
-        dR <- dL <- dRN <- dLN <- 0
+        dR <- dL <- dRN <- dLN <- dI <- 0
     }else{ 
         if( isTRUE(parms$isTvrNil) ){
             # scenario of enzymes and biomass not feeding back to R
@@ -111,7 +117,6 @@ derivSeam1 <- function(t,x,parms){
             tvrExN <- tvrN
         }
     }
-    dI <- +Mm
     respB <- respSynE + rG + rM + respO 
     resp <- respB + respTvr
     #
@@ -125,7 +130,7 @@ derivSeam1 <- function(t,x,parms){
     if( diff( unlist(c(uN=uN, usage=synE/parms$cnE + synB/parms$cnB + MmImb )))^2 > .Machine$double.eps)  stop("biomass mass balance N error")
     if( !isTRUE(parms$isFixedS) ){    
         if( diff(unlist(c(dB+dER+dEL+dR+dL+resp+tvrExC,    parms$iR+parms$iL )))^2 > sqrEps )  stop("mass balance C error")
-        if( diff(unlist(c((dB)/parms$cnB+(dER+dEL)/parms$cnE+dRN+dLN+dI+tvrExN,    parms$iR/parms$cnIR+parms$iL/parms$cnIL-plantNUp)))^2 > .Machine$double.eps )  stop("mass balance N error")
+        if( diff(unlist(c( (dB)/parms$cnB+(dER+dEL)/parms$cnE+dRN+dLN+dI+tvrExN,    parms$iR/parms$cnIR +parms$iL/parms$cnIL -plantNUp +parms$iI -(parms$iP+parms$l)*x["I"])))^2 > .Machine$double.eps )  stop("mass balance N error")
     }
     list( resDeriv, c(respO=as.numeric(respO)
         , Mm=as.numeric(Mm), MmImb=as.numeric(MmImb), MmTvr=as.numeric(MmTvr)  
