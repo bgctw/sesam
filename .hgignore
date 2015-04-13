@@ -25,3 +25,15 @@ syntax: regexp
 \.Rout$
 syntax: regexp
 ^Rplots\.pdf$
+syntax: regexp
+\.sty$
+syntax: glob
+copernicus.*
+syntax: regexp
+^soilPaper14/twutz_txt\.bib$
+syntax: regexp
+\.pdf$
+syntax: regexp
+\.pdf$
+syntax: regexp
+^\.settings$
