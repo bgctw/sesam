@@ -126,11 +126,14 @@ the N pools are modelled explicitly.
 \end{align}
 \end{subequations}
 
-Nitrogen uptake is the sum of influxes to the DOM pool. 
+Nitrogen uptake is the sum of influxes to the DOM pool and the immobilization
+flux ($N_{\operatorname{imm}}$).
 \begin{equation}
 \label{eq:uN}
 u_N = \operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R +  k_{NB}
-(\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})/\beta_E
+(\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})/\beta_E 
+\\
++ N_{\operatorname{imm}}
 \text{,}
 \end{equation}
 where C/N ratios $\beta_L$ and $\beta_R$ are calculated based on current carbon
