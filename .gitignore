@@ -1,0 +1,9 @@
+/.project
+/.RData
+
+^inst/doc/.*\.md$
+^\.pydevproject$
+\.Rout$
+^Rplots\.pdf$
+^\.settings$
+
