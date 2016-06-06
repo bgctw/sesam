@@ -14,7 +14,6 @@ derivSeam2 <- function(t,x,parms){
     cnE <- parms$cnE #alphaC*parms$cnER + (1-alphaC)*parms$cnEL
     cnB <- parms$cnB
     #
-    synE <- parms$aE * x["B"]       # total enzyme production
     rM <- parms$m * x["B"]          # maintenance respiration
     tvrB <- parms$tau*x["B"]        # microbial turnover
     tvrER <- parms$kNR*ER
@@ -27,20 +26,29 @@ derivSeam2 <- function(t,x,parms){
     decR <- decRp * limER
     decL <- decLp * limEL
     #
-    tvrERecycling = parms$kNB*(tvrER+tvrEL)
+    tvrERecycling <- parms$kNB*(tvrER+tvrEL)
     uC <- decR + decL + tvrERecycling
-    CsynBC <- uC - synE/parms$eps - rM
+    #
+    synE <- parms$aE * x["B"]       # total enzyme production per microbial biomass
+    #synE <- parms$aEu * uC          # total enzyme production per uptake
+    CsynBC <- uC - synE/parms$eps - rM  # C required for biomass and growth respiration under C limitation
     #
     # Nitrogen balance
     decN <- decR/cnR + decL/cnL + tvrERecycling/parms$cnE
-    plantNUp <- pmin(parms$plantNUp, decN/2)    # plants get at maximum halv of the available N
+    plantNUp <- pmin(parms$plantNUp, decN/2)    # plants get at maximum half of the decomposed organic N
     # immobilization flux
-    imm <- parms$iB * x["I"]
-    uN <-  imm +decN -plantNUp    # uptake also of inorganic N
+    immoPot <- parms$iB * x["I"]
+    uNSubstrate <- (decN -plantNUp)    # plant uptake also of organic N
+    uN <-  immoPot + uNSubstrate
     NsynBN <- uN - synE/cnE
-    CsynBN <- (cnB * NsynBN)/parms$eps      # C available for biomass growth and growth respiration
+    CsynBN <- (NsynBN*cnB)/parms$eps    # C required for biomass growth and growth respiration under N limitation
     #
-    isLimN <- CsynBN <  CsynBC 
+    # compute C available for biomass, this time without taking into account immobilization flux
+    NsynBNSubstrate <- uNSubstrate - synE/cnE
+    CsynBNSubstrate <- (NsynBNSubstrate*cnB)/parms$eps    
+    #
+    isLimN <- CsynBN <  CsynBC                      # N limited taking immobilization into account
+    isLimNSubstrate <-  CsynBNSubstrate < CsynBC    # N limited based on substrate uptake (without accounting for immobilization)
     CsynB = if( isLimN ) CsynBN else CsynBC
     #
     # average cN reqruired according to enzyme allocation accoording to C efficiencies
@@ -55,11 +63,12 @@ derivSeam2 <- function(t,x,parms){
     }
     # imbalance fluxes
     respSynE <- (1-parms$eps)/parms$eps * synE
-    respO <- uC- (synE+respSynE+synB+rG+rM)
+    respO <- uC - (synE+respSynE+synB+rG+rM)
     MmImb <- uN - (synE/parms$cnE + synB/parms$cnB)
+    MmB <- MmImb - immoPot
     respTvr <- (1-parms$epsTvr) * tvrB 
     MmTvr <- respTvr/parms$cnB
-    Mm <- MmImb + MmTvr
+    #Mm <- MmB + MmTvr
     #
     # Revenue strategy
     revLC <- decL / (parms$kNL) / (parms$kmL + EL)
@@ -69,11 +78,10 @@ derivSeam2 <- function(t,x,parms){
     alphaC <- revRC / (revLC + revRC)  
     alphaN <- revRN / (revLN + revRN)  
     #
-    delta <- 200
-    wCLim = min( .Machine$double.xmax, (CsynBN/CsynBC)^delta )      # min to avoid +Inf
-    wNLim = min( .Machine$double.xmax, (parms$eps*CsynBC/cnB / NsynBN)^delta )
-    alpha <- (wCLim*alphaC + wNLim*alphaN) / (wCLim + wNLim) 
-    
+    alpha <- if( immoPot < uNSubstrate/100 ) 
+                balanceAlphaSmallImmobilization(alphaC, alphaN, CsynBN, CsynBC, parms$eps*CsynBC/cnB, NsynBN) 
+            else
+                balanceAlphaLargeImmobilization(alphaC, alphaN, isLimN, isLimNSubstrate, immoAct=-MmB, immoPot=immoPot)
     if( isTRUE(parms$isAlphaMatch) ){
         synB0 <- max(0, synB)
         #cnOpt <- (parms$cnE*synE + parms$cnB*synB0)/(synE+synB0)  # optimal biomass ratio
@@ -83,7 +91,7 @@ derivSeam2 <- function(t,x,parms){
                 ,cnOpt=cnOpt
                 , cnR = cnR, cnL=cnL
                 , parms=parms
-                , imm = imm
+                , imm = immoPot
         )
     }
     if( isTRUE(parms$isAlphaFix) ){
@@ -95,6 +103,8 @@ derivSeam2 <- function(t,x,parms){
     tvrN <- +parms$epsTvr*tvrB/parms$cnB  +(1-parms$kNB)*(tvrER +tvrEL)/parms$cnE 
     tvrExC <- 0     # fluxes leaving the system
     tvrExN <- 0
+    # 
+    leach <- parms$l*x["I"]
     #
     dB <- synB - tvrB
     dER <- + alpha*synE  - tvrER
@@ -103,19 +113,19 @@ derivSeam2 <- function(t,x,parms){
     dLN <- -decL/cnL  +parms$iL/parms$cnIL 
     dR <- -decR +parms$iR +tvrC 
     dRN <- -decR/cnR +parms$iR/parms$cnIR +tvrN 
-    dI <- +parms$iI +Mm -imm -(parms$iP+parms$l)*x["I"]
+    #dI <- +parms$iI +MmB +MmTvr -(parms$kIP+parms$l)*x["I"]
+    dI <- +parms$iI -parms$kIP -leach +MmB +MmTvr       # plant uptake as absolute parameter
+    #if( dI > 0.01 ) recover()    
     #
     if( isTRUE(parms$isFixedS) ){
         # scenario of fixed substrate
         dR <- dL <- dRN <- dLN <- dI <- 0
-    }else{ 
-        if( isTRUE(parms$isTvrNil) ){
-            # scenario of enzymes and biomass not feeding back to R
-            dR <- +parms$iR -decR
-            dRN <- +parms$iR/parms$cnIR -decR/cnR
-            tvrExC <- tvrC
-            tvrExN <- tvrN
-        }
+    }else if( isTRUE(parms$isTvrNil) ){
+        # scenario of enzymes and biomass not feeding back to R
+        dR <- +parms$iR -decR
+        dRN <- +parms$iR/parms$cnIR -decR/cnR
+        tvrExC <- tvrC
+        tvrExN <- tvrN
     }
     respB <- respSynE + rG + rM + respO 
     resp <- respB + respTvr
@@ -129,11 +139,14 @@ derivSeam2 <- function(t,x,parms){
     if( diff( unlist(c(uC=uC, usage=respB+synB+synE )))^2 > sqrEps )  stop("biomass mass balance C error")
     if( diff( unlist(c(uN=uN, usage=synE/parms$cnE + synB/parms$cnB + MmImb )))^2 > .Machine$double.eps)  stop("biomass mass balance N error")
     if( !isTRUE(parms$isFixedS) ){    
-        if( diff(unlist(c(dB+dER+dEL+dR+dL+resp+tvrExC,    parms$iR+parms$iL )))^2 > sqrEps )  stop("mass balance C error")
-        if( diff(unlist(c( (dB)/parms$cnB+(dER+dEL)/parms$cnE+dRN+dLN+dI+tvrExN,    parms$iR/parms$cnIR +parms$iL/parms$cnIL -plantNUp +parms$iI -(parms$iP+parms$l)*x["I"])))^2 > .Machine$double.eps )  stop("mass balance N error")
+        if( diff(unlist(c(dB+dER+dEL+dR+dL+tvrExC+resp,    parms$iR+parms$iL )))^2 > sqrEps )  stop("mass balance C error")
+        #if( diff(unlist(c( (dB)/parms$cnB+(dER+dEL)/parms$cnE+dRN+dLN+dI+tvrExN,    parms$iR/parms$cnIR +parms$iL/parms$cnIL -plantNUp +parms$iI -(parms$kIP+parms$l)*x["I"])))^2 > .Machine$double.eps )  stop("mass balance N error")
+        if( diff(unlist(c( dB/parms$cnB +(dER+dEL)/parms$cnE +dRN+dLN+dI+tvrExN,    parms$iR/parms$cnIR +parms$iL/parms$cnIL -plantNUp +parms$iI -parms$kIP -parms$l*x["I"])))^2 > .Machine$double.eps )  stop("mass balance dN error")
     }
+    if( isTRUE(parms$isRecover) ) recover()    
     list( resDeriv, c(respO=as.numeric(respO)
-        , Mm=as.numeric(Mm), MmImb=as.numeric(MmImb), MmTvr=as.numeric(MmTvr)  
+        , MmB=as.numeric(MmB), MmTvr=as.numeric(MmTvr)
+        , immoPot=as.numeric(immoPot), MmImb=as.numeric(MmImb)    
         , alpha=as.numeric(alpha)
         , alphaC=as.numeric(alphaC), alphaN=as.numeric(alphaN)
         , cnR=as.numeric(cnR), cnL=as.numeric(cnL)
@@ -149,6 +162,34 @@ derivSeam2 <- function(t,x,parms){
 ))
 }
 
+balanceAlphaSmallImmobilization <- function(
+        ### compute balance between alphaC and alphaN based on C and N based biomass synthesis
+        alphaC, alphaN, CsynBN, CsynBC, NsynBC, NsynBN, delta=200
+){
+    # if there is only small potential of immobilizalization, do a smooth transition between alphaC and alphaN
+    wCLim = min( .Machine$double.xmax, (CsynBN/CsynBC)^delta )      # min to avoid +Inf
+    wNLim = min( .Machine$double.xmax, (NsynBC/NsynBN)^delta )
+    alpha <- (wCLim*alphaC + wNLim*alphaN) / (wCLim + wNLim)
+}
+
+balanceAlphaLargeImmobilization <- function(
+        ### compute balance between alphaC and alphaN based on current and potential immobilization fluxes
+        alphaC, alphaN, isLimN, isLimNSubstrate, immoAct, immoPot
+){
+    if( isLimN ) return(alphaN)
+    if( isLimNSubstrate ){
+        # overall C limited, but only with acquiring N by immobilization
+        # increase proportion into N aquiring enzymes as the proportion of immobilization to its poentential increases 
+        pN <- immoAct / immoPot 
+        # increase proportion into N aquiring enzymes as the proportion of biomass synthesis that is possible due to immobilization 
+        #pN <- (CSynB - CsynBNSubstrate)/CsynBNSubstrate
+        alpha <- alphaC + pN*(alphaN-alphaC)
+        return(alpha)
+    } 
+    alphaC
+}
+
+
 
 
 
@@ -160,6 +201,7 @@ plotResSeam1 <- function(res, legendPos="topleft"
         , cls = c("B","ER","EL","respO","Mm")
         , xlab="time (yr)"
         , ylab="gC/m2 , gN/m2 , % ,/yr"
+        , ...
 ){
     #res$B100 <- res$B/100
     res$ER_10 <- res$ER*10
@@ -171,13 +213,17 @@ plotResSeam1 <- function(res, legendPos="topleft"
     res$B10 <- res$B * 10
     res$Rr <- res$R / res$R[1]  * 100 #max(res$R, na.rm=TRUE)
     res$Lr <- res$L / res$L[1]  * 100 #max(res$L, na.rm=TRUE)
+    res$I100 <- res$I  * 100 
+    res$MmB100 <- res$MmB  * 100 
+    res$MmB1000 <- res$MmB  * 1000 
+    res$cnR10 <- res$cnR  * 10 
     #cls <- c("B100","ER_10","EL_10","respO","Mm")
     #cls <- c("B100","ER_10","EL_10","respO","Mm","eff")
     #cls <- c("B1000","ER_10","EL_10","Mm")
     #cls <- c("B","E","respO","Mm","R","L")
     bo <- TRUE
     #bo <- res[,1] < 70
-    matplot( res[bo,1], res[bo,cls], type="l", lty=1:20, col=1:20, xlab=xlab, ylab="")
+    matplot( res[bo,1], res[bo,cls], type="l", lty=1:20, col=1:20, xlab=xlab, ylab="", ...)
     mtext( ylab, 2, line=2.5, las=0)
     legend(legendPos, inset=c(0.01,0.01), legend=cls, lty=1:20, col=1:20)
 }

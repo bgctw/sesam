@@ -4,7 +4,7 @@ be understood without their interactions (XXCStorebyN). The links between nutrie
 cycles are especially strong in dynamic of soil organic matter (SOM) because all
 of the SOM has to be depolymerized and successively mineralized by a microbial
 community with a rather strict homeostatic regulation. Faced with stoichiometric
-imbalances between OM substrates and synthesized biomass, decomposers have to
+imbalances between OM ressources and synthesized biomass, decomposers have to
 lower their carbon use efficiency (CUE) or nutrient use efficiency (NUE) 
 (XXSterner, Mooshammer). The regulation of CUE has shown to have large
 consequences on prediction of carbon sequestration in SOM (XX Allison follows,
@@ -16,25 +16,25 @@ depolymerize food sources of different stoichiometry in order to match their
 requirements (XXSterner, Mooshammer). This hypothesis was recently formalized by
 XXMoorehead with the conceptual EEZY model. While this model showed the
 principle feasibility of this strategy in short term, it did implement feedbacks
-to substrate pools and therefore could no look at consequences for longer term
+to ressource pools and therefore could no look at consequences for longer term
 SOM cycling. The associated change in CUE and NUE, however, can have severe
 consequences on the long term SOM cycling and our understanding of soil carbon
 sequestration and plant- soil- atmosphere elemental feedbacks.
 
 The aim of this study, therefore, is to further develop the conceptual model of
-enzyme allocation including feedbacks of turnover to the substrate pools and
+enzyme allocation including feedbacks of turnover to the ressource pools and
 explore the different consequences of alternative enzyme allocation schemes on
 long term SOM dynamics and nutrient recycling.
 
 To this end we developed a conceptual model of SOM cycling that explicitly
 represented several extracellular enzyme pools involved in the depolymerization
-of specific substrates which differed in their elemental ratios. Several
+of specific ressources which differed in their elemental ratios. Several
 variants were developed that differed by the strategy of enzyme allocation:
 either fixed or flexible, and either based on stoichiometry only or on pool
 sizes too. Simulations scenarios were devised to study effects on mineralization
 fluxes and buildup of SOM. Specifically, we first studied under which ranges of
-substrate stoichiometry decomposers with flexible allocation could use the
-substrate more efficiently and decrease mineralization fluxes (including
+ressource stoichiometry decomposers with flexible allocation could use the
+ressource more efficiently and decrease mineralization fluxes (including
 overflow respiration as carbon mineralization). Second, we tested with which
 strategies sustainable microbial communities could develop under constant litter
 input, by simulating a steady state. Third, we were interested in different
@@ -72,7 +72,7 @@ residues, $\operatorname{R}$ (Fig. \ref{fig:SEAM}).
 \begin{center}
 \includegraphics[width=8.3cm]{fig/seam2}
 \end{center}
-\caption{Model strucutre of SEAM: Two substrate pools ($L$ and
+\caption{Model strucutre of SEAM: Two ressource pools ($L$ and
 $R$) are depolymerized by respective enzymes
 ($E_L$ and $E_R$). The simple organic
 compounds ($\operatorname{DOM}$) are transported by soil solution and taken up
@@ -92,15 +92,16 @@ Appendix \ref{app:SEAM} reports the model equations and details. Here we
 describe the most important assumptions.
 
 C/N ratios, $\beta$ of biomass and enzymes are
-fixed while those of the substrate pools may change over time due to
+fixed while those of the ressource pools may change over time due to
 fluxes in and out of the pools. Imbalances in stoichiometry of uptake and demand
 in microbial biomass are compensated by overflow respiration or nitrogen
 mineralization.
 
-Total enzyme allocation is a fixed fraction,
-$a_E$, of the microbial biomass, $B$, per time. But microbial community can
-adjust their allocation to produce new enzymes $E_R$ or $E_L$: $\alpha = E_R / (E_R + E_L)$. The different strategies
-of enzyme allocation are explained in section \ref{sec:AllocStrategies}.
+Total enzyme allocation is a fixed fraction, $a_E$, of the microbial biomass,
+$B$, per time. But microbial community can adjust their allocation to produce
+new enzymes $E_R$ or $E_L$: $\alpha = E_R / (E_R + E_L)$. The different
+strategies of enzyme allocation are explained in section
+\ref{sec:AllocStrategies}.
 
 The DOM pool is assumed to be in quasi steady state and all the sum of all
 influxes to the DOM pool (decomposition + part of the enzyme turnover) is taken
@@ -115,9 +116,9 @@ starves and declines.
 Three different strategies of allocating investments among production of
 alternative enzymes were explored in this study (Table
 \ref{tab:AllocStrategies}). Microbes invest porportion $\alpha$ of total enzyme
-investments into production of enzymes targeting the nitrogen rich $R$ substrate
+investments into production of enzymes targeting the nitrogen rich $R$ ressource
 and proportion $1 - \alpha$ into production of enzymes targeting the nitrogen
-poor but betteer degradable $L$ substrate.
+poor but better degradable $L$ ressource.
 
 \begin{table}[t]
 \caption{Simulation scenarios \label{tab:AllocStrategies}}
@@ -157,13 +158,13 @@ ratio of microbial biomass, $\beta_B$.
 \text{,}
 \end{equation}
 where $\operatorname{dec}_L$, and $\operatorname{dec}_R$ are
-depolymerization fluxes of the labile and residue substrates
+depolymerization fluxes of the labile and residue ressources
 respectively, $r_M$ is maintenance respiration, $\epsilon$ is the 
 intrinsic microbial efficiency, and $\beta$ are C/N ratio of
 the respective pools $i$, and $\phi_{\operatorname{imm}}$ is the immobilization
 flux from mineral N pool to microbes.
 When the current sum of enzyme levels, $E$ is assumed to be in quasi steady
-state for given amounts of substrate and microbial biomass, then equation
+state for given amounts of ressource and microbial biomass, then equation
 \ref{eq:allocMatchCN} can be solved for allocation partitioning, $\alpha$.
 \begin{subequations}
 \label{eq:allocMatch}
@@ -178,19 +179,20 @@ state for given amounts of substrate and microbial biomass, then equation
 \end{subequations}
 
 The bounds to zero and one are necessary because the sole
-allocation to decompose the carbon rich substrate may not suffice to
+allocation to decompose the carbon rich ressource may not suffice to
 cover microbial carbon demands and solving eq. \ref{eq:allocMatchCN} for
 $\alpha$ then leads to unreasonable solutions.
 Function $f_{\operatorname{{\alpha}Fix}}$ is given in appendix
 \ref{app:fAlphaFix} and the sympy script of its 
 derivation is given with supplementory material. 
 
-The \textbf{Revenue} strategy assumes that microbes invest into enzyme
-production proportional to their revenue, i.e. their return per investment
-regarding the currently limiting element.
+The \textbf{Revenue} strategy assumes that microbial community adatps in a way
+so that investment into enzyme production is proportional to their revenue, i.e.
+their return per investment regarding the currently limiting element.
 
-The return is the current decomposition flux from respective substrate. The
-investment needs to be equal to enzyme turnover to keep current enzyme levels.
+The return is the current decomposition flux from respective ressource. The
+investment needs to be equal to enzyme turnover to keep current enzyme levels,
+$E_S^*$.
 % : $a_E B = k_{NR} E_R^* + k_{NL} E_L^*$.
 % 
 \begin{subequations}
@@ -208,9 +210,9 @@ investment needs to be equal to enzyme turnover to keep current enzyme levels.
 \text{,} 
 \end{align}
 \end{subequations}
-where $\operatorname{rev}_S$ is the revenue from given substrate $S$ ($S$ is either $L$ or $R$)
+where $\operatorname{rev}_S$ is the revenue from given ressource $S$ ($S$ is either $L$ or $R$)
 under carbon and nitrogen limitation respectively.
-$k_{NS}$ is rate of enzyme turnover, $k_{m,S}$ is substrate affinity, $a_E$ is
+$k_{NS}$ is rate of enzyme turnover, $k_{m,S}$ is ressource affinity, $a_E$ is
 total enzyme allocation coefficient, $\operatorname{dec}_{S,Pot} = k_S S$ is
 enzyme saturated decomposition flux, and $\beta$ are C/N ratios of the
 respective pools.
@@ -260,28 +262,28 @@ with the faster litter pool.
 \tophline
 Scenario & Explored issue\\
 \middlehline
-VarN-Incubation & Efficieny of using given fixed substrate levels that
+VarN-Incubation & Efficieny of using given fixed ressource levels that
 vary by N content \\
-Feedback-Steady & Possibility and size of steady state substrate pools\\
-Priming & Increased substrate decomposition and mineralization after
+Feedback-Steady & Possibility and size of steady state ressource pools\\
+Priming & Increased ressource decomposition and mineralization after
 addition of fresh litter\\
 CO2-Fertilization & SOM dynamics after increased carbon inputs\\
 \bottomhline
 \end{tabular}
 \end{table}
 
-The \textbf{VarN-Incubation} scenario explored how substrates of given
+The \textbf{VarN-Incubation} scenario explored how ressources of given
 stoichiometry are used more or less efficiently with different enzyme allocation
 scenarios. It used a simplified model where all the inputs and feedbacks to the
-substrate pools ($L$ and $R$) were neglected and these pools were kept constant
+ressource pools ($L$ and $R$) were neglected and these pools were kept constant
 ($dL/dt = dR/dt = 0$). We reported the values and fluxes after Hence it
 simulates the microbes and enzyme levels have grown into a quasi steady state
-with the given substrate supply. Hence, it simulated the end of a short term
+with the given ressource supply. Hence, it simulated the end of a short term
 incubation. Can microbes adapt their allocation to the given resource
 stoichiometries and grow in a balanced fashion where they do not need to discard
 excess carbon or nitrogen?
 
-Specifically, we fixed substrate carbon stocks to $L=400 gC/m^2$ and
+Specifically, we fixed ressource carbon stocks to $L=400 gC/m^2$ and
 $R=800gC/m^2$. C/N ratio of the residue pool was set to $\beta_R=6.8$, and the
 we explored steady state conditions for a range of C/N ratios for the litter
 ($\beta_L = [18,..,42]$). 
@@ -308,11 +310,42 @@ years 10 to 60, the carbon input, and hence also the C/N ratio was increased by
 due to the increased input? Can the microbes use the Nitrogen stored in the $R$
 pool to make better use of the increased carbon availability?
 
+\subsubsection{Calibration to a fertilized grassland site}
+
+To test the capability of the SEAM model to simulate the carbon sink of a
+grassland site, we calibrated the model to data of an intensive pasture. The
+model drivers and most of the parameterization was taken from the publication of
+\citep{Perveen14}. The site is a temperate permanent grassland
+located at 1040 m in France (Laqueuille, 45\textdegree{38}'N,
+2\textdegree{44}'E). Mean annual precipitation and temperature are 1200 mm and 7
+\textdegree{C}, respectively.
+
+Plant litter input and plant uptake of inorganic N were
+computed assuming plant to be in steady state with the measured plant biomass and
+biomass exports. The N balance of the fertilized grassland is characterized by
+high inorganic N-inputs. Part of this N is sequestered in accumulating SOM, part
+is leached and part is exported with plant biomass. Parameters were chosen
+corresponding to Table 1 in \citep{Perveen14}. See
+\ref{app:GrasslandCalibration} for details.
+
+The two single calibrated parameters were the maximum decomposition rate of
+labile carbon, $kL$, and the maximum rate of microbial inorganic N uptake as a
+fraction of inorganic N stock per time, $iB$. Parameters were calibrated by
+comparing differences between model predictions and observations normalized by
+the standard deviation of the observations.
+ 
 \section{Results}
+
+First, several prototypical artificial simulation scenarios clarify the
+general behaviour and features of the SEMA model. Next, a calibration to
+observations demonstrates the model's ability to simulate general C and N
+dynamics of an intensive pasture.
+
+\subsection{Prototypical simulation scenarios}
 
 With the \textbf{VarN-Incubation} scenario, there were differences among
 allocation strategies for the dependence of allocation $\alpha$ on the nitrogen
-content of the litter substrate. These caused marked changes in
+content of the litter ressource. These caused marked changes in
 biomass and imbalance fluxes (Fig.
 \ref{fig:VarNNoFeedback}).
 
@@ -334,9 +367,9 @@ respiration of excess C, across a wide range of litter C/N
 ratios (20 to 42).
 It also allowed higher microbial biomass stocks for litter C/N ratio below
 35 than with the Fixed stratey. However, although the
-substrate was used more efficiently, biomass stocks were lower for litter
+ressource was used more efficiently, biomass stocks were lower for litter
 CN-ratios below 24. This was because we prescribed smaller stocks of litter,
-$L$ than residue substrate, $R$.
+$L$ than residue ressource, $R$.
 
 With the Revenue strategy enzyme allocation also varied with litter N content.
 However, under conditions where L contained enough N, about 30\% of the efforts
@@ -344,8 +377,8 @@ were invested into R degrading enzymes. This resulted in excretion of
 excess N, but in turn allowed for a higher microbial biomass. Imbalance fluxes,
 were smaller than with the Fixed strategy.
 
-When including feedbacks to the substrate pools within the model with the
-\textbf{SimSteady} scenario, substrate pools approached steady state with the
+When including feedbacks to the ressource pools within the model with the
+\textbf{SimSteady} scenario, ressource pools approached steady state with the
 Fixed and the Revenue strategies, but there was no reasonable steady state for
 the Match strategy (Fig. \ref{fig:SimSteady}).
 
@@ -354,7 +387,7 @@ the Match strategy (Fig. \ref{fig:SimSteady}).
 \begin{center}
 \includegraphics[width=8.3cm]{fig/SimSteady}
 \end{center}
-\caption{Development of substrate pools resulting from constant litter input and
+\caption{Development of ressource pools resulting from constant litter input and
 turnover fluxes with the SimSteady scenario.
 \label{fig:SimSteady}}
 \end{figure}
@@ -364,7 +397,7 @@ nitrogen rich residues pool and only partly on the litter pool. This led to an
 accumulation of the litter and a degradation of the residue pool. Together with
 diminishing return from residue pool, microbes starved and declined.
 Because of the Match strategy was not able to simulate reasonable
-stocks when including feedback to substrate pools in the model, it was omitted
+stocks when including feedback to ressource pools in the model, it was omitted
 from the remaining simulation scenarios.
 
 After amending a starved subsoil with a pulse of litter in the
@@ -425,120 +458,145 @@ overflow respiration during increased carbon inputs and the N mineralization
 in the period of decreased carbon input was lower compared to the Fixed
 strategy (Fig. \ref{fig:CO2IncreaseImb}).
 
+\subsection{Intensive pasture calibration}
+
+XXX Table observed, predicted, percent
+
+The optimized values of  
+XXX Graph
+
+
+
 
 \section{Discussion}
-\subsection{Importance of pool sizes}
-The Match strategy proposed that microbes can achieve balanced growth under a
-wide range of resource stoichiometry when modelling incubation experiemnts
-\citep{Moorhead12, Ballentine14}.
-However, both in the VarN-Incubation scenario (Fig.
-\ref{fig:VarNNoFeedback}) and in the SimSteady scenarios (Fig.
-\ref{fig:SimSteady}), microbial biomass stocks with the Match strategy declined
-when focusing enzyme production on pools that matched stoichiometry demands but
-were small compared to the other pools.
-Microbes that have a huge amount of N available in large but stoichiometric
-imbalanced litter pool (Fig. \ref{fig:SimSteady}) invest enzymes into
-depolymerizing a small but stoichiometrically balanced residues pool. This leads
-to the further accumulation of the litter pool and the exhaustion of both the
-residues pool and the microbial biomass. This clearly implies, that considering
-the pool sizes is important, and that the Match strategy can not be applied.
+\subsection{Importance of ressource amounts}
+The amounts of ressource pools together with ressource stoichiometry are
+important for regulating enzyme allocation. The match strategy does not account
+for ressource amounts despite their importance. It assumes that microbes can
+achieve balanced growth under a wide range of resource stoichiometry,
+specifically when describing incubation experiments \citep{Moorhead12,
+Ballentine14}. However, microbial biomass stocks declined with the Match
+strategy both in the VarN-Incubation scenario (Fig. \ref{fig:VarNNoFeedback})
+and in the SimSteady scenarios (Fig. \ref{fig:SimSteady}) of this study. Such
+biomass decline was caused by focusing enzyme production on pools that matched
+stoichiometry demands but were small compared to the other pools. Microbes
+invested enzymes into depolymerizing a small but stoichiometrically balanced
+residues pool depite the huge amount of N available in a large but
+stoichiometric imbalanced litter pool (Fig.
+\ref{fig:SimSteady}). This strategy led to the further accumulation of the
+litter pool and the exhaustion of both the residues pool and the microbial
+biomass. We argue that such unreasonable behaviour is evidence against the Match
+strategy and conclude that an improved strategy must account for ressource
+amounts.
 
 \subsection{Increased Biomass and decreased imbalance fluxes}
-With the VarN-Incubation scenario (Fig.
-\ref{fig:VarNNoFeedback}) the Revenue strategy supported consistently higher
-biomass than the Fixed strategy, and consistently had lower N mineralization
-fluxes due to stoichiometric imbalance at high N contents, i.e low C/N ratios.
-With the SimSteady scenarios (Fig. \ref{fig:SimSteady}) also had higher biomass
-(XX vs XX) at steady state and lower XX fluxes (XX vs XX). Same pattern appeared
-in the CO2-Fertilization scenario (Fig. \ref{fig:CO2IncreaseImb}).
-
-The Revenue allocation strategy made better use of the available
-food and sustained more biomass for the same litter inputs and environmental
-conditions. Hence, it used the food more for productive respiration and turnover
-that sustains a food chain instead of imbalance waste fluxes.  
-
-This implies XX
+Revenue strategy consistently supported higher biomass and had lower N
+mineralization fluxes compared to the the Fixed strategy with the
+VarN-Incubation scenario (Fig. \ref{fig:VarNNoFeedback}). Similar patterns
+appeared with the other scenarios (Fig. \ref{fig:SimSteady}
+\ref{fig:CO2IncreaseImb}). With the SimSteady scenarios the revenue strategy
+yielded higher biomass (XX vs XX) at steady state and lower XX fluxes (XX vs
+XX).
+Microbes with the Revenue allocation strategy use the available ressource more
+efficiently and sustain more biomass for the same litter inputs and
+environmental conditions. They use the food more for productive respiration and
+turnover that sustains a food chain rather than for imbalance waste fluxes. 
+This implies that with increased flexibility within the microbial
+community mineralization fluxes with imbalanced ressources may be lower than
+inferred from previous modelling studies, as also shown by an indiviual based
+model of XX \citep{Kaiser14}.
+  
 
 \subsection{Bank mechanism}
-The Revenue strategy led to a redistribution of substrate types during high
+The Revenue strategy led to a redistribution of ressource types during high
 and low carbon inputs with the  CO2-Fertilization scenario (Fig.
 \ref{fig:CO2Increase}). When there was excess litter carbon, microbes
 preferentially depolymerized the nitrogen rich residue pool in order to make use of available
-carbon. Otherwise, excess nitrogen was used to build the residue pool again
-instead of reasing it as N mineralization.
+carbon. When decreasing carbon inputs, excess nitrogen was used to
+build the residue pool again instead of releasing N by mineralization.
  
 Ultimately, on the long term, the inputs to the system have to balance the
 outputs of the system. Hence there are constraints on possible alteration of
-total respiration and N mineralization. However, until there is a big reserve of
-depositing excess nitrogen or mining for required nitrogen in the residue pool.
-The limits of this bank capapcity is the difference in steady states between
+total respiration and N mineralization. However, changes can be buffered by a 
+depositing or mining a reserve of excess nitrogen in the residue pool.
+The limit of this bank capacity is the difference in steady states between
 inputs levels. In our simulations this was about twice the annual N
-litter input. Because the real turnover time and stock of residue pool higher
-than in our simulations, also the capacity to deposit N is higher in reality.
+litter input. 
 
 This implies an important point in interpreting the feedbacks and consequences
-of global change.  First, the additional storage i
+of global change.  First, the additional storage i XX
 
 \subsection{Nutrient recycling by priming}
-There was a simulated priming effect for both strategies (Fig.
-\ref{fig:PrimingDec}) associated with an increased nitrogen mineralization flux
-with both fixed and revenue strategy. Hence, the plants could influence the
-recycling of Nutrients from SOM. Moreover, nutrient recycling is the other side
-of the bank mechanism. If carbon is sequestered in SOM, then nutrients become
-less for plants. With the revenue strategy, however, plants could influence the
+The priming effect can help plants to stimulate nutrient release.
+Priming effects were simulated for both strategies (Fig. \ref{fig:PrimingDec})
+associated with an increased nitrogen mineralization flux.
+Hence, the difference in plant ressource inputs to the soil could influence the
+recycling of nutrients from SOM.
+Nutrient recycling is the other side of the bank mechanism. If carbon is
+sequestered in SOM, then also nutrients are sequestered and become
+unavailable for plants.
+With the revenue strategy, however, plant inputs could influence the
 partitioning of SOM between a low C/N SOM pool and a high C/N pool (Fig.
 \ref{fig:CO2Increase}) and, hence, also influence the distribution of nitrogen
-with in the ecosystem and availability for plants. This active role of plants
-has already demonstrated in a soil incubation experiment \ref{Fontaine11} and
-has been further conceptualized with the SYMPHONY model \ref{Perveen14}. Our
-results are in line with these studies, although our explanation is on a more abstract
-level (section \ref{sec:sec:Holistic}). The implications of 
+in the ecosystem and nutrient availability for plants. This active role of
+plants has already demonstrated in a soil incubation experiment \citep{Fontaine11} and
+has been further conceptualized with the SYMPHONY model \citep{Perveen14}. Our
+results are in line with these studies, although our explanation is on a more
+abstract level (section \ref{sec:Holistic}). It implies greater potential
+for plants to avoid progressive nitrogen limitaiton \citep{Norby10,
+Franklin14, Averill15}.
 
 \subsection{How long are enzymes active?}
-SEAM simulations showed a rather long time scale of the priming effect
-\ref{fig:PrimingDec}) of several month, despite the $L$ substrate puls was used
+The turnover time of soil extracellular enzymes governs the timescale of priming
+effects. SEAM simulations showed a rather long time scale of the priming effect
+\ref{fig:PrimingDec}) of several month, despite the $L$ ressource puls was used
 up within about 50 days. This is in contrast with incubation studies that
 observe priming effects within days or weeks that rapidely declines after the
-substrate has been used up e.g. \citep{Blagodatskaya14}.
-This is caused by simulated enzyme turnover, which we modelled using first
-order kinetics with a turnover time of one month. \citep{XXBurnsEnzymeReview}
+ressource has been used up e.g. \citep{Blagodatskaya14}.
+Im this study the timescale was set by simulated enzyme turnover,
+which we modelled using first order kinetics with a turnover time of one month
+\citep{Burns13}.
 
-In order to model the observed decline of priming after the substrate has
-been used up the turnover time of enzymes can be decreased to a few days. This,
-however, would require an immense effort of producting enzymes by microbial
-biomass. More sophisticated models of enzyme turnover might however be able to
-resolve this contradiction.
+One option to model the observed faster timescales, the turnover time of enzymes
+could be decreased to a few days.
+This change, however, would require an immense effort of producting enzymes by
+microbial biomass. More sophisticated models of enzyme turnover
+including stabilization of a part on mineral surfaces \citep{Burns13},
+hopefully will be able to resolve such contradictions.
 
-An alternative explanations is that enzymes may need to be fueled by fresh
-organic matter themselves \citep{XXPrimingWorkshop Denmark}. This would imply,
-however, that enzyme activity and decomposition of SOM becomes decoupled from
-enzyme production and microbial dynamics to a large extent in the short term.
+An alternative explanations is that enzymes such as peroxidases may need to be
+fueled by labile organic matter themselves \citep{Rousk14} with no
+immediate relationship to microbial biomass dynamics.
+This explanation implies, however, that enzyme activity and decomposition of SOM
+becomes decoupled from enzyme production and microbial dynamics to a large extent in the short term.
 This is contrary to the assumption of most models of the priming effect. While
-those assumptions would greatly complicate comparison between model and data, we
-argue the patterns of enzyme allocation and SOM turnover is still robust in the
-long term where enzyme production still determines integrated enzyme activity.
+such an explanation would greatly complicate comparison between
+model and data, we argue that the model generated patterns of enzyme allocation
+and SOM turnover are still robust in the long term and longer term activity is
+still determined by enzyme production.
  
 \subsection{Holisctic view for upscaling
 \label{sec:Holistic}} 
 
-The presented SEAM conceptual model does not explicitely
-describe microbial diversity. In this respect it differs from SYMPHONY model
-\citep{Perveen14} and similar conceptual models \citep{Fontaine03}, that
-explicitely modelled several microbial groups, specifically SOM builders that grow solely on
-fresh low nutrient material (here $L$), and SOM builders that can use both
-substrates (here $L$ and $S$). The effective model behaviour, however, is
-similar. The SEAM model applies a holistic view on the microbial community
-\citep{Panikov10}, where the resulting ecosystem functions that depend on the
-competition of microbial groups within the community is largely determined by
-the external drivers outside the community. The SEAM model describes a modified
-allocation of resources into breakdown of different substrates with changed
-resource availability by assuming that the community will optimize its revenue.
-The SYMPHONY model applies a meristic paradigm and explicitly models this
-optimization by shifts between microbial groups. While the meristic approach
-gives more detailed understanding of the mechanism, we hypothize, that the
-holistic approach is more suitable for simplification \citep{Wutzler13} and
-application in larger-scale models, such as land surface components of earth
-system models.
+The presented SEAM conceptual model does not explicitely describe microbial
+diversity but instead takes a holistic view \citep{Panikov10}. In this respect
+it differs from the SYMPHONY model \citep{Perveen14} and similar conceptual
+models \citep{Fontaine03}, that explicitely modelled several microbial groups,
+specifically SOM builders that grow solely on fresh low nutrient material (here
+$L$), and SOM builders that can use both ressources (here $L$ and $S$). The
+effective behaviour of the presented SEAM model, however, is similar. It assumes
+that community composition is driven to a large extent by external drivers
+outside the community. The SEAM model describes a modified allocation of
+resources into breakdown of different ressources with changed resource
+availability by assuming that the community composition adapts in a way so that
+it will optimize its revenue.
+While the merismatic approach of the SYMPHONY model explicitly represents this
+optimization by shifts between microbial groups, the holistic approach
+represents the effects of this optimization.
+While the meristic approach gives more detailed understanding of the mechanism,
+we hypothize, that the holistic approach is more suitable for simplification
+\citep{Wutzler13} and application in larger-scale models, such as land surface
+components of earth system models.
 This implies that that the proposed abstraction of microbial competition by the
 revenue strategy is a step forward of better representing couplings of soil
 carbon and nutrient cycles in earth system models and a step forward to improved
@@ -547,12 +605,12 @@ predictions of long term carbon sequestration.
 \subsection{Testable predictions: Change of SOM C/N ratios}
 So far the SEAM model has not be compared to observations or experimental data.
 This is, indeed, a difficult task because the model is designed with the purpose
-to model the long-term patterns of change substrate stoichiometry and
+to model the long-term patterns of change ressource stoichiometry and
 availability and abstract from many processes that are relevant at time scales
 up to years and decades.
 However, the model can be used to predict long term patterns of SOM cycling
 after change in resource stoichiometry and these can serve provide evidence for
-or against the modelling assumptions \ref{XXEintstein}.
+or against the modelling assumptions \citep{XXEintstein}.
 Specifically, we predicted a change in proportions of the litter pool and the
 SOM pool. While these abstract pools are not directly comparable to observations
 the overall effect is a change in total SOM C/N ratio. The C/N pool is
@@ -563,8 +621,8 @@ FACE and unchanged N inputs/outputs (Fig. \ref{fig:CO2Increase}).
 \subsection{Outlook}
 The biggest limitation of the SEAM model is its focus on a single
 process: enzyme allocation. In order to focus we had to ignore the other
-microbial strategy of copomg with resource stoichiometric imbalance by adapting their
-biomass ratio \citep{XXRastetter}. Although the potential of this biomass
+microbial strategis of coping with resource stoichiometric imbalance by
+adapting their biomass ratio \citep{XXRastetter}. Although the potential of this biomass
 adaptation is thougth to be quite limited \citep{Mooshammer14}, it will be
 tested whether these two strategies can be combined within a model.  
 
@@ -574,16 +632,13 @@ quasi-steady state of biomass or
 Explore N-immolization, short term
 
 
-
-
-
- 
-
-
-
-
- 
- 
+Assumption of allocating a fixed proportion of uptake to enzyme production
+dropped an optimality constraint on community development. Presence of cheaters,
+i.e. microbes that consume ressource but without producing enzymes, effectively
+lower the community-level allocation to enzymes. Community development
+can be assumed to maximise biomass production. Such an assumption can be
+used to compute the optimal share of cheaters and hence the optimal
+proportion of utake that is allocated to enzyme production. 
  
 
 Differences to Moorhead12 approach
@@ -600,7 +655,7 @@ holistic view on microbial community, upscaling
 
 
 The Match strategy adjusts enzyme production solely based on stoichiometry but
-ignores the sizes of the substrate pools. Hence
+ignores the sizes of the ressource pools. Hence
 
 Duration of priming - litter one year
 

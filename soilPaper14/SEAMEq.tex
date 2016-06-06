@@ -7,7 +7,7 @@
 \frac{dB}{dt} &= \operatorname{syn}_B - \operatorname{tvr}_B \\
 \frac{dE_L}{dt} &= (1 - \alpha)  \, \operatorname{syn}_E -\operatorname{tvr}_{EL}\\
 \frac{dE_R}{dt} &= \alpha \, \operatorname{syn}_E - \operatorname{tvr}_{ER} \\
-\frac{dL}{dt} &=  - \operatorname{dec}_L + \operatorname{input}_L
+\frac{dL}{dt} &=  - \operatorname{dec}_L + \operatorname{i}_L
 \\
 \frac{dR}{dt} &=  - \operatorname{dec}_R +
 \epsilon_{\operatorname{tvr}}  \operatorname{tvr}_B + (1 -k_{NB})
@@ -16,7 +16,7 @@
 \end{align}
 \end{subequations}
 where $k_{NB}$ is the fraction of enzyme turnover that is transferred to the
-DOM instead of the $R$ pool, and $\operatorname{input}_L$ is the carbon input
+DOM instead of the $R$ pool, and $\operatorname{i}_L$ is the carbon input
 to the system. $\alpha$ is the proportion of total investment into enzymes
 that is allocated to the residue pool $R$ (section \ref{sec:AllocStrategies}).
 The specific fluxes are detailed below.
@@ -85,8 +85,8 @@ microbial carbon use efficiency, is used for synthesis of biomass and enzymes
 and the rest is required for catabolic growth respiration $r_G$ to support this
 synthesis.
 The model assumes that requirements for enzyme synthesis and maintenance must be
-met. Hence, the balance could become negative and microbial biomass starves and
-declines.
+met. Hence, the balance could become negative where microbial biomass starves
+and declines.
 
 \begin{subequations}
 \label{eq:synB}
@@ -103,6 +103,10 @@ declines.
 \end{cases}  
 \end{align}
 \end{subequations}
+\noident
+where $C_{\operatorname{synB}}$ is the carbon balance for biomass
+synthesis and is given below by eq.
+\ref{eq:NCLim}.
 
 
 
@@ -110,31 +114,44 @@ declines.
 Nitrogen fluxes and pools are derived by dividing the respective fluxes with the
 C/N ratio, $\beta$, of their source.
 
-The C/N ratio $\beta$ of the microbial biomass and of the enzymes,
-are fixed. The C/N ratio of the litter pools, however, my change over time and
+The C/N ratios $\beta_B$ and $\beta_E$ of the microbial biomass and of the
+enzymes, are fixed. The C/N ratio of the litter pools, however, my change over time and
 the N pools are modelled explicitly.
 \begin{subequations}
 \label{eq:SEAMN}
 \begin{align}
 \frac{dL_N}{dt} &=  - \operatorname{dec}_L /\beta_{L} +
-\operatorname{input}_L/\beta_{\operatorname{input}} \\
+\operatorname{i}_L/\beta_{\operatorname{i}} 
+\\
 \frac{dR_N}{dt} &=  - \operatorname{dec}_R /\beta_{R} +
-\epsilon_{\operatorname{tvr}} \operatorname{tvr}_B /\beta_{B} + \notag \\
+\epsilon_{\operatorname{tvr}} \operatorname{tvr}_B /\beta_{B} + \notag 
+\\
 & \qquad (1 -k_{NB}) (\operatorname{tvr}_{ER} +
-\operatorname{tvr}_{EL})/\beta_{E}  
+\operatorname{tvr}_{EL})/\beta_{E} 
+\\
+\frac{dI}{dt} &= +i_I -k_{IP} -l I +\Phi + \operatorname{tvr}_N
 \text{,} 
 \end{align}
 \end{subequations}
 
-Nitrogen uptake is the sum of influxes to the DOM pool and the immobilization
-flux ($N_{\operatorname{imm}}$).
+\noindent
+where the balance of the inorganic nitrogen pool $I$ sums inorganic inputs
+$i_I$, plant uptake $k_{IP}$, leaching $l I$, the
+mineralization-immobilization flux $\Phi$, and mineralization of a part of microbial turnover
+$\operatorname{tvr}_N$.
+
+Potential nitrogen uptake is the sum of uptake from DOM and the potential
+immobilization flux ($u_{\operatorname{imm,Pot}}$). Uptake from DOM is assumed
+equal to influxes to DOM.
 \begin{equation}
 \label{eq:uN}
-u_N = \operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R +  k_{NB}
-(\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})/\beta_E 
-\\
-+ N_{\operatorname{imm}}
+\begin{align}
+u_{N,OM} &= \operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R + 
+k_{NB} (\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})/\beta_E
+\\ 
+u_N &= u_{N,OM} + u_{\operatorname{imm,Pot}}
 \text{,}
+\end{align}
 \end{equation}
 where C/N ratios $\beta_L$ and $\beta_R$ are calculated based on current carbon
 and nitrogen substrate pools.
@@ -155,8 +172,7 @@ C_{\operatorname{synBN}} &= \beta_B \, N_{\operatorname{synBN}}  / \epsilon
 \subsection{Carbon vs. Nitrogen limited microbes Imbalance fluxes}
 There are constraints of each element for the carbon flux for synthesis of new
 biomass and associated growth respiration. The minimum of these fluxes (eq.
-\ref{eq:NCLim}) constrains the synthesis of new biomass. The excess elements are
-lost by imbalance fluxes (eq. \ref{eq:imbalance}).
+\ref{eq:NCLim}) constrains the synthesis of new biomass. 
 
 \begin{subequations}
 \label{eq:synB}
@@ -166,6 +182,7 @@ min(C_{\operatorname{synBC}}, C_{\operatorname{synBN}} )
 \end{align}
 \end{subequations}
 
+The excess elements are lost by imbalance fluxes (eq. \ref{eq:imbalance}).
 The excess carbon is respired by overflow respiration, $r_O$, and the excess
 nitrogen is mineralized, $M_{\operatorname{Imb}}$, so that the mass
 balance is closed.
@@ -179,12 +196,25 @@ M_{\operatorname{Imb}} &= u_N - (\operatorname{syn}_E/\beta_E +
 \end{align}
 \end{subequations}
 
+Potential biomass synthesis carbon constrained by N, $C_{\operatorname{synBN}}$,
+is computed based on the potential immobilization flux
+$u_{\operatorname{imm,Pot}}$. The real mineralization-immobilization flux $\Phi$ is the difference
+between potential immobilization and excess nitrogen mineralization
+$M_{\operatorname{Imb}}$. With carbon limitation this will be a positive
+mineralization flux. With substrate nitrogen limitaiton, this will be a
+negative flux corresponding to immobilization. Its magnitude is smaller than
+the potential immobilization.
+With uptake nitrogen limitation (i.e. required nitrogen flux is larger than
+potential immobilization) $\Phi = -u_{\operatorname{imm,Pot}}$ and stoichiometry
+is balanced by overflow respiration.
+
 \subsection{Turnover mineralization fluxes}
 In addition to mineralization flux due to stoichiometric imbalance, a part of
-microbial biomass is mineralized during microbial turnover, e.g. by predation. A part $(1-\epsilon_{\operatorname{Tvr}})$ of the
-biomass is used for catabolic respiration. With assuming that predator biomass
-elemental ratios do not differ very much from the one of microbial biomass, a
-respective proportion of the nitrogen must be mineralized. 
+microbial biomass is mineralized during microbial turnover, e.g. by predation. A
+part $(1-\epsilon_{\operatorname{Tvr}})$ of the biomass is used for catabolic
+respiration. With assuming that predator biomass elemental ratios do not differ
+very much from the one of microbial biomass, a respective proportion of the
+nitrogen must be mineralized.
 \begin{subequations}
 \label{eq:tvrB}
 \begin{align}
