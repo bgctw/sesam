@@ -36,9 +36,10 @@ derivSeam2 <- function(t,x,parms){
     # Nitrogen balance
     decN <- decR/cnR + decL/cnL + tvrERecycling/parms$cnE
     plantNUp <- pmin(parms$plantNUp, decN/2)    # plants get at maximum half of the decomposed organic N
+    nMinHetero <- (1-parms$nu) * (decN-plantNUp)        # mineralization due to soil heterogeneity (Manzoni 08) 
     # immobilization flux
     immoPot <- parms$iB * x["I"]
-    uNSubstrate <- (decN -plantNUp)    # plant uptake also of organic N
+    uNSubstrate <- (decN -plantNUp -nMinHetero)    # plant uptake also of organic N
     uN <-  immoPot + uNSubstrate
     NsynBN <- uN - synE/cnE
     CsynBN <- (NsynBN*cnB)/parms$eps    # C required for biomass growth and growth respiration under N limitation
@@ -66,6 +67,7 @@ derivSeam2 <- function(t,x,parms){
     respO <- uC - (synE+respSynE+synB+rG+rM)
     MmImb <- uN - (synE/parms$cnE + synB/parms$cnB)
     MmB <- MmImb - immoPot
+    Phi <- MmB + nMinHetero
     respTvr <- (1-parms$epsTvr) * tvrB 
     MmTvr <- respTvr/parms$cnB
     #Mm <- MmB + MmTvr
@@ -114,7 +116,7 @@ derivSeam2 <- function(t,x,parms){
     dR <- -decR +parms$iR +tvrC 
     dRN <- -decR/cnR +parms$iR/parms$cnIR +tvrN 
     #dI <- +parms$iI +MmB +MmTvr -(parms$kIP+parms$l)*x["I"]
-    dI <- +parms$iI -parms$kIP -leach +MmB +MmTvr       # plant uptake as absolute parameter
+    dI <- +parms$iI -parms$kIP -leach +MmB +MmTvr +nMinHetero       # plant uptake as absolute parameter
     #if( dI > 0.01 ) recover()    
     #
     if( isTRUE(parms$isFixedS) ){
@@ -143,9 +145,14 @@ derivSeam2 <- function(t,x,parms){
         #if( diff(unlist(c( (dB)/parms$cnB+(dER+dEL)/parms$cnE+dRN+dLN+dI+tvrExN,    parms$iR/parms$cnIR +parms$iL/parms$cnIL -plantNUp +parms$iI -(parms$kIP+parms$l)*x["I"])))^2 > .Machine$double.eps )  stop("mass balance N error")
         if( diff(unlist(c( dB/parms$cnB +(dER+dEL)/parms$cnE +dRN+dLN+dI+tvrExN,    parms$iR/parms$cnIR +parms$iL/parms$cnIL -plantNUp +parms$iI -parms$kIP -parms$l*x["I"])))^2 > .Machine$double.eps )  stop("mass balance dN error")
     }
+    #
+    if( isTRUE(parms$isFixedR) ){ resDeriv["dR"] <- resDeriv["dRN"] <-  0   }        # for keeping R constant
+    if( isTRUE(parms$isFixedI) ){ resDeriv["dI"] <-  0   }        # for keeping I constant
+    if( isTRUE(parms$isFixedI) ){ resDeriv["dL"] <-  0   }        # for keeping L constant
+    #
     if( isTRUE(parms$isRecover) ) recover()    
     list( resDeriv, c(respO=as.numeric(respO)
-        , MmB=as.numeric(MmB), MmTvr=as.numeric(MmTvr)
+        , Phi=as.numeric(Phi), MmB=as.numeric(MmB), MmTvr=as.numeric(MmTvr)
         , immoPot=as.numeric(immoPot), MmImb=as.numeric(MmImb)    
         , alpha=as.numeric(alpha)
         , alphaC=as.numeric(alphaC), alphaN=as.numeric(alphaN)
@@ -157,6 +164,7 @@ derivSeam2 <- function(t,x,parms){
         , revRC=as.numeric(revRC), revLC=as.numeric(revLC), revRN=as.numeric(revRN), revLN=as.numeric(revLN)
         , pCsyn = as.numeric(CsynBC / CsynBN), CsynReq=as.numeric(CsynBN), Csyn=as.numeric(CsynBC)
         , pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) ), NsynReq=as.numeric(CsynBC/cnB), Nsyn=as.numeric(NsynBN)
+        , dR = as.numeric(dR), dL = as.numeric(dL)
     #    wCLim = (CsynBN/CsynBC)^delta
     #    wNLim = (parms$eps*CsynBC/cnB / NsynBN)^delta
 ))
@@ -201,6 +209,7 @@ plotResSeam1 <- function(res, legendPos="topleft"
         , cls = c("B","ER","EL","respO","Mm")
         , xlab="time (yr)"
         , ylab="gC/m2 , gN/m2 , % ,/yr"
+        , subsetCondition=TRUE
         , ...
 ){
     #res$B100 <- res$B/100
@@ -214,16 +223,18 @@ plotResSeam1 <- function(res, legendPos="topleft"
     res$Rr <- res$R / res$R[1]  * 100 #max(res$R, na.rm=TRUE)
     res$Lr <- res$L / res$L[1]  * 100 #max(res$L, na.rm=TRUE)
     res$I100 <- res$I  * 100 
+    res$mPhi10 <- -res$Phi  * 10 
+    res$mMmB10 <- -res$MmB  * 10 
     res$MmB100 <- res$MmB  * 100 
     res$MmB1000 <- res$MmB  * 1000 
-    res$cnR10 <- res$cnR  * 10 
+    res$cnR10 <- res$cnR  * 10
+    res$dR <- c(NA, diff(res$R)/diff(res$time))
+    res$dS <- c(NA, diff(res$R+res$L)/diff(res$time))
     #cls <- c("B100","ER_10","EL_10","respO","Mm")
     #cls <- c("B100","ER_10","EL_10","respO","Mm","eff")
     #cls <- c("B1000","ER_10","EL_10","Mm")
     #cls <- c("B","E","respO","Mm","R","L")
-    bo <- TRUE
-    #bo <- res[,1] < 70
-    matplot( res[bo,1], res[bo,cls], type="l", lty=1:20, col=1:20, xlab=xlab, ylab="", ...)
+    matplot( res[subsetCondition,1], res[subsetCondition,cls], type="l", lty=1:20, col=1:20, xlab=xlab, ylab="", ...)
     mtext( ylab, 2, line=2.5, las=0)
     legend(legendPos, inset=c(0.01,0.01), legend=cls, lty=1:20, col=1:20)
 }

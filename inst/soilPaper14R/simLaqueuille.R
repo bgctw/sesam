@@ -7,7 +7,11 @@ baseFontSize <- 16  # presentations
 if( isPaperBGC){
     library(twDev)
     loadPkg()
-    baseFontSize <- 9  # pubs
+    baseFontSize <- 10  # pubs
+    baseLineSize <- 1
+} else {
+    baseFontSize <- 16  # pubs
+    baseLineSize <- 1.2
 }
 library(ggplot2)
 library(grid)   #unit
@@ -42,8 +46,8 @@ parms0 <- list(
         ,kL = 2 # 1/yr, turns over X per year 
         #,aE = 1e-4*365 #0.001*365  ##<< C biomass allocated to enzymes gC/day /microbial biomass
         ,aE = 1e-3*365   ##<< C biomass allocated to enzymes gC/yr/microbial biomass, corresponds about 2% of uptake, toCheck
-        ,km = 0.08       ##<< enzyme half-saturation constant
-        #,km = 0.03     ##<< enzyme half-saturation constant
+        #,km = 0.08       ##<< enzyme half-saturation constant
+        ,km = 1           ##<< enzyme half-saturation constant, large value to make sure in linear part
         ,m = 0 # 0.02*365    ##<< maintenance respiration rate   gC/day /microbial biomass
         ,tau = (0.016906)*365 #1/60*365  ##<< biomass turnover rate from Perveen (s)
         #,tau = 1/10*365 #      ##<< biomass turnover rate of x days, with too low turnover time, too low microbial biomass
@@ -55,9 +59,11 @@ parms0 <- list(
         ,iL = 0.00505757*365*525         # g/m2 input per year mp*Cp
         ,plantNUp = 0                    # rate of organic N uptake
         ,useFixedAlloc=FALSE    ##<< set to true to use Fixed enzyme allocation (alpha = 0.5)
-        #
+        ,nu=0.7                 ##<< aggregated microbial organic nitrogen assimilation efficiency (Manzoni 2008)
         #,kIP = 10.57 #0.0289652*365          ##<< plant uptake kIP I [1/yr]        
-        ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I [1/yr]
+        #,iB = 0.0110068*365   ##<< immobilization flux [1/yr], from Perveen14 Table 1(i), is larger than required immobilization flux of about 2.3 
+        #,iB = 10                         ##<< maximum immobilization flux [1/yr], from Perveen14 Table 1(i), is larger than required immobilization flux of about 2.3 
+        ,iB = 25                         ##<< maximum immobilization flux [1/yr], from Perveen14 Table 1(i), is larger than required immobilization flux of about 2.3 
         ,iI = 22.91   #0.0627704*365     ##<< input of mineral N [gN/m2/yr] Perveen14 Table 1
         #,l = 2.0075  #0.0055*365    ##<< leaching rate of mineralN l I [1/yr] Perveen14 Table 4
         ,l = 0.95866 #0.00262647 * 365    ##<< leaching rate per mineralN l I [1/gN/yr] Perveen14 Table 1
@@ -98,7 +104,8 @@ x0 <- x0Orig <- c( #aE = 0.001*365
 x <- x0
 
 
-pEstNames <- c("kL","iB")
+#pEstNames <- c("kL","iB")
+pEstNames <- c("kL","eps")
 pEst0 <- pEst <- unlist(parms0[pEstNames])
 
 upperBoundProb = 0.99	# quantile of the upper boundary
@@ -128,15 +135,25 @@ obsOrig <- obs <- c(
      Cf = 635               # fresh litter pool [gC/m2]
     ,N = 2.09               # mineral N pool
     ,leach = 2.0075 #0.0055*365     # N leaching gN/m2/yr
-    ,dR = 208.05  #0.57*365          # increase of SOM gC/m2/yr
+    ,dS = 208.05  #0.57*365          # increase of SOM gC/m2/yr
+    ,dR = 208.05             # increase in R pool, for steady state simulation
     #,A = A_Perveen14        # decomposer consumption rate decR/B
+    ,immo = 4.871            # immobilization flux to balance inorganic N (not a real observation but assumption that dI=0)
+    ,dI = 0                  # assumption of zero change of inorganic N
+    ,respO = 0               # assume substrate N limited -> hence no overflow respiration
+    ,dB = 0                  # do not match state by non-steady biomass
 )
 sdObsOrig <- sdObs <- c(
         Cf = 129                # fresh litter pool [gC/m2]
         ,N = 0.68               # mineral N pool
         ,leach = 0.0047*365     # N leaching gN/m2/yr
-        ,dR = 0.4*365           # increase of SOM gC/m2/yr
+        ,dS = 0.4*365           # increase of SOM gC/m2/yr
+        ,dR = 0.4*365
         #,A = A_Perveen14        # decomposer consumption rate decR/B
+        ,immo = as.numeric(obsOrig["immo"]*0.5)     #
+        ,dI = as.numeric(obs["N"]/5)           # 0.4g/yr change
+        ,respO = 5
+        ,dB = 5                 # low change allowed
 )
 
 # N fluxes gN/m2/yr
@@ -152,8 +169,11 @@ sdObsOrig <- sdObs <- c(
 #------------------ cost function 
 costSeam2 <- function(p=parms0, obs=obsOrig, sdObs=sdObsOrig, parDistr=parDistr, parms=parms0, isRecover=FALSE
     #,times = seq(0,100, length.out=301)
-    ,times = c(0,20,21)
+    ,times = c(0,5,6)
     ,x0l=x0
+    ,yearsAccR=0       ##<< number of years to decrease R in x0
+    ,stopOnError=FALSE  ##<< if lsoda returns error, by default return Inf, set to TRUE to stop
+    ,iCosts= c("Cf","dS","respO","dB","dI")
 ){
     scen <- "Revenue"
     #scen <- "Fixed"
@@ -163,24 +183,30 @@ costSeam2 <- function(p=parms0, obs=obsOrig, sdObs=sdObsOrig, parDistr=parDistr,
                 #times <- c(0,dur,dur+1)
                 #times <- seq(0,100, length.out=301)
                 #times <- seq(0,10000, length.out=101)
-                cnR <- x0l["R"]/x0l["RN"]
+                cnR <- as.numeric(x0l["R"]/x0l["RN"])
                 x0Past <- x0l
-                x0Past["R"] <- x0l["R"] - 20*obs["dR"]
+                x0Past["R"] <- x0l["R"] - yearsAccR*obs["dS"]
                 x0Past["RN"] <- x0Past["R"]/cnR
                 res <- res1 <- try( as.data.frame(lsoda( x0Past, times, derivSeam2, parms=parms)) )
                 #res <- res1 <- as.data.frame(lsoda( x0, times, derivSeam1, parms=parmsInit))
                 #res <- res1f <- as.data.frame(lsoda( x0, times, derivSeam1, parms=within(parms0, useFixedAlloc<-TRUE) ))
                 if( inherits(res,"try-error") ){
                     #return( rep(Inf,5) )
+                    if( stopOnError) res <- lsoda( x0Past, times, derivSeam2, parms=parms)
                     return( Inf )
                 }
                 xE <- unlist(tail(res,1))
                 xE2 <- tail(res,2)
-                dR <- diff(xE2[,"R"]) / diff(xE2[,"time"])
+                dS <- diff(xE2[,"R"] + xE2[,"L"]) / diff(xE2[,"time"])
+                dI <- diff(xE2[,"I"]) / diff(xE2[,"time"])
+                dB <- diff(xE2[,"B"]) / diff(xE2[,"time"])
                 ASim <- parms$kR * R0 * xE["limER"] / xE["B"]
                 #pred <-  c(Cf=xE["L"],N=xE["I"],leach=xE["I"]*parms$l,dR=dR,A=ASim)
-                pred <-  c(Cf=as.numeric(xE["L"]),N=as.numeric(xE["I"]),leach=as.numeric(xE["I"])*parms$l,dR=dR)
-                relDiffs <- ((obs - pred)/sdObs)
+                pred <-  c(Cf=as.numeric(xE["L"]),N=as.numeric(xE["I"]),leach=as.numeric(xE["I"])*parms$l,dS=dS, dR = as.numeric(xE["dR"])
+                , immo=as.numeric(-xE["Phi"]), dI=as.numeric(dI), respO=as.numeric(xE["respO"]), dB=as.numeric(dB)
+                )
+                #relDiffs <- ((obs - pred)/sdObs)
+                relDiffs <- ((obs - pred)/sdObs)[iCosts]      # omit N and leaching
                 if( isTRUE(isRecover) ){ print("recover in costSeam2"); recover() }
             #})
     ans <- sum(relDiffs^2)
@@ -196,18 +222,22 @@ pNorm0 <- pEst0
 .tmp.f <- function(){
     #derivSeam2( 0, x0, within(parms0, isRecover <- TRUE))
     pNorm <- pNorm0
-    pNorm["kL"] <- log(1.6)
-    pNorm["iB"] <- log(2.4)
-    parms0$kR <- 1/70
-    x0["B"] <- 50
+    #pNorm["kL"] <- log(1.6)
+    #pNorm["iB"] <- log(2.4)
+    pNorm["kL"] <- log(2.4)
+    pNorm["eps"] <- logit(0.53)
+    #parms0$isFixedR <- parms0$isFixedI <- TRUE
+    #parms0$kR <- 1/70
+    x0["B"] <- 140
     as.numeric(tmp <- costSeam2( pNorm, obsOrig, parDistr=parDistr
         , times = seq(0,25, length.out=301)
         #, times = 1:70
+        ,stopOnError=TRUE
         #,isRecover=TRUE
         #,parms=within(parms0, isRecover <- TRUE)
     ))
     res <- attr(tmp,"resLsoda")
-    plotResSeam1(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100"), ylim=c(0,300))
+    plotResSeam1(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","MmB100"), ylim=c(-100,300))
     #plotResSeam1(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100") )
     #plotResSeam1(res, "topright", cls = c("B10","Rr","I100","MmB100","cnR10"))
     #plotResSeam1(res, "topright", cls = c("cnR"))
@@ -218,53 +248,278 @@ pNorm0 <- pEst0
     derivSeam2( 0, xE, within(parmsA, isRecover <- TRUE) )
 }
 
+#------------- optimization with constant I and R,L
+pEstNames <- c("kL","eps","kR")
+pEst0 <- pEst <- unlist(parms0[pEstNames])
+poptDistr <- twConstrainPoptDistr(pEstNames, parDistr)
+pNorm <- transNormPopt( pEst, parDistr=parDistr )
 
-#------------- optimization
-(tmp <- costSeam2( pNorm, obsOrig, parDistr=parDistr))
-reso <- optim( pNorm, costSeam2, parDistr=parDistr)
-pOpt <- reso$par
-(tmp <- costSeam2( pOpt, obsOrig, parDistr=parDistr))
-attr(tmp,"relDiffs")
+parmsFixed <- parms0
+parmsFixed$isFixedR <- parmsFixed$isFixedI <- parmsFixed$isFixedL <- TRUE
+x0Fixed <- x0
+x0Fixed["B"] <- 66
+iCosts=c("Cf", "immo", "respO", "dB", "dR")
+(tmp <- costSeam2( pNorm, obsOrig, parDistr=parDistr, parms=parmsFixed, x0l=x0Fixed, yearsAcc=0, iCosts=iCosts))
+resoFixed <- optim( pNorm, costSeam2, parDistr=parDistr, parms=parmsFixed, control=list(maxit=100L), times=c(0,5,6), iCosts= iCosts, yearsAcc=0)
+pOptFixed <- resoFixed$par
+parOptFixed <- transOrigPopt(pOptFixed, parDistr=parDistr)
+(tmpOptFixed <- costSeam2( pOptFixed, obsOrig, parDistr=parDistr, parms=parmsFixed, x0l=x0Fixed, times=c(0,5,6), iCosts=iCosts, yearsAcc=0))
+(xEOptFixed <- (resOptTail <- unlist(tail(attr(tmpOptFixed,"resLsoda"),1)))[2:9])
+tmp <- costSeam2( pOptFixed, obsOrig, parDistr=parDistr, parms=parmsFixed, x0l=xEOptFixed, times=seq(0,6, length.out=301), yearsAcc=0)
 res <- resOpt <- attr(tmp,"resLsoda")
-#tail(resOpt,1)
-(xEOpt <- as.vector(tail(attr(tmp,"resLsoda"),1)[,2:9]))
+plotResSeam1(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10"), ylim=c(0,300))
 
-as.numeric(tmp <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times = seq(0,50, length.out=301)
+parmsA <- parms0
+parmsA[names(pNorm)] <- pOrig <- transOrigPopt(pOptFixed, parDistr=parDistr)
+#derivSeam2( 0, xEOptFixed, within(parmsA, isRecover <- TRUE) )
+
+#------------- optimization with changing pools in time
+x0LowI <- xEOptFixed;
+
+as.numeric(tmp <- costSeam2( pOptFixed, obsOrig, parDistr=parDistr, times = seq(0,10, length.out=301)
+                , yearsAccR=6, x0=x0LowI
+        #,isRecover=TRUE
+        #,parms=within(parms0, isRecover <- TRUE)
+        ))
+res <-  attr(tmp,"resLsoda")
+plotResSeam1(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
+abline(v=6, col="grey")
+
+#pEstNames <- c("kL","eps","kR","iB")
+pEstNames <- c("kL","eps","kR")
+pEst0 <- pEst <- unlist(parms0[pEstNames])
+poptDistr <- twConstrainPoptDistr(pEstNames, parDistr)
+#pNorm <- c(pOptFixed, iB=log(parms0$iB))
+pNorm <- pOptFixed
+transOrigPopt(pNorm, parDistr=parDistr)
+
+x0LowI["I"] <- x0["I"]
+# note default iCosts with dS and dI
+iCosts <- c("Cf","dS","respO","dB","N","leach")
+reso <- optim( pNorm, costSeam2, parDistr=parDistr, control=list(maxit=100)
+        , iCosts= iCosts
+        , yearsAccR=6, x0=x0LowI
+)
+pOpt <- reso$par
+parOpt <- transOrigPopt(pOpt, parDistr=parDistr)
+(tmpOpt <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times=c(0,5,6), yearsAccR=6, x0=x0LowI, iCosts=iCosts))
+(xEOpt <- (resTailOpt <- unlist(tail(attr(tmpOpt,"resLsoda"),1))[2:9]))
+
+as.numeric(tmp <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times = seq(0,10, length.out=301)
+        ,yearsAccR=6, x0=x0LowI
         #,isRecover=TRUE
         #,parms=within(parms0, isRecover <- TRUE)
         ))
 res <- resOpt50 <- attr(tmp,"resLsoda")
-plotResSeam1(resOpt50, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","LN"), ylim=c(0,300))
+plotResSeam1(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
+abline(v=6, col="grey")
 
-# when simulating a longer period, N-substrate limited system becomes C-limited
-# then inorganic pool increases (need to include plant model to change this behaviour)
-# R accumulation does not change
+#derivSeam2( 0, xEOpt, within(parmsA, isRecover <- TRUE))
 
-#----------- experiments 
+# period around measurements
+resOptSteady <- resOpt50[resOpt50$time > 4,] 
+plotResSeam1(resOptSteady, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
+abline(v=6, col="grey")
+
+# take state after flucutations as Base for experiments
+iBase <- which( resOpt50$time > 4)[1] 
+xBaseSt <- unlist(resOpt50[iBase,2:9])
+timesExp = seq(0,50, length.out=501)
+timesExpFit <- 6 - resOpt50$time[iBase]
+
+as.numeric(tmp <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times = timesExp
+                ,x0l=xBaseSt
+        #,isRecover=TRUE
+        #,parms=within(parms0, isRecover <- TRUE)
+        ))
+res <- resControl <- attr(tmp,"resLsoda")
+plotResSeam1(res[res$time<=10,], "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
+abline(v=timesExpFit, col="grey")
+
+# when simulating a longer period, N-substrate limited system
+# inorganic pool increases (need to include plant model to change this behaviour)
+# R accumulation slowly declines 
+
+#----------- experiment: increased plant C input 
 # C input by plants increased by 6/4 and increased C/N input from 70 to 90
 parmsEl <- within(parms0,{
-            iL <- iL*6/4
-            cnIL <- cnIL*7/4
+            iL <- parms0$iL*6/4
+            cnIL <- parms0$cnIL*5/4
             # tau <- tau / 1.2 does not change R accumulation nor enzyme partitioning (alpha)
         })
 (iLN <- parmsEl$iL  / parmsEl$cnIL)    #13.84 # N supply in litter
 (plantExport <- 7.988e-4*365 *525/parms$cnIL)   # 2.187 plant export eP*CP/cnLitter
 (plantUp <- iLN + plantExport)          # 16.031 plant uptake of N
-#parmsEl$kIP <- plantUp
+parmsEl$kIP <- plantUp
 
-x0El <- x0
-#x0El["ER"] <- 0.52
-#x0El["EL"] <- 0.1
 
-resEl <- res <- attr(tmp <- costSeam2( pOpt, obsOrig, parms=parmsEl, parDistr=parDistr, times = seq(0,25, length.out=301)
-    ,x0=x0El
-),"resLsoda")
-plotResSeam1(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","LN"), ylim=c(0,300))
-plotResSeam1(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100") )
-(xEel <- as.vector(tail(resEl,1)[,2:9]))
+as.numeric(tmp <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times = timesExp
+                ,x0l=xBaseSt
+                ,stopOnError=TRUE
+                ,parms=parmsEl
+        #,isRecover=TRUE
+        #,parms=within(parms0, isRecover <- TRUE)
+        ))
+resEl <- res <- attr(tmp,"resLsoda")
+plotResSeam1(resEl, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
+plotResSeam1(resEl[resEl$time<=10,], "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
+
+# becomes N limited -> C overflow
+# shift towards degrading R pool
+# fast increase of L to a new level
+# together with increased microbial biomass and biomass turnover, still accumulation in R at the same rate
+# uses N inputs to build SOM, decreased leaching
+
+#-------------- experiment: decreased N inputs
+parmsIlow <- within(parms0,{
+            iI <- 1  #0.01*365      # still larger than leaching losses -> N Accumulation
+            #iI <- 0  #0.01*365
+            cnIL <- cnIL*2
+        })
+# assuming the plant still takes up the what supplied by litter
+(iLN <- parmsIlow$iL  / parmsIlow$cnIL)    #13.84 # N supply in litter
+(plantExport <- 7.988e-4*365 *525/parms$cnIL)   # 2.187 plant export eP*CP/cnLitter
+(plantUp <- iLN + plantExport)          # 16.031 plant uptake of N
+parmsIlow$kIP <- plantUp
+
+
+as.numeric(tmp <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times = timesExp
+                ,yearsAccR=0, x0l=xBaseSt
+                ,stopOnError=TRUE
+                ,parms=parmsIlow
+        #,isRecover=TRUE
+        #,parms=within(parms0, isRecover <- TRUE)
+        ))
+resILow <- res <-attr(tmp,"resLsoda")
+#plotResSeam1(resIlow, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
+plotResSeam1(resILow, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(-100,300))
+plotResSeam1(resILow[resILow$time<=10,], "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(-100,300))
+
+
+tail(res)
+
+(xE <- as.vector(tail(res,1)[,2:9]))
 #xE <- as.vector(res[56,2:9])
 parmsA <- parms0
-parmsA[names(pOpt)] <- pOrig <- transOrigPopt(pOpt, parDistr=parDistr)
-derivSeam2( 0, xEel, within(parmsA, isRecover <- TRUE) )
+parmsA[names(pNorm)] <- pOrig <- transOrigPopt(pOpt, parDistr=parDistr)
+#derivSeam2( 0, xE, within(parmsA, isRecover <- TRUE) )
 
-# N content in litter does change only slightly, enzyme partitioning does not change -> all to overflow 
+#-------------- experiment: increased N inputs
+parmsIHigh <- within(parms0,{
+            iI <- 25.6  #0.07*365      # still larger than leaching losses -> N Accumulation
+            cnIL <- cnIL*0.75
+        })
+# assuming the plant still takes up the what supplied by litter
+(iLN <- parmsIHigh$iL  / parmsIHigh$cnIL)    #13.84 # N supply in litter
+(plantExport <- 7.988e-4*365 *525/parms$cnIL)   # 2.187 plant export eP*CP/cnLitter
+(plantUp <- iLN + plantExport)          # 16.031 plant uptake of N
+parmsIHigh$kIP <- plantUp
+
+
+as.numeric(tmp <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times = timesExp
+                ,yearsAccR=0, x0l=xBaseSt
+                ,stopOnError=TRUE
+                ,parms=parmsIHigh
+        #,isRecover=TRUE
+        #,parms=within(parms0, isRecover <- TRUE)
+        ))
+resIHigh <- res <-attr(tmp,"resLsoda")
+plotResSeam1(resIHigh, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(-100,300))
+plotResSeam1(resIHigh[resIHigh$time < 15,], "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(-100,300))
+
+
+tail(res)
+
+(xE <- as.vector(tail(res,1)[,2:9]))
+#xE <- as.vector(res[56,2:9])
+parmsA <- parms0
+parmsA[names(pNorm)] <- pOrig <- transOrigPopt(pOpt, parDistr=parDistr)
+#derivSeam2( 0, xE, within(parmsA, isRecover <- TRUE) )
+
+#---------------- plotting
+resScens <- rbind(
+        cbind( scenario="control", resControl)
+        ,cbind( scenario="elevated CO2", resEl)
+        ,cbind( scenario="decreased N inputs", resILow)
+        ,cbind( scenario="increased N inputs", resIHigh)
+)
+resScens$dS <- resScens$dR + resScens$dL
+resScens$leaching <- resScens$I * parms0$l
+predM <- melt(resScens, 1:2)
+predM$variable <- relevel(relevel(relevel( relevel(predM$variable, "dR"),"R"),"L"),"alpha")
+levels(predM$variable)[match(c("L","R","dR","I","leaching"), levels(predM$variable))] <- c("L~(gm^{-2})","R~(g^{-2})","dR~(gm^{-2}*a^{-1})","I~(gm^{-2})","leaching~(gm^{-2}*a^{-1})")
+predMCtrl <- subset(predM, scenario %in% "control")
+
+dsObs <- data.frame(value=obs, sd=sdObs, time=timesExpFit, scenario="control")
+dsObs$variable <- relevel(relevel( relevel(as.factor(rownames(dsObs)), "N"), "dR"),"Cf")
+levels(dsObs$variable)[match(c("Cf","dR","N","leach"), levels(dsObs$variable))] <- c("L~(gm^{-2})","dR~(gm^{-2}*a^{-1})","I~(gm^{-2})","leaching~(gm^{-2}*a^{-1})")
+#dssObs <- subset( dsObs, dsObs$variable %in% dsObs$variable[na.omit(pmatch(c("alpha","L","dR","I","leaching"), dsObs$variable))] )
+dssObs <- dsObs[grep(c("^alpha|^L|^dR|^I|^leaching"),dsObs$variable),]
+p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^leaching~"),predMCtrl$variable),], time <=5)
+        , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
+        geom_line(size=baseLineSize) +
+        geom_point( data=dssObs, colour="black" )+
+        geom_errorbar( data=dssObs,aes(ymin=value-sd, ymax=value+sd), width=.25, colour="black") +
+        facet_grid( variable ~ .,  scales="free_y", labeller = label_parsed) +
+        theme_bw(base_size=baseFontSize) +
+        theme(axis.title.y = element_blank()) + 
+        xlab("time (yr)") +
+        theme(legend.position = "none") +
+        theme()
+p1
+
+p1b <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^I~"),predM$variable),], time <=5)
+        , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
+        geom_line(size=baseLineSize) +
+        #facet_wrap( ~ variable,  scales="free_y", nrow=6, ncol=1) +
+        facet_grid( variable ~ .,  scales="free_y", labeller = label_parsed) +
+        theme_bw(base_size=baseFontSize) +
+        theme(axis.title.y = element_blank()) + 
+        xlab("time (yr)") +
+        theme(legend.position = "bottom") +
+        theme(legend.title = element_blank()) +
+        guides(linetype=guide_legend(nrow=4,byrow=TRUE)) +
+        theme()
+p1b
+
+twWin(3.27, 5.6)
+#twWin(7.5,8.7)
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(1, 2)))
+print(p1, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+print(p1b, vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
+#savePlot("soilPaper14/fig/pastureFit.pdf","pdf")
+
+
+#------------- plotting differently for presentations
+.tmp.f <- function(){
+    twWin(7,4.6)
+    p1p <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L |^R |^dR |^I |^leaching "),predMCtrl$variable),], time <=5)
+                    , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
+            geom_line(size=baseLineSize) +
+            geom_point( data=dssObs, colour="black", size=3 )+
+            geom_errorbar( data=dssObs,aes(ymin=value-sd, ymax=value+sd), width=.25, colour="black", size=baseLineSize) +
+            facet_wrap( ~ variable,  scales="free_y") +
+            theme_bw(base_size=baseFontSize) +
+            theme(axis.title.y = element_blank()) + 
+            xlab("time (yr)") +
+            theme(legend.position = "none") +
+            theme()
+    p1p
+    
+    twWin(5.7,4.6)
+    p1bp <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L |^dR |^I "),predM$variable),], time <=5)
+                    , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
+            geom_line(size=baseLineSize) +
+            #facet_wrap( ~ variable,  scales="free_y") +
+            #facet_grid( variable ~ .,  scales="free_y") +
+            theme_bw(base_size=baseFontSize) +
+            theme(axis.title.y = element_blank()) + 
+            xlab("time (yr)") +
+            theme(legend.position = "bottom") +
+            theme(legend.title = element_blank()) +
+            guides(linetype=guide_legend(nrow=2,byrow=TRUE)) +
+            theme()
+    p1bp
+    direct.label(p1bp, list(last.points, hjust = 0.7, vjust = 1))
+}    

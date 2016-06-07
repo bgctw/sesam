@@ -103,7 +103,7 @@ and declines.
 \end{cases}  
 \end{align}
 \end{subequations}
-\noident
+%\noident
 where $C_{\operatorname{synB}}$ is the carbon balance for biomass
 synthesis and is given below by eq.
 \ref{eq:NCLim}.
@@ -129,32 +129,36 @@ the N pools are modelled explicitly.
 & \qquad (1 -k_{NB}) (\operatorname{tvr}_{ER} +
 \operatorname{tvr}_{EL})/\beta_{E} 
 \\
-\frac{dI}{dt} &= +i_I -k_{IP} -l I +\Phi + \operatorname{tvr}_N
+\frac{dI}{dt} &= +i_I -k_{IP} -l I +(1-\nu) u_{N,OM} +\Phi +
+\operatorname{tvr}_N
 \text{,} 
 \end{align}
 \end{subequations}
 
-\noindent
-where the balance of the inorganic nitrogen pool $I$ sums inorganic inputs
-$i_I$, plant uptake $k_{IP}$, leaching $l I$, the
-mineralization-immobilization flux $\Phi$, and mineralization of a part of microbial turnover
-$\operatorname{tvr}_N$.
+\noindent where the balance of the inorganic nitrogen pool $I$ sums inorganic
+inputs $i_I$, plant uptake $k_{IP}$, leaching $l I$, the apparent mineralization
+due to soil heterogeneity $(1 -\nu) u_{N,OM}$, which is explaind below,
+mineralization-immobilization flux $\Phi$, and mineralization of a part of
+microbial turnover $\operatorname{tvr}_N$.
 
-Potential nitrogen uptake is the sum of uptake from DOM and the potential
-immobilization flux ($u_{\operatorname{imm,Pot}}$). Uptake from DOM is assumed
-equal to influxes to DOM.
-\begin{equation}
+N uptake was modelled as a PAR scheme, where apparantly part of the organic N is
+mineralized because of soil spots with high N concentration in DOM
+\citep{Manzoni08}. Potential nitrogen uptake is the sum of uptake from DOM and
+the potential immobilization flux ($u_{\operatorname{imm,Pot}}$). Uptake from
+DOM is assumed equal to influxes to DOM times the apparent nitrogen use 
+efficiency $\nu$.
+\begin{subequations}
 \label{eq:uN}
 \begin{align}
-u_{N,OM} &= \operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R + 
+u_{N,OM} &= \operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R +
 k_{NB} (\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})/\beta_E
-\\ 
-u_N &= u_{N,OM} + u_{\operatorname{imm,Pot}}
+\\
+u_N &= \nu u_{N,OM} + u_{\operatorname{imm,Pot}}
 \text{,}
 \end{align}
-\end{equation}
+\end{subequations}
 where C/N ratios $\beta_L$ and $\beta_R$ are calculated based on current carbon
-and nitrogen substrate pools.
+and nitrogen substrate pools.  
 
 The nitrogen available for biomass synthesis is the difference of nitrogen
 uptake and expenses for enzyme synthesis. This translates to an nitrogen
