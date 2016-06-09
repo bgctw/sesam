@@ -35,6 +35,7 @@ parms0 <- list(
         ,tau = 1/60*365  ##<< biomass turnover rate (12 days)
         ,eps = 0.5      ##<< carbon use efficiency
         ,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (predators respire)
+        #,epsTvr = 1   ##<< carbon use efficiency of microbial tvr (predators respire)
         ,iR = 0        ##<< input modelled explicitely
         ,iL = 300         # g/m2 input per year (half NPP)
         #,plantNUp = 300/70*1/4  # plant N uptake balancing N inputs
@@ -210,15 +211,17 @@ simInitSteady <- function(
     ### inspect approaching a steady state (or breakdown of biomass)
 ){
     scen <- "Revenue"
+    scen <- "Fixed"
     resAll <- lapply( c("Revenue","Fixed","Match"), function(scen){
                 parmsInit <- parmsScen[[scen]]
                 times <- seq(0,150, length.out=301)
                 #times <- seq(0,10000, length.out=101)
+                res <- res1 <- as.data.frame(lsoda( x0, times, derivSeam1, parms=within( parmsInit, isRecover <- TRUE)))
                 res <- res1 <- as.data.frame(lsoda( x0, times, derivSeam1, parms=parmsInit))
                 #res <- res1f <- as.data.frame(lsoda( x0, times, derivSeam1, parms=within(parms0, useFixedAlloc<-TRUE) ))
                 xE <- unlist(tail(res,1))
-                plotResSeam1(res, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
-                plotResSeam1(res, "topright", cls = c("ER","EL"))
+                #plotResSeam1(res, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
+                #plotResSeam1(res, "topright", cls = c("ER","EL"))
                 tail(res[,1:8])
                 #head(res[,c("limE1","limE2")])
                 #tail(res[,c("limE1","limE2")])

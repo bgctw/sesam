@@ -27,7 +27,7 @@ derivSeam2 <- function(t,x,parms){
     decL <- decLp * limEL
     #
     tvrERecycling <- parms$kNB*(tvrER+tvrEL)
-    uC <- decR + decL + tvrERecycling
+    uC <- decC <- decR + decL + tvrERecycling
     #
     synE <- parms$aE * x["B"]       # total enzyme production per microbial biomass
     #synE <- parms$aEu * uC          # total enzyme production per uptake
@@ -80,10 +80,11 @@ derivSeam2 <- function(t,x,parms){
     alphaC <- revRC / (revLC + revRC)  
     alphaN <- revRN / (revLN + revRN)  
     #
-    alpha <- if( immoPot < uNSubstrate/100 ) 
+    alpha <- if( isTRUE(parms$useAlphaCUntilNLimited) || immoPot < uNSubstrate/100 ){ 
                 balanceAlphaSmallImmobilization(alphaC, alphaN, CsynBN, CsynBC, parms$eps*CsynBC/cnB, NsynBN) 
-            else
+            } else {
                 balanceAlphaLargeImmobilization(alphaC, alphaN, isLimN, isLimNSubstrate, immoAct=-MmB, immoPot=immoPot)
+            }
     if( isTRUE(parms$isAlphaMatch) ){
         synB0 <- max(0, synB)
         #cnOpt <- (parms$cnE*synE + parms$cnB*synB0)/(synE+synB0)  # optimal biomass ratio
@@ -147,8 +148,8 @@ derivSeam2 <- function(t,x,parms){
     }
     #
     if( isTRUE(parms$isFixedR) ){ resDeriv["dR"] <- resDeriv["dRN"] <-  0   }        # for keeping R constant
+    if( isTRUE(parms$isFixedL) ){ resDeriv["dL"] <- resDeriv["dLN"] <-  0   }        # for keeping L constant
     if( isTRUE(parms$isFixedI) ){ resDeriv["dI"] <-  0   }        # for keeping I constant
-    if( isTRUE(parms$isFixedL) ){ resDeriv["dL"] <-  0   }        # for keeping L constant
     #
     if( isTRUE(parms$isRecover) ) recover()    
     list( resDeriv, c(respO=as.numeric(respO)
@@ -164,7 +165,7 @@ derivSeam2 <- function(t,x,parms){
         , revRC=as.numeric(revRC), revLC=as.numeric(revLC), revRN=as.numeric(revRN), revLN=as.numeric(revLN)
         , pCsyn = as.numeric(CsynBC / CsynBN), CsynReq=as.numeric(CsynBN), Csyn=as.numeric(CsynBC)
         , pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) ), NsynReq=as.numeric(CsynBC/cnB), Nsyn=as.numeric(NsynBN)
-        , dR = as.numeric(dR), dL = as.numeric(dL)
+        , dR = as.numeric(dR), dL = as.numeric(dL), dB=as.numeric(dB), dI=as.numeric(dI)
     #    wCLim = (CsynBN/CsynBC)^delta
     #    wNLim = (parms$eps*CsynBC/cnB / NsynBN)^delta
 ))
@@ -178,6 +179,7 @@ balanceAlphaSmallImmobilization <- function(
     wCLim = min( .Machine$double.xmax, (CsynBN/CsynBC)^delta )      # min to avoid +Inf
     wNLim = min( .Machine$double.xmax, (NsynBC/NsynBN)^delta )
     alpha <- (wCLim*alphaC + wNLim*alphaN) / (wCLim + wNLim)
+    alpha
 }
 
 balanceAlphaLargeImmobilization <- function(
@@ -205,7 +207,7 @@ balanceAlphaLargeImmobilization <- function(
 
 
 
-plotResSeam1 <- function(res, legendPos="topleft"
+plotResSeam2 <- function(res, legendPos="topleft"
         , cls = c("B","ER","EL","respO","Mm")
         , xlab="time (yr)"
         , ylab="gC/m2 , gN/m2 , % ,/yr"

@@ -68,7 +68,8 @@ parms0 <- list(
         #,l = 2.0075  #0.0055*365    ##<< leaching rate of mineralN l I [1/yr] Perveen14 Table 4
         ,l = 0.95866 #0.00262647 * 365    ##<< leaching rate per mineralN l I [1/gN/yr] Perveen14 Table 1
         #,kIP = 2.19   ##<< plant uptake kIP I [1/yr], here equals plant export eP*CP/betaPlant 0.42*0.0142857*365          
-        ,kIP = 16.0351   ##<< plant uptake kIP I [1/yr], here equals plant N input (mp*Cp/CN) + plant export eP*CP/betaPlant 0.00505757*365*525/70  + 0.42*0.0142857*365          
+        ,kIP = 16.0351   ##<< plant uptake kIP I [1/yr], here equals plant N input (mp*Cp/CN) + plant export eP*CP/betaPlant 0.00505757*365*525/70  + 0.42*0.0142857*365
+        ,useAlphaCUntilNLimited = TRUE      ##<< do not decrease investment into C enzmyes when NSubstrateLimtited, but only when N-Limited
 )
 parms0 <- within(parms0,{
             kmR <- kmL <- km
@@ -99,7 +100,7 @@ x0 <- x0Orig <- c( #aE = 0.001*365
         ,RN = R0/parms0$cnIR    ##<< N rich substrate N pool
         ,L = L0                 ##<< N poor substrate
         ,LN = L0/parms0$cnIL    ##<< N poor substrate N pool
-        ,I =  2.09              ##<< inorganic pool g N /m2 Perveeen14, Table 4
+        ,I =  2.09 -2/5         ##<< inorganic pool g N /m2 Perveeen14, Table 4, start out a little bit lower
 )
 x <- x0
 
@@ -169,7 +170,7 @@ sdObsOrig <- sdObs <- c(
 #------------------ cost function 
 costSeam2 <- function(p=parms0, obs=obsOrig, sdObs=sdObsOrig, parDistr=parDistr, parms=parms0, isRecover=FALSE
     #,times = seq(0,100, length.out=301)
-    ,times = c(0,5,6)
+    ,times = c(0:6)
     ,x0l=x0
     ,yearsAccR=0       ##<< number of years to decrease R in x0
     ,stopOnError=FALSE  ##<< if lsoda returns error, by default return Inf, set to TRUE to stop
@@ -195,15 +196,12 @@ costSeam2 <- function(p=parms0, obs=obsOrig, sdObs=sdObsOrig, parDistr=parDistr,
                     if( stopOnError) res <- lsoda( x0Past, times, derivSeam2, parms=parms)
                     return( Inf )
                 }
-                xE <- unlist(tail(res,1))
-                xE2 <- tail(res,2)
-                dS <- diff(xE2[,"R"] + xE2[,"L"]) / diff(xE2[,"time"])
-                dI <- diff(xE2[,"I"]) / diff(xE2[,"time"])
-                dB <- diff(xE2[,"B"]) / diff(xE2[,"time"])
-                ASim <- parms$kR * R0 * xE["limER"] / xE["B"]
-                #pred <-  c(Cf=xE["L"],N=xE["I"],leach=xE["I"]*parms$l,dR=dR,A=ASim)
+                iCloseI <- which.min( (res[,"I"] - obs["N"])^2 )
+                if( isTRUE(parms$isFixedI) ) iCloseI <- nrow(res)
+                xE <- unlist(res[iCloseI,])
+                dS <- as.numeric(xE["dL"] + xE["dR"])
                 pred <-  c(Cf=as.numeric(xE["L"]),N=as.numeric(xE["I"]),leach=as.numeric(xE["I"])*parms$l,dS=dS, dR = as.numeric(xE["dR"])
-                , immo=as.numeric(-xE["Phi"]), dI=as.numeric(dI), respO=as.numeric(xE["respO"]), dB=as.numeric(dB)
+                , immo=as.numeric(-xE["Phi"]), dI=as.numeric(xE["I"]), respO=as.numeric(xE["respO"]), dB=as.numeric(xE["dB"])
                 )
                 #relDiffs <- ((obs - pred)/sdObs)
                 relDiffs <- ((obs - pred)/sdObs)[iCosts]      # omit N and leaching
@@ -212,6 +210,7 @@ costSeam2 <- function(p=parms0, obs=obsOrig, sdObs=sdObsOrig, parDistr=parDistr,
     ans <- sum(relDiffs^2)
     attr(ans,"relDiffs") <- relDiffs
     attr(ans,"pred") <- pred
+    attr(ans,"iCloseI") <- iCloseI
     attr(ans,"resLsoda") <- res
     ans
 }
@@ -224,20 +223,29 @@ pNorm0 <- pEst0
     pNorm <- pNorm0
     #pNorm["kL"] <- log(1.6)
     #pNorm["iB"] <- log(2.4)
-    pNorm["kL"] <- log(2.4)
-    pNorm["eps"] <- logit(0.53)
+    pNorm["kL"] <- log(2.6)
+    pNorm["eps"] <- logit(0.4)
+    pNorm["kR"] <- log(0.054)
     #parms0$isFixedR <- parms0$isFixedI <- TRUE
     #parms0$kR <- 1/70
     x0["B"] <- 140
+    parms0$useAlphaCUntilNLimited <- TRUE
+    #parms0$useAlphaCUntilNLimited <- FALSE
+    (tmp <- costSeam2( pNorm, obsOrig, parDistr=parDistr
+                        ,stopOnError=TRUE
+                #,isRecover=TRUE
+                #,parms=within(parms0, isRecover <- TRUE)
+                ))
     as.numeric(tmp <- costSeam2( pNorm, obsOrig, parDistr=parDistr
-        , times = seq(0,25, length.out=301)
+        , times = seq(0,50, length.out=301)
+        #, times = seq(0,25, length.out=301)
         #, times = 1:70
         ,stopOnError=TRUE
         #,isRecover=TRUE
         #,parms=within(parms0, isRecover <- TRUE)
     ))
     res <- attr(tmp,"resLsoda")
-    plotResSeam1(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","MmB100"), ylim=c(-100,300))
+    plotResSeam1(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10"), ylim=c(-100,300))
     #plotResSeam1(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100") )
     #plotResSeam1(res, "topright", cls = c("B10","Rr","I100","MmB100","cnR10"))
     #plotResSeam1(res, "topright", cls = c("cnR"))
@@ -259,15 +267,18 @@ parmsFixed$isFixedR <- parmsFixed$isFixedI <- parmsFixed$isFixedL <- TRUE
 x0Fixed <- x0
 x0Fixed["B"] <- 66
 iCosts=c("Cf", "immo", "respO", "dB", "dR")
+times <- 1:6
 (tmp <- costSeam2( pNorm, obsOrig, parDistr=parDistr, parms=parmsFixed, x0l=x0Fixed, yearsAcc=0, iCosts=iCosts))
-resoFixed <- optim( pNorm, costSeam2, parDistr=parDistr, parms=parmsFixed, control=list(maxit=100L), times=c(0,5,6), iCosts= iCosts, yearsAcc=0)
+resoFixed <- optim( pNorm, costSeam2, parDistr=parDistr, parms=parmsFixed, control=list(maxit=100L), times=times, iCosts= iCosts, yearsAcc=0 )
 pOptFixed <- resoFixed$par
 parOptFixed <- transOrigPopt(pOptFixed, parDistr=parDistr)
-(tmpOptFixed <- costSeam2( pOptFixed, obsOrig, parDistr=parDistr, parms=parmsFixed, x0l=x0Fixed, times=c(0,5,6), iCosts=iCosts, yearsAcc=0))
+(tmpOptFixed <- costSeam2( pOptFixed, obsOrig, parDistr=parDistr, parms=parmsFixed, x0l=x0Fixed, times=times, iCosts=iCosts, yearsAcc=0
+                #,isRecover=TRUE
+            ))
 (xEOptFixed <- (resOptTail <- unlist(tail(attr(tmpOptFixed,"resLsoda"),1)))[2:9])
 tmp <- costSeam2( pOptFixed, obsOrig, parDistr=parDistr, parms=parmsFixed, x0l=xEOptFixed, times=seq(0,6, length.out=301), yearsAcc=0)
 res <- resOpt <- attr(tmp,"resLsoda")
-plotResSeam1(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10"), ylim=c(0,300))
+plotResSeam1(res, "topright", cls = c("B","respO","dR","alpha100","dI","mPhi10"), ylim=c(0,300))
 
 parmsA <- parms0
 parmsA[names(pNorm)] <- pOrig <- transOrigPopt(pOptFixed, parDistr=parDistr)
@@ -293,16 +304,15 @@ poptDistr <- twConstrainPoptDistr(pEstNames, parDistr)
 pNorm <- pOptFixed
 transOrigPopt(pNorm, parDistr=parDistr)
 
-x0LowI["I"] <- x0["I"]
 # note default iCosts with dS and dI
-iCosts <- c("Cf","dS","respO","dB","N","leach")
+iCosts <- c("Cf","dR","respO","dB","N","leach")
 reso <- optim( pNorm, costSeam2, parDistr=parDistr, control=list(maxit=100)
         , iCosts= iCosts
         , yearsAccR=6, x0=x0LowI
 )
 pOpt <- reso$par
 parOpt <- transOrigPopt(pOpt, parDistr=parDistr)
-(tmpOpt <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times=c(0,5,6), yearsAccR=6, x0=x0LowI, iCosts=iCosts))
+(tmpOpt <- costSeam2( pOpt, obsOrig, parDistr=parDistr, yearsAccR=6, x0=x0LowI, iCosts=iCosts))
 (xEOpt <- (resTailOpt <- unlist(tail(attr(tmpOpt,"resLsoda"),1))[2:9]))
 
 as.numeric(tmp <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times = seq(0,10, length.out=301)
@@ -310,22 +320,18 @@ as.numeric(tmp <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times = seq(0,10,
         #,isRecover=TRUE
         #,parms=within(parms0, isRecover <- TRUE)
         ))
+iClose <-  attr(tmp,"iCloseI")
 res <- resOpt50 <- attr(tmp,"resLsoda")
 plotResSeam1(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
-abline(v=6, col="grey")
+timeClose <- resOpt50$time[iClose]
+abline(v=timeClose, col="grey")
 
 #derivSeam2( 0, xEOpt, within(parmsA, isRecover <- TRUE))
 
-# period around measurements
-resOptSteady <- resOpt50[resOpt50$time > 4,] 
-plotResSeam1(resOptSteady, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
-abline(v=6, col="grey")
-
-# take state after flucutations as Base for experiments
-iBase <- which( resOpt50$time > 4)[1] 
-xBaseSt <- unlist(resOpt50[iBase,2:9])
+# take state after fluctuations as Base for experiments
+xBaseSt <- unlist(resOpt50[iClose,2:9])
 timesExp = seq(0,50, length.out=501)
-timesExpFit <- 6 - resOpt50$time[iBase]
+timesExpFit <- 0
 
 as.numeric(tmp <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times = timesExp
                 ,x0l=xBaseSt
@@ -336,9 +342,53 @@ res <- resControl <- attr(tmp,"resLsoda")
 plotResSeam1(res[res$time<=10,], "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
 abline(v=timesExpFit, col="grey")
 
+(xE <- unlist(res[80,2:9]))
+#xE <- as.vector(res[56,2:9])
+parmsA <- parms0
+parmsA[names(pNorm)] <- pOrig <- transOrigPopt(pOpt, parDistr=parDistr)
+derivSeam2( 0, xE, within(parmsA, isRecover <- TRUE) )
+
 # when simulating a longer period, N-substrate limited system
 # inorganic pool increases (need to include plant model to change this behaviour)
-# R accumulation slowly declines 
+# R accumulation slowly declines
+
+.tmp.f <- function(){
+    x0IncI <- xBaseSt
+    x0IncI["I"] <- 1
+    parmsCLim <- within(parms0,{
+                useAlphaCUntilNLimited <- TRUE
+            })
+    as.numeric(tmp <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times = timesExp
+                    ,parms=parmsCLim
+                    ,x0l=x0IncI
+                    ,yearsAccR=-2
+            #,isRecover=TRUE
+            #,parms=within(parms0, isRecover <- TRUE)
+            ))
+    res <- attr(tmp,"resLsoda")
+    plotResSeam1(res[res$time<=10,], "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
+    abline(v=timesExpFit, col="grey")
+    (xETmp <- unlist(tail(res,))[2:9])
+    (xETmp <- unlist(res[which.min((res$time-8)^2),][2:9]))
+    parmsA <- parms0
+    parmsA[names(pNorm)] <- pOrig <- transOrigPopt(pOpt, parDistr=parDistr)
+    #derivSeam2( 0, xETmp, within(parmsA, isRecover <- TRUE) )
+    
+    #cnR <- xETmp["R"]/xETmp["RN"] 
+    #xETmp["R"] <- 12000
+    #xETmp["RN"] <- xETmp["R"] / cnR
+    as.numeric(tmp <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times = timesExp
+                    ,parms=parmsCLim
+                    ,x0l=xETmp
+            #,isRecover=TRUE
+            #,parms=within(parms0, isRecover <- TRUE)
+            ))
+    res <-  attr(tmp,"resLsoda")
+    plotResSeam1(res[res$time<=10,], "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
+    
+    xBaseSt <- xETmp
+    parms0 <- parmsCLim
+}
 
 #----------- experiment: increased plant C input 
 # C input by plants increased by 6/4 and increased C/N input from 70 to 90
@@ -394,6 +444,7 @@ resILow <- res <-attr(tmp,"resLsoda")
 #plotResSeam1(resIlow, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
 plotResSeam1(resILow, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(-100,300))
 plotResSeam1(resILow[resILow$time<=10,], "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(-100,300))
+abline(h=0, col="grey")
 
 
 tail(res)
@@ -404,10 +455,13 @@ parmsA <- parms0
 parmsA[names(pNorm)] <- pOrig <- transOrigPopt(pOpt, parDistr=parDistr)
 #derivSeam2( 0, xE, within(parmsA, isRecover <- TRUE) )
 
+# Inorganic pool gets so low, that microbes cannot compensate their uptake efficiency losses by 
+# immobilization -> availability for plants
+
 #-------------- experiment: increased N inputs
 parmsIHigh <- within(parms0,{
             iI <- 25.6  #0.07*365      # still larger than leaching losses -> N Accumulation
-            cnIL <- cnIL*0.75
+            #cnIL <- cnIL*0.9
         })
 # assuming the plant still takes up the what supplied by litter
 (iLN <- parmsIHigh$iL  / parmsIHigh$cnIL)    #13.84 # N supply in litter
@@ -430,11 +484,11 @@ plotResSeam1(resIHigh[resIHigh$time < 15,], "topright", cls = c("B","respO","Rr"
 
 tail(res)
 
-(xE <- as.vector(tail(res,1)[,2:9]))
+(xE <- unlist(res[80,2:9]))
 #xE <- as.vector(res[56,2:9])
 parmsA <- parms0
 parmsA[names(pNorm)] <- pOrig <- transOrigPopt(pOpt, parDistr=parDistr)
-#derivSeam2( 0, xE, within(parmsA, isRecover <- TRUE) )
+derivSeam2( 0, xE, within(parmsA, isRecover <- TRUE) )
 
 #---------------- plotting
 resScens <- rbind(
@@ -447,15 +501,15 @@ resScens$dS <- resScens$dR + resScens$dL
 resScens$leaching <- resScens$I * parms0$l
 predM <- melt(resScens, 1:2)
 predM$variable <- relevel(relevel(relevel( relevel(predM$variable, "dR"),"R"),"L"),"alpha")
-levels(predM$variable)[match(c("L","R","dR","I","leaching"), levels(predM$variable))] <- c("L~(gm^{-2})","R~(g^{-2})","dR~(gm^{-2}*a^{-1})","I~(gm^{-2})","leaching~(gm^{-2}*a^{-1})")
+levels(predM$variable)[match(c("L","R","dR","I","leaching","Phi"), levels(predM$variable))] <- c("L~(gm^{-2})","R~(g^{-2})","dR~(gm^{-2}*a^{-1})","I~(gm^{-2})","leach.(gm^{-2}*a^{-1})","Phi~(gm^{-2}*a^{-1})")
 predMCtrl <- subset(predM, scenario %in% "control")
 
 dsObs <- data.frame(value=obs, sd=sdObs, time=timesExpFit, scenario="control")
 dsObs$variable <- relevel(relevel( relevel(as.factor(rownames(dsObs)), "N"), "dR"),"Cf")
-levels(dsObs$variable)[match(c("Cf","dR","N","leach"), levels(dsObs$variable))] <- c("L~(gm^{-2})","dR~(gm^{-2}*a^{-1})","I~(gm^{-2})","leaching~(gm^{-2}*a^{-1})")
+levels(dsObs$variable)[match(c("Cf","dR","N","leach"), levels(dsObs$variable))] <- c("L~(gm^{-2})","dR~(gm^{-2}*a^{-1})","I~(gm^{-2})","leach.(gm^{-2}*a^{-1})")
 #dssObs <- subset( dsObs, dsObs$variable %in% dsObs$variable[na.omit(pmatch(c("alpha","L","dR","I","leaching"), dsObs$variable))] )
-dssObs <- dsObs[grep(c("^alpha|^L|^dR|^I|^leaching"),dsObs$variable),]
-p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^leaching~"),predMCtrl$variable),], time <=5)
+dssObs <- dsObs[grep(c("^alpha|^L|^dR|^I|^leach"),dsObs$variable),]
+p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~|^leach"),predMCtrl$variable),], time <=5)
         , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
         geom_line(size=baseLineSize) +
         geom_point( data=dssObs, colour="black" )+
@@ -468,7 +522,7 @@ p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^leaching~")
         theme()
 p1
 
-p1b <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^I~"),predM$variable),], time <=5)
+p1b <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~"),predM$variable),], time <=5)
         , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
         geom_line(size=baseLineSize) +
         #facet_wrap( ~ variable,  scales="free_y", nrow=6, ncol=1) +
@@ -482,7 +536,7 @@ p1b <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^I~"),predM$variabl
         theme()
 p1b
 
-twWin(3.27, 5.6)
+twWin(3.27, 5.8)
 #twWin(7.5,8.7)
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(1, 2)))
@@ -494,12 +548,12 @@ print(p1b, vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
 #------------- plotting differently for presentations
 .tmp.f <- function(){
     twWin(7,4.6)
-    p1p <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L |^R |^dR |^I |^leaching "),predMCtrl$variable),], time <=5)
+    p1p <- ggplot( dss <- subset( predMCtrl[grep(c("^L~|^R~|^dR~|^I~|^Phi~|^leaching~"),predMCtrl$variable),], time <=5)
                     , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
             geom_line(size=baseLineSize) +
             geom_point( data=dssObs, colour="black", size=3 )+
             geom_errorbar( data=dssObs,aes(ymin=value-sd, ymax=value+sd), width=.25, colour="black", size=baseLineSize) +
-            facet_wrap( ~ variable,  scales="free_y") +
+            facet_wrap( ~ variable,  scales="free_y", labeller = label_parsed) +
             theme_bw(base_size=baseFontSize) +
             theme(axis.title.y = element_blank()) + 
             xlab("time (yr)") +
@@ -508,10 +562,10 @@ print(p1b, vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
     p1p
     
     twWin(5.7,4.6)
-    p1bp <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L |^dR |^I "),predM$variable),], time <=5)
+    p1bp <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^Phi~|^I~"),predM$variable),], time <=5)
                     , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
             geom_line(size=baseLineSize) +
-            #facet_wrap( ~ variable,  scales="free_y") +
+            facet_wrap( ~ variable,  scales="free_y", labeller = label_parsed) +
             #facet_grid( variable ~ .,  scales="free_y") +
             theme_bw(base_size=baseFontSize) +
             theme(axis.title.y = element_blank()) + 

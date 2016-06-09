@@ -30,23 +30,25 @@ parms0 <- list(
         cnB = 7.16
         ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
         ,cnIR = 4.5      ##<< between micr and enzyme signal
-        #,cnIL = 30      ##<< N poor substrate
-        ,cnIL = 40      ##<< N poor substrate       # near colimitation, here N limited (no overflow)
+        ,cnIL = 30      ##<< N poor substrate
+        #,cnIL = 40      ##<< N poor substrate       # near colimitation, here N limited (no overflow)
         #,kN= 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
         ,kN= 1/(1/12)  ##<< 1 month (Blagodatskaya 60 days priming)
         ,kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of R)
         #,kR = 1/(50)        ##<< 1/(x years) 
-        ,kR = 1/(20)        ##<< 1/(x years)       # to demonstrate changes on short time scale
-        ,kL = 1/(0.38)        ##<< 1/(x years)     # formerly 1 year
+        #,kR = 1/(20)        ##<< 1/(x years)       # to demonstrate changes on short time scale
+        ,kR = 1/(10)        ##<< 1/(x years)       # to demonstrate changes on short time scale
+        ,kL = 1/(0.33)        ##<< 1/(x years)     # formerly 1 year
         ,aE = 0.001*365   ##<< C biomass allocated to enzymes gC/day /microbial biomass
         ,km = 0.05     ##<< enzyme half-saturation constant
         #,km = 0.03     ##<< enzyme half-saturation constant
         ,m = 0.02*365    ##<< maintenance respiration rate   gC/day /microbial biomass
-        ,tau = 1/60*365  ##<< biomass turnover rate (12 days)
-        ,eps = 0.4      ##<< carbon use efficiency
-        ,epsTvr = 0   ##<< carbon use efficiency of microbial tvr (predators respire)
-        ,iR = 0        ##<< input modelled explicitely
-        ,iL = 300         # g/m2 input per year (half NPP)
+        ,tau = 1/60*365  ##<< biomass turnover rate (60 days)
+        #,eps = 0.4      ##<< carbon use efficiency
+        ,eps = 0.5      ##<< carbon use efficiency
+        ,epsTvr = 0.3      ##<< carbon use efficiency of microbial tvr (predators respire)
+        ,iR = 0          ##<< input modelled explicitely
+        ,iL = 300         # g/m2 input per year 
         #,plantNUp = 300/70*1/4  # plant N uptake balancing N inputs
         ,plantNUp = 0
         ,useFixedAlloc=FALSE    ##<< set to true to use Fixed enzyme allocation (alpha = 0.5)
@@ -55,6 +57,7 @@ parms0 <- list(
         ,iI = 0     ##<< input of mineral N
         ,l = 0   #0.00262647*365       ##<< leaching rate of mineralN l I
         ,nu = 1     # microbial N use efficiency
+        ,useAlphaCUntilNLimited = TRUE      ##<< do not decrease investment into C enzmyes when NSubstrateLimtited, but only when N-Limited
 )
 parms0 <- within(parms0,{
             kmR <- kmL <- km
@@ -70,9 +73,9 @@ x0 <- x0Orig <- c( #aE = 0.001*365
         ,EL  = 4*parms0$km                   ##<< total enzyme pool
         ,R = 400                 ##<< N rich substrate
         ,RN = 400/parms0$cnIR    ##<< N rich substrate N pool
-        ,L = 100                  ##<< N poor substrate
+        ,L = 100                 ##<< N poor substrate
         ,LN = 100/parms0$cnIL    ##<< N poor substrate N pool
-        ,I =  1                    ##<< inorganic pool gN/m2
+        ,I =  0                  ##<< inorganic pool gN/m2
 )
 x <- x0
 
@@ -83,6 +86,9 @@ parmsScen <- list(
         ,Match = within(parms0, {isAlphaMatch <- TRUE})
 )
 names(myColors) <- names(parmsScen)
+
+
+
 
 simfCNGraph <- function(
     ### fixing Substrate availability and varying N amount in L
@@ -199,36 +205,26 @@ simfCNGraph <- function(
     p8b 
 }
 
-# sim Steady
-scen <- "Revenue"
-xSteady <- do.call( rbind, lapply( c("Revenue","Fixed","Match"), function(scen){
-            parmsInit <- parmsScen[[scen]]
-            times <- seq(0,1000, length.out=2)
-            #times <- seq(0,10000, length.out=101)
-            #trace(derivSeam2, recover)     # untrace(derivSeam2)
-            res <- res1 <- as.data.frame(lsoda( x0, times, derivSeam2, parms=parmsInit))
-            #res <- res1f <- as.data.frame(lsoda( x0, times, derivSeam2, parms=within(parms0, useFixedAlloc<-TRUE) ))
-            xE <- tail(res,1)
-            xE$scen <- scen
-            xE
-        }))
-
 
 
 simInitSteady <- function(
     ### inspect approaching a steady state (or breakdown of biomass)
 ){
     scen <- "Revenue"
+    scen <- "Fixed"
+    scen <- "Match"
     resAll <- lapply( c("Revenue","Fixed","Match"), function(scen){
                 parmsInit <- parmsScen[[scen]]
+                parmsInit$isFixedI <- TRUE
                 times <- seq(0,150, length.out=301)
                 #times <- seq(0,10000, length.out=101)
+                #res <- res1 <- as.data.frame(lsoda( x0, times, derivSeam2, parms=within( parmsInit, isRecover <- TRUE)))
                 res <- res1 <- as.data.frame(lsoda( x0, times, derivSeam2, parms=parmsInit))
                 #res <- res1f <- as.data.frame(lsoda( x0, times, derivSeam2, parms=within(parms0, useFixedAlloc<-TRUE) ))
                 xE <- unlist(tail(res,1))
                 #plotResSeam1(res, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
                 #plotResSeam1(res, "topright", cls = c("ER","EL"))
-                tail(res[,1:8])
+                tail(res)
                 #head(res[,c("limE1","limE2")])
                 #tail(res[,c("limE1","limE2")])
                 res$scen <- scen
@@ -282,15 +278,16 @@ simCO2Increase <- function(
             parmsInit <- parmsScen[[scen]]
             parmsInit$cnIL <- 40
             parmsInit$isFixedI <- TRUE
+            parmsInit$useAlphaCUntilNLimited <- TRUE
             x0Pr <- x0
-            x0Pr["I"] <- 0.5
+            x0Pr["I"] <- 1
             # spinup run
             times <- seq(0,100, length.out=101)
             #times <- seq(0,10000, length.out=101)
             res <- res1 <- as.data.frame(lsoda( x0Pr, times, derivSeam2, parms=parmsInit))
             #res <- res1f <- as.data.frame(lsoda( x0, times, derivSeam2, parms=within(parms0, useFixedAlloc<-TRUE) ))
             xE <- unlist(tail(res,1))
-            plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
+            #plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
             #plotResSeam1(res, "topright", cls = c("ER","EL"))
             #tmp <- derivSeam2(0, xE[1:length(x0)+1], within(parmsInit, isRecover <- TRUE) )
                 
@@ -308,7 +305,7 @@ simCO2Increase <- function(
             res <- res2I <- as.data.frame(lsoda( xE[1:length(x0)+1], times, derivSeam2, parms=parmsC2))
             res2I$time <- res2I$time +t1S 
             xE2 <- unlist(tail(res2I,1))
-            plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
+            #plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
             #plotResSeam1(res, "topright", cls = c("I"))
             #plotResSeam1(res, "topright", cls = c("R","L"))
             #trace(derivSeam2, recover)        #untrace(derivSeam2)

@@ -127,6 +127,7 @@ derivSeam1 <- function(t,x,parms){
         if( diff(unlist(c(dB+dER+dEL+dR+dL+resp+tvrExC,    parms$iR+parms$iL )))^2 > sqrEps )  stop("mass balance C error")
         if( diff(unlist(c((dB)/parms$cnB+(dER+dEL)/parms$cnE+dRN+dLN+dI+tvrExN,    parms$iR/parms$cnIR+parms$iL/parms$cnIL-plantNUp)))^2 > .Machine$double.eps )  stop("mass balance N error")
     }
+    if( isTRUE(parms$isRecover) ) recover()    
     list( resDeriv, c(respO=as.numeric(respO)
         , Mm=as.numeric(Mm), MmImb=as.numeric(MmImb), MmTvr=as.numeric(MmTvr)  
         , alpha=as.numeric(alpha)
