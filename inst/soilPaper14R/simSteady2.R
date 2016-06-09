@@ -28,8 +28,8 @@ colScale <- scale_colour_manual(name = "Allocation",values = myColors)
 parms0 <- list(
         cnB = 7.16
         ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
-        ,cnIR = 4.5      ##<< between micr and enzyme signal
-        #,cnIR = 7      ##<< between micr and enzyme signal
+        #,cnIR = 4.5      ##<< between micr and enzyme signal
+        ,cnIR = 7      ##<< between micr and enzyme signal
         ,cnIL = 30      ##<< N poor substrate, here no inorganic N supply, need to have low C/N for CO2 increase scenario
         #,cnIL = 40      ##<< N poor substrate       # near colimitation, here N limited (no overflow)
         #,cnIL = 50      ##<< N poor substrate       # near colimitation, here N limited (no overflow)
@@ -438,7 +438,7 @@ simPriming <- function(
                 xE
                 
                 # X yr decreased C input    
-                t2I = 10
+                t2I = if( scen=="Revenue") 18 else 10   # revenue needs a bit longer, make sure about the same base level
                 fInputInc = 1.2
                 parmsC2 <- within(parmsInit, {  
                             #iL <- iL/10
