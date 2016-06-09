@@ -70,7 +70,7 @@ derivSeam2 <- function(t,x,parms){
     Phi <- MmB + nMinHetero
     respTvr <- (1-parms$epsTvr) * tvrB 
     MmTvr <- respTvr/parms$cnB
-    #Mm <- MmB + MmTvr
+    Mm <- Phi + MmTvr       # total mineralization flux including microbial turnover
     #
     # Revenue strategy
     revLC <- decL / (parms$kNL) / (parms$kmL + EL)
@@ -154,7 +154,7 @@ derivSeam2 <- function(t,x,parms){
     if( isTRUE(parms$isRecover) ) recover()    
     list( resDeriv, c(respO=as.numeric(respO)
         , Phi=as.numeric(Phi), MmB=as.numeric(MmB), MmTvr=as.numeric(MmTvr)
-        , immoPot=as.numeric(immoPot), MmImb=as.numeric(MmImb)    
+        , immoPot=as.numeric(immoPot), MmImb=as.numeric(MmImb), Mm=as.numeric(Mm)  
         , alpha=as.numeric(alpha)
         , alphaC=as.numeric(alphaC), alphaN=as.numeric(alphaN)
         , cnR=as.numeric(cnR), cnL=as.numeric(cnL)

@@ -8,7 +8,7 @@ baseFontSize <- 16  # presentations
 if( isPaperBGC){
     library(twDev)
     loadPkg()
-    baseFontSize <- 10  # pubs
+    baseFontSize <- 9  # pubs
 } 
 library(ggplot2)
 library(grid)   #unit
@@ -24,34 +24,76 @@ myColors <- brewer.pal(5,"Dark2")
 colScale <- scale_colour_manual(name = "Allocation",values = myColors)
 
 
+.tmp.f <- function(){
+# gC/m2 and gN/m2, /yr
+    parms0 <- list(
+            cnB = 7.16
+            ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
+            ,cnIR = 4.5      ##<< between micr and enzyme signal
+            ,cnIL = 30      ##<< N poor substrate
+            #,cnIL = 40      ##<< N poor substrate       # near colimitation, here N limited (no overflow)
+            #,kN= 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
+            ,kN= 1/(1/12)  ##<< 1 month (Blagodatskaya 60 days priming)
+            ,kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of R)
+            #,kR = 1/(50)        ##<< 1/(x years) 
+            #,kR = 1/(20)        ##<< 1/(x years)       # to demonstrate changes on short time scale
+            ,kR = 1/(10)        ##<< 1/(x years)       # to demonstrate changes on short time scale
+            ,kL = 1/(0.33)        ##<< 1/(x years)     # formerly 1 year
+            ,aE = 0.001*365   ##<< C biomass allocated to enzymes gC/day /microbial biomass
+            ,km = 0.05     ##<< enzyme half-saturation constant
+            #,km = 0.03     ##<< enzyme half-saturation constant
+            ,m = 0.02*365    ##<< maintenance respiration rate   gC/day /microbial biomass
+            ,tau = 1/60*365  ##<< biomass turnover rate (60 days)
+            #,eps = 0.4      ##<< carbon use efficiency
+            ,eps = 0.5      ##<< carbon use efficiency
+            ,epsTvr = 0.3      ##<< carbon use efficiency of microbial tvr (predators respire)
+            ,iR = 0          ##<< input modelled explicitely
+            ,iL = 300         # g/m2 input per year 
+            #,plantNUp = 300/70*1/4  # plant N uptake balancing N inputs
+            ,plantNUp = 0
+            ,useFixedAlloc=FALSE    ##<< set to true to use Fixed enzyme allocation (alpha = 0.5)
+            ,kIP = 10.57 #0.0289652*365          ##<< plant uptake iP I
+            ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
+            ,iI = 0     ##<< input of mineral N
+            ,l = 0   #0.00262647*365       ##<< leaching rate of mineralN l I
+            ,nu = 1     # microbial N use efficiency
+            ,useAlphaCUntilNLimited = TRUE      ##<< do not decrease investment into C enzmyes when NSubstrateLimtited, but only when N-Limited
+    )
+}
+
 
 # gC/m2 and gN/m2, /yr
 parms0 <- list(
         cnB = 7.16
         ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
         ,cnIR = 4.5      ##<< between micr and enzyme signal
-        ,cnIL = 30      ##<< N poor substrate
+        #,cnIL = 30      ##<< N poor substrate
         #,cnIL = 40      ##<< N poor substrate       # near colimitation, here N limited (no overflow)
+        ,cnIL = 50      ##<< N poor substrate       # near colimitation, here N limited (no overflow)
         #,kN= 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
         ,kN= 1/(1/12)  ##<< 1 month (Blagodatskaya 60 days priming)
         ,kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of R)
         #,kR = 1/(50)        ##<< 1/(x years) 
-        #,kR = 1/(20)        ##<< 1/(x years)       # to demonstrate changes on short time scale
         ,kR = 1/(10)        ##<< 1/(x years)       # to demonstrate changes on short time scale
         ,kL = 1/(0.33)        ##<< 1/(x years)     # formerly 1 year
         ,aE = 0.001*365   ##<< C biomass allocated to enzymes gC/day /microbial biomass
         ,km = 0.05     ##<< enzyme half-saturation constant
         #,km = 0.03     ##<< enzyme half-saturation constant
         ,m = 0.02*365    ##<< maintenance respiration rate   gC/day /microbial biomass
-        ,tau = 1/60*365  ##<< biomass turnover rate (60 days)
-        #,eps = 0.4      ##<< carbon use efficiency
+        ,tau = 1/60*365  ##<< biomass turnover rate (12 days)
         ,eps = 0.5      ##<< carbon use efficiency
-        ,epsTvr = 0.3      ##<< carbon use efficiency of microbial tvr (predators respire)
-        ,iR = 0          ##<< input modelled explicitely
-        ,iL = 300         # g/m2 input per year 
+        ,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (predators respire)
+        ,iR = 0        ##<< input modelled explicitely
+        #,iL = 300         # g/m2 input per year (half NPP)
+        ,iL = 400         # g/m2 input per year (half NPP)
         #,plantNUp = 300/70*1/4  # plant N uptake balancing N inputs
         ,plantNUp = 0
         ,useFixedAlloc=FALSE    ##<< set to true to use Fixed enzyme allocation (alpha = 0.5)
+        ,iP = 10.57 #0.0289652*365          ##<< plant uptake iP I
+        ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
+        ,iI = 0     ##<< input of mineral N
+        ,l = 0.96   #0.00262647*365       ##<< leaching rate of mineralN l I
+
         ,kIP = 10.57 #0.0289652*365          ##<< plant uptake iP I
         ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
         ,iI = 0     ##<< input of mineral N
@@ -59,6 +101,7 @@ parms0 <- list(
         ,nu = 1     # microbial N use efficiency
         ,useAlphaCUntilNLimited = TRUE      ##<< do not decrease investment into C enzmyes when NSubstrateLimtited, but only when N-Limited
 )
+
 parms0 <- within(parms0,{
             kmR <- kmL <- km
             epsR <- epsL <- eps
@@ -210,9 +253,9 @@ simfCNGraph <- function(
 simInitSteady <- function(
     ### inspect approaching a steady state (or breakdown of biomass)
 ){
+    scen <- "Match"
     scen <- "Revenue"
     scen <- "Fixed"
-    scen <- "Match"
     resAll <- lapply( c("Revenue","Fixed","Match"), function(scen){
                 parmsInit <- parmsScen[[scen]]
                 parmsInit$isFixedI <- TRUE
@@ -269,18 +312,18 @@ simInitSteady <- function(
 simCO2Increase <- function(
     ### Simulated increase of C-input by 20% during years 10-60
 ){
-     #scen <- "Revenue"
+    #scen <- "Revenue"
     t1S <- 10
     t2I = 50
     t3S <- 50
     fInputInc = 1.2
     resAll <- lapply( c("Revenue","Fixed"), function(scen){
             parmsInit <- parmsScen[[scen]]
-            parmsInit$cnIL <- 40
             parmsInit$isFixedI <- TRUE
             parmsInit$useAlphaCUntilNLimited <- TRUE
+            parmsInit$cnIL <- 30
             x0Pr <- x0
-            x0Pr["I"] <- 1
+            x0Pr["I"] <- 0
             # spinup run
             times <- seq(0,100, length.out=101)
             #times <- seq(0,10000, length.out=101)
@@ -305,7 +348,7 @@ simCO2Increase <- function(
             res <- res2I <- as.data.frame(lsoda( xE[1:length(x0)+1], times, derivSeam2, parms=parmsC2))
             res2I$time <- res2I$time +t1S 
             xE2 <- unlist(tail(res2I,1))
-            #plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
+            plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
             #plotResSeam1(res, "topright", cls = c("I"))
             #plotResSeam1(res, "topright", cls = c("R","L"))
             #trace(derivSeam2, recover)        #untrace(derivSeam2)
@@ -363,7 +406,7 @@ simCO2Increase <- function(
     dsCN[ dsCN$time %in% (t1S+1):(t1S+t2I),"iL"] <- parmsScen[["Revenue"]]$iL * fInputInc
 
     p2b <- ggplot( dsCN, aes(x=time, y=iL)) + geom_line(size=1) + 
-            xlab("Time (yr)")+ ylab("Input") + ylim(c(0,400)) +
+            xlab("Time (yr)")+ ylab("Input") + ylim(c(0,500)) +
             theme_bw(base_size=baseFontSize) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()
@@ -407,24 +450,31 @@ simCO2Increase <- function(
 simPriming <- function(
 ### Simulated decrease of input to 1/100 during years 10-210
 ){
+    #scen <- "Fixed"
     #scen <- "Revenue"
     resAll <- lapply( c("Revenue","Fixed"), function(scen){
                 parmsInit <- parmsScen[[scen]]
-                parmsInit$kL = 1/(1/365)       # use a easily degradable substrate               
+                parmsInit$isFixedI <- TRUE
+                parmsInit$kNL <- parmsInit$kNR <- 60; parmsInit$kmL <- parmsInit$kmR <- 0.005
+                #parmsInit$kR <- 1/5 # tested whether this speeds up dynamics, but it does not 
+                parmsInit$kL <- (365/0.1) # 10th day (unlimited) turnover time of L
+                
+                #parmsInit$kL = 1/(1/365)       # use a easily degradable substrate               
                 # sim steady state
-                times <- seq(0,500, length.out=2)
+                times <- seq(0,500, length.out=20)
                 #times <- seq(0,500, length.out=101)
                 res <-  as.data.frame(lsoda( x0, times, derivSeam2, parms=parmsInit))
                 #res <- res1f <- as.data.frame(lsoda( x0, times, derivSeam2, parms=within(parms0, useFixedAlloc<-TRUE) ))
-                #plotResSeam1(res, "topright", cls = c("B10","L","R","alpha100"))
+                #plotResSeam1(res, "topright", cls = c("B10","respO","L","R","alpha100"))
                 xESteadyP <- xE <- tail(res,1)
                 xE
                 
                 # X yr decreased C input    
-                t2I = 50
+                t2I = 10
                 fInputInc = 1.2
                 parmsC2 <- within(parmsInit, {  
-                            iL <- iL/10
+                            #iL <- iL/10
+                            iL <- iL/100
                             #cnIL <- cnIL*fInputInc
                             #plantNUp <- 300/70*4/5  # plant N uptake balancing N inputs
                         }) 
@@ -432,23 +482,36 @@ simPriming <- function(
                 res <- as.data.frame(lsoda( unlist(xESteadyP[1:length(x0)+1]), times, derivSeam2, parms=parmsC2))
                 res2I <- tail(res,10)   # last 10 years
                 xE2 <- unlist(tail(res2I,1))
-                #plotResSeam1(res2I, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
-                #plotResSeam1(res, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
+                #plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
+                #-----  some long-time fluctutions of break-out of biomass: emergent!
+                #plotResSeam2(res2I, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
+                #plotResSeam2(res, "topright", cls = c("L"))
                 #trace(derivSeam2, recover)        #untrace(derivSeam2)
-                #tmp <- derivSeam2(0, xE2[1:length(x0)+1], parmsC2)
+                #tmp <- derivSeam2(0, xE2[1:length(x0)+1], within( parmsC2  ,isRecover <-TRUE))
                 
                 # 5 yr control of continued decreased input 
+                t3S <- 2
                 #t3S <- 5
-                t3S <- 3
-                times <- seq(0,t3S, length.out=201)
-                res <- res3Sc <- as.data.frame(lsoda( xE2[1:length(x0)+1], times, derivSeam2, parms=parmsC2))
-                #plotResSeam1(res, "topright", cls = c("B10","Rr","Lr","alpha100","E1_1000","E2_1000"))
+                times <- seq(0,t3S, length.out=501)
+                res <- res3Sc <- as.data.frame(lsoda( xE2[1:length(x0)+1], times, derivSeam2
+                                , parms=parmsC2
+                                #, parms=within( parmsC2  ,isRecover <-TRUE)
+                        ))
+                #plotResSeam2(res3Sc, "topright", cls = c("B10","respO","Rr","Lr","alpha100","EL_1000","ER_1000","Phi","Mm"))
                 res3Sc$time <- res3Sc$time 
                 xE3c <- tail(res3Sc,1)
                 
                 # 5 yr of continued decreased input but with initial pulse of L
                 x0P <- xE2; x0P["L"] <- x0P["L"] + 50 
-                res <- res3S <- res3Sp <- as.data.frame(lsoda( x0P[1:length(x0)+1], times, derivSeam2, parms=parmsC2))
+                res <- res3S <- res3Sp <- as.data.frame(lsoda( x0P[1:length(x0)+1], times, derivSeam2
+                                        , parms=parmsC2
+                                        #, parms=within( parmsC2  ,isRecover <-TRUE)
+                ))
+                #plotResSeam2(res3Sp, "topright", cls = c("B10","respO","Rr","Lr","alpha100","EL_1000","ER_1000"))
+                #plotResSeam2(res3Sp, "topright", cls = c("B10","Lr","alpha100","EL_1000","ER_1000"))
+                #plotResSeam2(res3Sp, "topright", cls = c("B","alpha","Phi","Mm"))
+                #plotResSeam2(res3Sp, "topright", cls = c("EL","ER"))
+                #plotResSeam2(res3Sp, "topright", cls = c("B10","EL_1000","ER_1000"))
                 res3Sp$time <- res3Sp$time 
                 xE3p <- tail(res3Sp,1)
                 
@@ -456,6 +519,8 @@ simPriming <- function(
                 res3S$decRp <- res3Sp$decR
                 res3S$Mmc <- res3Sc$Mm
                 res3S$Mmp <- res3Sp$Mm
+                res3S$alphac <- res3Sc$alpha
+                res3S$alphap <- res3Sp$alpha
                 res3S$respRc <- with(res3Sc, resp * decR/(decR+decL))  
                 res3S$respRp <- with(res3Sp, resp * decR/(decR+decL))
                 res3S$scen <- scen
@@ -490,19 +555,31 @@ simPriming <- function(
     dsp <- melt( subset(resScen, timeDay < endTimeDay), id=c("timeDay","scen"), measure.vars=c("Mmc","Mmp"),variable_name="Treatment")
     dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
     levels(dsp$Treatment) <- c("No Litter input","Litter input pulse")
-    p3p <- ggplot( dsp, aes(x=timeDay, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
+    dsp$value[dsp$value < 0.5] <- NA
+    p3m <- ggplot( dsp, aes(x=timeDay, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
             xlab("Time (day)")+ ylab("N -Mineralization (gN/m2/yr)") +
             theme_bw(base_size=baseFontSize) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
-    p3p + colScale
+    p3m + colScale
 
     if (isPaperBGC){
         twWin(width=3.3, height=3.0, pointsize=9, pdf="soilPaper14/fig/PrimingMin.pdf")
-        print(p3p + colScale + theme(legend.position = c(0.9,0.53), legend.justification=c(1,1)) + theme( plot.margin = unit( c(0,0,0,0) , "in" ) ) +
+        print(p3m + colScale + theme(legend.position = c(0.9,0.53), legend.justification=c(1,1)) + theme( plot.margin = unit( c(0,0,0,0) , "in" ) ) +
         theme( plot.margin = unit( c(0,0,0,0) , "in" ) ) )
         dev.off()
     }
+    
+    dsp <- melt( subset(resScen, timeDay < endTimeDay), id=c("timeDay","scen"), measure.vars=c("alphac","alphap"),variable_name="Treatment")
+    dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
+    levels(dsp$Treatment) <- c("No Litter input","Litter input pulse")
+    p3a <- ggplot( dsp, aes(x=timeDay, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
+            xlab("Time (day)")+ ylab("Allocation to R: alpha (gN/m2/yr)") +
+            theme_bw(base_size=baseFontSize) +
+            #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
+            theme()                
+    p3a + colScale
+    
     
 }
 
@@ -574,7 +651,7 @@ simBareSoil <- function(
             xlab("Time (yr)")+ ylab("Turnover time R (yr)") +
             theme_bw(base_size=baseFontSize) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
-            ylim(c(0,800)) +
+            #ylim(c(0,800)) +
             theme()                
     p3b + colScale
     

@@ -7,7 +7,7 @@ baseFontSize <- 16  # presentations
 if( isPaperBGC){
     library(twDev)
     loadPkg()
-    baseFontSize <- 10  # pubs
+    baseFontSize <- 9  # pubs
     baseLineSize <- 1
 } else {
     baseFontSize <- 16  # pubs
