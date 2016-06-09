@@ -24,61 +24,27 @@ myColors <- brewer.pal(5,"Dark2")
 colScale <- scale_colour_manual(name = "Allocation",values = myColors)
 
 
-.tmp.f <- function(){
-# gC/m2 and gN/m2, /yr
-    parms0 <- list(
-            cnB = 7.16
-            ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
-            ,cnIR = 4.5      ##<< between micr and enzyme signal
-            ,cnIL = 30      ##<< N poor substrate
-            #,cnIL = 40      ##<< N poor substrate       # near colimitation, here N limited (no overflow)
-            #,kN= 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
-            ,kN= 1/(1/12)  ##<< 1 month (Blagodatskaya 60 days priming)
-            ,kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of R)
-            #,kR = 1/(50)        ##<< 1/(x years) 
-            #,kR = 1/(20)        ##<< 1/(x years)       # to demonstrate changes on short time scale
-            ,kR = 1/(10)        ##<< 1/(x years)       # to demonstrate changes on short time scale
-            ,kL = 1/(0.33)        ##<< 1/(x years)     # formerly 1 year
-            ,aE = 0.001*365   ##<< C biomass allocated to enzymes gC/day /microbial biomass
-            ,km = 0.05     ##<< enzyme half-saturation constant
-            #,km = 0.03     ##<< enzyme half-saturation constant
-            ,m = 0.02*365    ##<< maintenance respiration rate   gC/day /microbial biomass
-            ,tau = 1/60*365  ##<< biomass turnover rate (60 days)
-            #,eps = 0.4      ##<< carbon use efficiency
-            ,eps = 0.5      ##<< carbon use efficiency
-            ,epsTvr = 0.3      ##<< carbon use efficiency of microbial tvr (predators respire)
-            ,iR = 0          ##<< input modelled explicitely
-            ,iL = 300         # g/m2 input per year 
-            #,plantNUp = 300/70*1/4  # plant N uptake balancing N inputs
-            ,plantNUp = 0
-            ,useFixedAlloc=FALSE    ##<< set to true to use Fixed enzyme allocation (alpha = 0.5)
-            ,kIP = 10.57 #0.0289652*365          ##<< plant uptake iP I
-            ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
-            ,iI = 0     ##<< input of mineral N
-            ,l = 0   #0.00262647*365       ##<< leaching rate of mineralN l I
-            ,nu = 1     # microbial N use efficiency
-            ,useAlphaCUntilNLimited = TRUE      ##<< do not decrease investment into C enzmyes when NSubstrateLimtited, but only when N-Limited
-    )
-}
-
-
 # gC/m2 and gN/m2, /yr
 parms0 <- list(
         cnB = 7.16
         ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
         ,cnIR = 4.5      ##<< between micr and enzyme signal
-        #,cnIL = 30      ##<< N poor substrate
+        #,cnIR = 7      ##<< between micr and enzyme signal
+        ,cnIL = 30      ##<< N poor substrate, here no inorganic N supply, need to have low C/N for CO2 increase scenario
         #,cnIL = 40      ##<< N poor substrate       # near colimitation, here N limited (no overflow)
-        ,cnIL = 50      ##<< N poor substrate       # near colimitation, here N limited (no overflow)
+        #,cnIL = 50      ##<< N poor substrate       # near colimitation, here N limited (no overflow)
         #,kN= 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
-        ,kN= 1/(1/12)  ##<< 1 month (Blagodatskaya 60 days priming)
+        #,kN= 1/(1/12)  ##<< 1 month (Blagodatskaya 60 days priming)
+        #,km = 0.05     ##<< enzyme half-saturation constant
+        ,kN = 60       ##<< /yr enzyme turnover 60 times a year, each 6 days -> fast priming pulses
+        ,km = 0.01    ##<< enzyme half-saturation constant, in magnitude of enzymes, determined by kN
         ,kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of R)
         #,kR = 1/(50)        ##<< 1/(x years) 
         ,kR = 1/(10)        ##<< 1/(x years)       # to demonstrate changes on short time scale
-        ,kL = 1/(0.33)        ##<< 1/(x years)     # formerly 1 year
+        #,kR = 1/(20)        ##<< 1/(x years)       # to demonstrate changes on short time scale
+        #,kL = 1/(0.33)        ##<< 1/(x years)     # formerly 1 year
+        ,kL = 5        ##<< 1/(x years)     # formerly 1 year
         ,aE = 0.001*365   ##<< C biomass allocated to enzymes gC/day /microbial biomass
-        ,km = 0.05     ##<< enzyme half-saturation constant
-        #,km = 0.03     ##<< enzyme half-saturation constant
         ,m = 0.02*365    ##<< maintenance respiration rate   gC/day /microbial biomass
         ,tau = 1/60*365  ##<< biomass turnover rate (12 days)
         ,eps = 0.5      ##<< carbon use efficiency
@@ -183,6 +149,7 @@ simfCNGraph <- function(
                 resScen <- cbind( data.frame(scen=names(parmsScenF), do.call( rbind, resL )))
             })
     resC <- resCAll <- do.call( rbind, resLC )
+    #res <- resLC[[7]] 
     resC <- subset(resCAll, cnL <= 160)
     resC$MmImbMon <- resC$MmImb/12
     resC$respOMon <- resC$respO/12
@@ -254,8 +221,8 @@ simInitSteady <- function(
     ### inspect approaching a steady state (or breakdown of biomass)
 ){
     scen <- "Match"
-    scen <- "Revenue"
     scen <- "Fixed"
+    scen <- "Revenue"
     resAll <- lapply( c("Revenue","Fixed","Match"), function(scen){
                 parmsInit <- parmsScen[[scen]]
                 parmsInit$isFixedI <- TRUE
@@ -320,17 +287,18 @@ simCO2Increase <- function(
     resAll <- lapply( c("Revenue","Fixed"), function(scen){
             parmsInit <- parmsScen[[scen]]
             parmsInit$isFixedI <- TRUE
-            parmsInit$useAlphaCUntilNLimited <- TRUE
-            parmsInit$cnIL <- 30
+            #parmsInit$cnIL <- 30
             x0Pr <- x0
-            x0Pr["I"] <- 0
+            #x0Pr["I"] <- 0.8
+            x0Pr["R"] <- 1100
+            x0Pr["RN"] <- x0Pr["R"]*parmsInit$cnIR
             # spinup run
-            times <- seq(0,100, length.out=101)
+            times <- seq(0,500, length.out=101)
             #times <- seq(0,10000, length.out=101)
             res <- res1 <- as.data.frame(lsoda( x0Pr, times, derivSeam2, parms=parmsInit))
             #res <- res1f <- as.data.frame(lsoda( x0, times, derivSeam2, parms=within(parms0, useFixedAlloc<-TRUE) ))
             xE <- unlist(tail(res,1))
-            #plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
+            plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
             #plotResSeam1(res, "topright", cls = c("ER","EL"))
             #tmp <- derivSeam2(0, xE[1:length(x0)+1], within(parmsInit, isRecover <- TRUE) )
                 
@@ -455,7 +423,7 @@ simPriming <- function(
     resAll <- lapply( c("Revenue","Fixed"), function(scen){
                 parmsInit <- parmsScen[[scen]]
                 parmsInit$isFixedI <- TRUE
-                parmsInit$kNL <- parmsInit$kNR <- 60; parmsInit$kmL <- parmsInit$kmR <- 0.005
+                #parmsInit$kNL <- parmsInit$kNR <- 60; parmsInit$kmL <- parmsInit$kmR <- 0.005
                 #parmsInit$kR <- 1/5 # tested whether this speeds up dynamics, but it does not 
                 parmsInit$kL <- (365/0.1) # 10th day (unlimited) turnover time of L
                 
