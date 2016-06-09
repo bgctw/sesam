@@ -1,3 +1,4 @@
+# using Seam2 version with nitrogen efficiency nu
 isPaperBGC <- ("paperBGC" %in% commandArgs(trailingOnly = TRUE))
 #isPaperBGC <- TRUE
 
@@ -7,7 +8,7 @@ baseFontSize <- 16  # presentations
 if( isPaperBGC){
     library(twDev)
     loadPkg()
-    baseFontSize <- 9  # pubs
+    baseFontSize <- 10  # pubs
 } 
 library(ggplot2)
 library(grid)   #unit
@@ -35,24 +36,25 @@ parms0 <- list(
         ,kN= 1/(1/12)  ##<< 1 month (Blagodatskaya 60 days priming)
         ,kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of R)
         #,kR = 1/(50)        ##<< 1/(x years) 
-        ,kR = 1/(10)        ##<< 1/(x years)       # to demonstrate changes on short time scale
-        ,kL = 1/(0.33)        ##<< 1/(x years)     # formerly 1 year
+        ,kR = 1/(20)        ##<< 1/(x years)       # to demonstrate changes on short time scale
+        ,kL = 1/(0.38)        ##<< 1/(x years)     # formerly 1 year
         ,aE = 0.001*365   ##<< C biomass allocated to enzymes gC/day /microbial biomass
         ,km = 0.05     ##<< enzyme half-saturation constant
         #,km = 0.03     ##<< enzyme half-saturation constant
         ,m = 0.02*365    ##<< maintenance respiration rate   gC/day /microbial biomass
         ,tau = 1/60*365  ##<< biomass turnover rate (12 days)
-        ,eps = 0.5      ##<< carbon use efficiency
-        ,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (predators respire)
+        ,eps = 0.4      ##<< carbon use efficiency
+        ,epsTvr = 0   ##<< carbon use efficiency of microbial tvr (predators respire)
         ,iR = 0        ##<< input modelled explicitely
         ,iL = 300         # g/m2 input per year (half NPP)
         #,plantNUp = 300/70*1/4  # plant N uptake balancing N inputs
         ,plantNUp = 0
         ,useFixedAlloc=FALSE    ##<< set to true to use Fixed enzyme allocation (alpha = 0.5)
-        ,iP = 10.57 #0.0289652*365          ##<< plant uptake iP I
+        ,kIP = 10.57 #0.0289652*365          ##<< plant uptake iP I
         ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
         ,iI = 0     ##<< input of mineral N
-        ,l = 0.96   #0.00262647*365       ##<< leaching rate of mineralN l I
+        ,l = 0   #0.00262647*365       ##<< leaching rate of mineralN l I
+        ,nu = 1     # microbial N use efficiency
 )
 parms0 <- within(parms0,{
             kmR <- kmL <- km
@@ -143,10 +145,10 @@ simfCNGraph <- function(
     
     dsp <- melt(resC, id=c("cnL","scen"), measure.vars=c("alpha","B","MmImbMon","respOMon"), variable_name="Measure")
     #levels(dsp$Measure) <- c("Allocation_Ratio (alpha)","Biomass (gC/m^2)","Mineralization[Imb] (gN/m^2/yr)","OverflowRespiration (gC/m2/yr)")
-    levels(dsp$Measure) <- c("Allocation to R (alpha)","Biomass (gC/m2)","Min Imb (gN/m2/month)","Overflow (gC/m2/month)")
+    levels(dsp$Measure) <- c("Allocation~to~ R~(alpha)","Biomass~(gCm^{-2})","Min~Imb~(gNm^{-2}*month^{-1})","Overflow~(gCm^{-2}*month^{-1})")
     p8 <- ggplot( dsp, aes(x=cnL, y=value, col=scen), environment = environment() ) + geom_line(size=1) + 
             #facet_grid(Measure~., scales = "free", labeller= label_parsed ) + 
-            facet_wrap(~Measure, scales = "free_y" ) +
+            facet_wrap(~Measure, scales = "free_y", labeller = label_parsed ) +
             scale_x_continuous('C/N ratio of Litter') + 
             geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
             theme_bw(base_size=baseFontSize) +
@@ -156,8 +158,8 @@ simfCNGraph <- function(
     p8 + colScale
     
     if (isPaperBGC){
-        twWin(width=3.3, height=2.8, pointsize=9, pdf="soilPaper14/fig/VarNNoFeedback.pdf")
-        print( p8 + colScale + theme(legend.position = c(0.1,0.5), legend.justification=c(0,1)) ) 
+        twWin(width=3.3, height=3.2, pointsize=9, pdf="soilPaper14/fig/VarNNoFeedback.pdf")
+        print( p8 + colScale + theme(legend.position = c(0.14,0.475), legend.justification=c(0,1)) ) 
         dev.off()
     }
 
@@ -224,8 +226,8 @@ simInitSteady <- function(
                 res <- res1 <- as.data.frame(lsoda( x0, times, derivSeam2, parms=parmsInit))
                 #res <- res1f <- as.data.frame(lsoda( x0, times, derivSeam2, parms=within(parms0, useFixedAlloc<-TRUE) ))
                 xE <- unlist(tail(res,1))
-                plotResSeam1(res, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
-                plotResSeam1(res, "topright", cls = c("ER","EL"))
+                #plotResSeam1(res, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
+                #plotResSeam1(res, "topright", cls = c("ER","EL"))
                 tail(res[,1:8])
                 #head(res[,c("limE1","limE2")])
                 #tail(res[,c("limE1","limE2")])
@@ -279,19 +281,25 @@ simCO2Increase <- function(
     resAll <- lapply( c("Revenue","Fixed"), function(scen){
             parmsInit <- parmsScen[[scen]]
             parmsInit$cnIL <- 40
+            parmsInit$isFixedI <- TRUE
+            x0Pr <- x0
+            x0Pr["I"] <- 0.5
             # spinup run
             times <- seq(0,100, length.out=101)
             #times <- seq(0,10000, length.out=101)
-            res <- res1 <- as.data.frame(lsoda( x0, times, derivSeam2, parms=parmsInit))
+            res <- res1 <- as.data.frame(lsoda( x0Pr, times, derivSeam2, parms=parmsInit))
             #res <- res1f <- as.data.frame(lsoda( x0, times, derivSeam2, parms=within(parms0, useFixedAlloc<-TRUE) ))
             xE <- unlist(tail(res,1))
-            plotResSeam1(res, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
+            plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
+            #plotResSeam1(res, "topright", cls = c("ER","EL"))
+            #tmp <- derivSeam2(0, xE[1:length(x0)+1], within(parmsInit, isRecover <- TRUE) )
+                
             
             # 10 yr steady state
             res <- res1S <- as.data.frame(lsoda( xE[1:length(x0)+1], 1:t1S, derivSeam2, parms=parmsInit))
             
             # 30 yr double C input    
-            parmsC2 <- within(parmsInit, { # double as much C in 
+            parmsC2 <- within(parmsInit, { # more C in litter, but not more N 
                         iL <- iL*fInputInc
                         cnIL <- cnIL*fInputInc
                         #plantNUp <- 300/70*4/5  # plant N uptake balancing N inputs
@@ -300,22 +308,23 @@ simCO2Increase <- function(
             res <- res2I <- as.data.frame(lsoda( xE[1:length(x0)+1], times, derivSeam2, parms=parmsC2))
             res2I$time <- res2I$time +t1S 
             xE2 <- unlist(tail(res2I,1))
-            plotResSeam1(res, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
-            plotResSeam1(res, "topright", cls = c("I"))
-            plotResSeam1(res, "topright", cls = c("R","L"))
+            plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
+            #plotResSeam1(res, "topright", cls = c("I"))
+            #plotResSeam1(res, "topright", cls = c("R","L"))
             #trace(derivSeam2, recover)        #untrace(derivSeam2)
-            tmp <- derivSeam2(0, xE2[1:length(x0)+1], parmsC2)
+            #tmp <- derivSeam2(0, xE[1:length(x0)+1], within(parmsC2, isRecover <- TRUE) )
+            #tmp <- derivSeam2(0, xE2[1:length(x0)+1], within(parmsC2, isRecover <- TRUE) )
             
             # 30 yr normal input
             times <- seq(0,t3S, length.out=101)
             res <- res3S <- as.data.frame(lsoda( xE2[1:length(x0)+1], times, derivSeam2, parms=parmsInit))
             res3S$time <- res3S$time +t1S + t2I
             xE3 <- tail(res3S,1)
-            plotResSeam1(res, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
+            #plotResSeam1(res, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
             
             resc <- rbind( res1S, res2I[-1,], res3S[-1,])
             resc$scen <- scen
-            plotResSeam1(resc, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
+            #plotResSeam1(resc, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
             resc
     })
     resScen <- do.call( rbind, resAll)

@@ -148,7 +148,7 @@ derivSeam2 <- function(t,x,parms){
     #
     if( isTRUE(parms$isFixedR) ){ resDeriv["dR"] <- resDeriv["dRN"] <-  0   }        # for keeping R constant
     if( isTRUE(parms$isFixedI) ){ resDeriv["dI"] <-  0   }        # for keeping I constant
-    if( isTRUE(parms$isFixedI) ){ resDeriv["dL"] <-  0   }        # for keeping L constant
+    if( isTRUE(parms$isFixedL) ){ resDeriv["dL"] <-  0   }        # for keeping L constant
     #
     if( isTRUE(parms$isRecover) ) recover()    
     list( resDeriv, c(respO=as.numeric(respO)
