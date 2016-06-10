@@ -72,14 +72,14 @@ residues, $\operatorname{R}$ (Fig. \ref{fig:SEAM}).
 \begin{center}
 \includegraphics[width=8.3cm]{fig/seam2}
 \end{center}
-\caption{Model strucutre of SEAM: Two ressource pools ($L$ and
-$R$) are depolymerized by respective enzymes
-($E_L$ and $E_R$). The simple organic
-compounds ($\operatorname{DOM}$) are transported by soil solution and taken up
+\caption{Model strucutre of SEAM: Two ressource pools ($L$ and $R$) which differ
+in their elemetal ratios are
+depolymerized by respective enzymes ($E_L$ and $E_R$). The simple organic
+compounds ($\operatorname{DOM}$) are taken up
 by the microbial community  and used for synthesizing
 new biomass (${B}$), new enzymes, and for catabolic respiration. 
 Due to stoichiometric imbalance between $\operatorname{DOM}$ and ${B}$
-there will be overflow respiration or mineralization of excess nitrogen to
+there can be overflow respiration or mineralization of excess nitrogen to
 inorganic N pool ($I$).
 During microbial turnover an additional part of the biomass is mineralized and the
 other part is added to the residue pool, $R$. Boxes represent pools, black
@@ -357,9 +357,10 @@ biomass and imbalance fluxes (Fig.
 \begin{center}
 \includegraphics[width=8.3cm]{fig/VarNNoFeedback}
 \end{center}
-\caption{Allocation partitioning,
-microbial biomass stocks, and imbalance N and C
-fluxes at steady state with the VarN-Incubation scenario.
+\caption{Match enzyme allocations strategy yields highest resource
+efficiency, i.e. lowest mineralization fluxes with the VarN-scenario. Microbes
+with alternative strategies, however, compete better indicated by a higher biomass aside
+the threshold elemental ratio (TER, dashed vertical line).
 \label{fig:VarNNoFeedback}}
 \end{figure}
 
@@ -386,12 +387,13 @@ the Match strategy (Fig. \ref{fig:SimSteady}).
 
 \begin{figure}[t]
 \vspace*{2mm}
-\begin{center}
-\includegraphics[width=8.3cm]{fig/SimSteady}
+\begin{center} 
+\includegraphics[width=8.3cm]{fig/SimSteady} 
 \end{center}
-\caption{Development of ressource pools resulting from constant litter input and
-turnover fluxes with the SimSteady scenario.
-\label{fig:SimSteady}}
+\caption{Match strategy is not viable when considering feedbacks to
+substrate pools with the SimSteady scenario. Microbes degrade a
+stoichiometrically matching but depleted R substrate pool.
+\label{fig:SimSteady}} 
 \end{figure}
 
 With the match strategy microbes grew mostly on the
@@ -413,8 +415,9 @@ Fixed strategy (Fig. \ref{fig:PrimingDec}).
 \begin{center}
 \includegraphics[width=8.3cm]{fig/PrimingDec}
 \end{center}
-\caption{Increase of residue depolymerization flux after amending a starved
-subsoil with a puls of fresh litter with the Priming scenario.
+\caption{Residue depolymerization flux incrases strongest with the Revenue
+strategy after amending a starved subsoil with a puls of fresh litter with the
+Priming scenario.
 \label{fig:PrimingDec}}
 \end{figure}
 
@@ -423,8 +426,8 @@ subsoil with a puls of fresh litter with the Priming scenario.
 \begin{center}
 \includegraphics[width=8.3cm]{fig/PrimingMin}
 \end{center}
-\caption{Increase of Nitrogen mineralization flux after amending a starved
-subsoil with a puls of fresh litter with the Priming scenario.
+\caption{Priming a low-input soil by a fresh litter pulse stimulates N
+mineralization most strongly with the Revenue strategy with the Priming scenario.
 \label{fig:PrimingMin}}
 \end{figure}
 
@@ -436,22 +439,27 @@ mineralized by turnover (Fig. \ref{fig:PrimingMin}).
 
 The most marked difference between enzyme allocation strategies was simulated
 with the \textbf{CO2-Fertilization} scenario (Fig. \ref{fig:CO2Increase}).
-\begin{figure}[t]
-\vspace*{2mm}
+\begin{figure}[t] \vspace*{2mm}
 \begin{center}
 \includegraphics[width=8.3cm]{fig/CO2Increase}
 \end{center}
-\caption{Nitrogen-mining during increased of carbon litter inputs in years 10
-to 60 with Revenue strategy under the CO2-Fertilization scenario.
+\caption{
+Revenue strategy leads to depletion of SOM and liberation of nutrients, i.e.
+nutirent mining, during increased carbon litter inputs
+in years 10 to 60 with the CO2-Fertilization scenario.
 \label{fig:CO2Increase}}
 
 \end{figure}
 \begin{figure}[t] \vspace*{2mm}
 \begin{center}
-\includegraphics[width=8.3cm]{fig/CO2IncreaseImb}
+\includegraphics[width=8.3cm]{fig/CO2IncreaseImb} 
 \end{center}
-\caption{Decreased overflow and N mineralization due to imbalance with Revenue 
-strategy under the CO2-Fertilization scenario.
+\caption{
+Mineralization of microbial turnover with the Revenue strategy
+contributed most of the liberation of SOM-N during CO2-Fertilization starting
+at year 10.
+At the end of the fertilization at year 60, mineralization due to stoichiometric
+imbalance was smaller with the Revenue strategy.
 \label{fig:CO2IncreaseImb}}
 \end{figure}
 With both, Fixed and Revenue strategies, the litter stock,$L$ increased. The
@@ -480,13 +488,13 @@ the substrate limitation.
 \includegraphics[width=8.3cm]{fig/pastureFit} 
 \end{center}
 \caption{Calibrated Seam model predictions match observed values of the
-Laqueuille intensive pasture (dots and errorbars left). On altered in C and N
+Laqueuille intensive pasture (dots and errorbars left). On altered C and N
 inputs, the predictions show a shift in enzyme allocation ($\alpha$) and SOM
 turnover (right).
 Increased N substrate limitation either due to elevated CO2 or due to
 decreasing inorganic N inputs cause an increase in labile pool, $L$, and a
 decrease in mineral N pool, $I$. If the substrate N limitation cannot be balanced by mineral N
-input then change rate of the recalcitrant pool, $dR$, decreases down to
+input then the change rate of the recalcitrant pool, $dR$, decreases down to
 negative values, i.e. losses.
 }
 \end{figure}   
