@@ -51,12 +51,13 @@ parms0 <- list(
         #,km = 0.08       ##<< enzyme half-saturation constant
         #,km = 1           ##<< enzyme half-saturation constant, large value to make sure in linear part
         ,m = 0 # 0.02*365    ##<< maintenance respiration rate   gC/day /microbial biomass
-        ,tau = (0.016906)*365 #1/60*365  ##<< biomass turnover rate from Perveen (s)
+        ,tau = (0.016906/0.8)*365 #1/60*365  ##<< biomass turnover rate from Perveen (s), but accounting for epsTvr tauPerv = epsTvr*tau
         #,tau = 1/10*365 #      ##<< biomass turnover rate of x days, with too low turnover time, too low microbial biomass
         #,tau = (0.016906+0.0368857)*365 #1/60*365  ##<< biomass turnover rate from Perveen (s+r) to match similar microbes pool
         #,tau = 1/20*365 #      ##<< biomass turnover rate of x days 
         ,eps = 0.33        ##<< carbon use efficiency  Perveen14: r/(s+r) 31% (here need to addionally account for 2% for enzymes)
-        ,epsTvr = 1 #0.3   ##<< carbon use efficiency of microbial tvr (predators respire)
+        #,epsTvr = 1 #0.3   ##<< carbon use efficiency of microbial tvr (predators respire)
+        ,epsTvr =  0.8   ##<< carbon use efficiency of microbial tvr (predators respire)
         ,iR = 0         ##<< input by feedback modelled explicitely
         ,iL = 0.00505757*365*525         # g/m2 input per year mp*Cp
         ,plantNUp = 0                    # rate of organic N uptake
@@ -65,7 +66,7 @@ parms0 <- list(
         #,kIP = 10.57 #0.0289652*365          ##<< plant uptake kIP I [1/yr]        
         #,iB = 0.0110068*365   ##<< immobilization flux [1/yr], from Perveen14 Table 1(i), is larger than required immobilization flux of about 2.3 
         #,iB = 10                         ##<< maximum immobilization flux [1/yr], from Perveen14 Table 1(i), is larger than required immobilization flux of about 2.3 
-        ,iB = 25                         ##<< maximum immobilization flux [1/yr], from Perveen14 Table 1(i), is larger than required immobilization flux of about 2.3 
+        ,iB = 25                         ##<< maximum immobilization flux [1/yr], larger than Perveen14 Table 1(i), is larger than required immobilization flux of about 2.3 
         ,iI = 22.91   #0.0627704*365     ##<< input of mineral N [gN/m2/yr] Perveen14 Table 1
         #,l = 2.0075  #0.0055*365    ##<< leaching rate of mineralN l I [1/yr] Perveen14 Table 4
         ,l = 0.95866 #0.00262647 * 365    ##<< leaching rate per mineralN l I [1/gN/yr] Perveen14 Table 1
@@ -119,9 +120,10 @@ parmsBounds = list(		# mode and upper bound
         #,eps = c(0.4, 0.7)
         ,eps = c(0.3, 0.7)
         ,iB = c(0.1,20)
+        ,tau = c(2,20)
 )
 varDistr <- twVarDistrVec( names(parmsBounds) )	# by default assumed normal
-varDistr[c("kL","kR","aE","iB")] <- "lognorm"
+varDistr[c("kL","kR","aE","iB","tau")] <- "lognorm"
 varDistr[c("eps")] <- "logitnorm"
 parDistr <- twQuantiles2Coef( parmsBounds, varDistr, upperBoundProb=upperBoundProb, useMedian=FALSE )
 poptDistr <- twConstrainPoptDistr(pEstNames, parDistr)
@@ -203,7 +205,7 @@ costSeam2 <- function(p=parms0, obs=obsOrig, sdObs=sdObsOrig, parDistr=parDistr,
                 xE <- unlist(res[iCloseI,])
                 dS <- as.numeric(xE["dL"] + xE["dR"])
                 pred <-  c(Cf=as.numeric(xE["L"]),N=as.numeric(xE["I"]),leach=as.numeric(xE["I"])*parms$l,dS=dS, dR = as.numeric(xE["dR"])
-                , immo=as.numeric(-xE["Phi"]), dI=as.numeric(xE["I"]), respO=as.numeric(xE["respO"]), dB=as.numeric(xE["dB"])
+                , immo=as.numeric(-xE["Mm"]), dI=as.numeric(xE["I"]), respO=as.numeric(xE["respO"]), dB=as.numeric(xE["dB"])
                 )
                 #relDiffs <- ((obs - pred)/sdObs)
                 relDiffs <- ((obs - pred)/sdObs)[iCosts]      # omit N and leaching
@@ -264,20 +266,24 @@ pEst0 <- pEst <- unlist(parms0[pEstNames])
 poptDistr <- twConstrainPoptDistr(pEstNames, parDistr)
 pNorm <- transNormPopt( pEst, parDistr=parDistr )
 
+parms0$tau <- (0.016906/0.8)*365
+parms0$epsTvr <- 0.8
 parmsFixed <- parms0
 parmsFixed$isFixedR <- parmsFixed$isFixedI <- parmsFixed$isFixedL <- TRUE
 x0Fixed <- x0
 x0Fixed["B"] <- 66
 iCosts=c("Cf", "immo", "respO", "dB", "dR")
 times <- 1:6
-(tmp <- costSeam2( pNorm, obsOrig, parDistr=parDistr, parms=parmsFixed, x0l=x0Fixed, yearsAcc=0, iCosts=iCosts))
+tmp <- costSeam2( pNorm, obsOrig, parDistr=parDistr, parms=parmsFixed, x0l=x0Fixed, yearsAcc=0, iCosts=iCosts)
 resoFixed <- optim( pNorm, costSeam2, parDistr=parDistr, parms=parmsFixed, control=list(maxit=100L), times=times, iCosts= iCosts, yearsAcc=0 )
 pOptFixed <- resoFixed$par
 parOptFixed <- transOrigPopt(pOptFixed, parDistr=parDistr)
-(tmpOptFixed <- costSeam2( pOptFixed, obsOrig, parDistr=parDistr, parms=parmsFixed, x0l=x0Fixed, times=times, iCosts=iCosts, yearsAcc=0
+(xEOptFixed <- (resOptTail <- unlist(tail(attr(tmpOptFixed,"resLsoda"),1)))[2:9])
+(tmpOptFixed <- costSeam2( pOptFixed, obsOrig, parDistr=parDistr, parms=parmsFixed, times=times, iCosts=iCosts, yearsAcc=0
+                , x0=x0Fixed
+                #, x0l=xEOptFixed
                 #,isRecover=TRUE
             ))
-(xEOptFixed <- (resOptTail <- unlist(tail(attr(tmpOptFixed,"resLsoda"),1)))[2:9])
 tmp <- costSeam2( pOptFixed, obsOrig, parDistr=parDistr, parms=parmsFixed, x0l=xEOptFixed, times=seq(0,6, length.out=301), yearsAcc=0)
 res <- resOpt <- attr(tmp,"resLsoda")
 plotResSeam2(res, "topright", cls = c("B","respO","dR","alpha100","dI","mPhi10"), ylim=c(0,300))
@@ -297,14 +303,6 @@ as.numeric(tmp <- costSeam2( pOptFixed, obsOrig, parDistr=parDistr, times = seq(
 res <-  attr(tmp,"resLsoda")
 plotResSeam2(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
 abline(v=6, col="grey")
-
-#pEstNames <- c("kL","eps","kR","iB")
-pEstNames <- c("kL","eps","kR")
-pEst0 <- pEst <- unlist(parms0[pEstNames])
-poptDistr <- twConstrainPoptDistr(pEstNames, parDistr)
-#pNorm <- c(pOptFixed, iB=log(parms0$iB))
-pNorm <- pOptFixed
-transOrigPopt(pNorm, parDistr=parDistr)
 
 # note default iCosts with dS and dI
 iCosts <- c("Cf","dR","respO","dB","N","leach")
@@ -341,7 +339,7 @@ as.numeric(tmp <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times = timesExp
         #,parms=within(parms0, isRecover <- TRUE)
         ))
 res <- resControl <- attr(tmp,"resLsoda")
-plotResSeam2(res[res$time<=10,], "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS"), ylim=c(0,300))
+plotResSeam2(res[res$time<=10,], "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhi10","dR","dS","mMm10"), ylim=c(0,300))
 abline(v=timesExpFit, col="grey")
 
 (xE <- unlist(res[80,2:9]))
@@ -503,7 +501,7 @@ resScens$dS <- resScens$dR + resScens$dL
 resScens$leaching <- resScens$I * parms0$l
 predM <- melt(resScens, 1:2)
 predM$variable <- relevel(relevel(relevel( relevel(predM$variable, "dR"),"R"),"L"),"alpha")
-levels(predM$variable)[match(c("L","R","dR","I","leaching","Phi"), levels(predM$variable))] <- c("L~(gm^{-2})","R~(g^{-2})","dR~(gm^{-2}*a^{-1})","I~(gm^{-2})","leach.(gm^{-2}*a^{-1})","Phi~(gm^{-2}*a^{-1})")
+levels(predM$variable)[match(c("L","R","dR","I","leaching","Phi","Mm"), levels(predM$variable))] <- c("L~(gm^{-2})","R~(g^{-2})","dR~(gm^{-2}*a^{-1})","I~(gm^{-2})","leach.(gm^{-2}*a^{-1})","Phi~(gm^{-2}*a^{-1})","N-Min~(gm^{-2}*a^{-1})")
 predMCtrl <- subset(predM, scenario %in% "control")
 
 dsObs <- data.frame(value=obs, sd=sdObs, time=timesExpFit, scenario="control")
@@ -511,7 +509,8 @@ dsObs$variable <- relevel(relevel( relevel(as.factor(rownames(dsObs)), "N"), "dR
 levels(dsObs$variable)[match(c("Cf","dR","N","leach"), levels(dsObs$variable))] <- c("L~(gm^{-2})","dR~(gm^{-2}*a^{-1})","I~(gm^{-2})","leach.(gm^{-2}*a^{-1})")
 #dssObs <- subset( dsObs, dsObs$variable %in% dsObs$variable[na.omit(pmatch(c("alpha","L","dR","I","leaching"), dsObs$variable))] )
 dssObs <- dsObs[grep(c("^alpha|^L|^dR|^I|^leach"),dsObs$variable),]
-p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~|^leach"),predMCtrl$variable),], time <=5)
+#p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~|^N-Min~|^leach"),predMCtrl$variable),], time <=5)
+p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^N-Min~|^leach"),predMCtrl$variable),], time <=5)
         , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
         geom_line(size=baseLineSize) +
         geom_point( data=dssObs, colour="black" )+
@@ -524,7 +523,7 @@ p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~|^leach
         theme()
 p1
 
-p1b <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~"),predM$variable),], time <=5)
+p1b <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^I~|^N-Min~"),predM$variable),], time <=5)
         , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
         geom_line(size=baseLineSize) +
         #facet_wrap( ~ variable,  scales="free_y", nrow=6, ncol=1) +
@@ -538,7 +537,7 @@ p1b <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~"),predM$v
         theme()
 p1b
 
-twWin(3.27, 5.8)
+twWin(3.27, 5.9)
 #twWin(7.5,8.7)
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(1, 2)))
@@ -550,7 +549,7 @@ print(p1b, vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
 #------------- plotting differently for presentations
 .tmp.f <- function(){
     twWin(7,4.6)
-    p1p <- ggplot( dss <- subset( predMCtrl[grep(c("^L~|^R~|^dR~|^I~|^Phi~|^leaching~"),predMCtrl$variable),], time <=5)
+    p1p <- ggplot( dss <- subset( predMCtrl[grep(c("^L~|^R~|^dR~|^I~|^N-Min~|^leach"),predMCtrl$variable),], time <=5)
                     , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
             geom_line(size=baseLineSize) +
             geom_point( data=dssObs, colour="black", size=3 )+
@@ -564,7 +563,7 @@ print(p1b, vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
     p1p
     
     twWin(5.7,4.6)
-    p1bp <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^Phi~|^I~"),predM$variable),], time <=5)
+    p1bp <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^N-Min~|^I~"),predM$variable),], time <=5)
                     , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
             geom_line(size=baseLineSize) +
             facet_wrap( ~ variable,  scales="free_y", labeller = label_parsed) +

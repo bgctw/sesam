@@ -26,7 +26,7 @@ colScale <- scale_colour_manual(name = "Allocation",values = myColors)
 
 # gC/m2 and gN/m2, /yr
 parms0 <- list(
-        cnB = 7.16
+        cnB = 11
         ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
         #,cnIR = 4.5      ##<< between micr and enzyme signal
         ,cnIR = 7      ##<< between micr and enzyme signal
@@ -45,11 +45,12 @@ parms0 <- list(
         #,kR = 1/(20)        ##<< 1/(x years)       # to demonstrate changes on short time scale
         #,kL = 1/(0.33)        ##<< 1/(x years)     # formerly 1 year
         ,kL = 5        ##<< 1/(x years)     # formerly 1 year
-        ,aE = 0.001*365   ##<< C biomass allocated to enzymes gC/day /microbial biomass
-        ,m = 0.02*365    ##<< maintenance respiration rate   gC/day /microbial biomass
+        ,aE = 0.001*365   ##<< C biomass allocated to enzymes 1/day /microbial biomass
+        #,m = 0.02*365    ##<< maintenance respiration rate   1/day /microbial biomass
+        ,m = 0.005*365    ##<< maintenance respiration rate   1/day /microbial biomass, Bogedom Fig. 1
         ,tau = 1/60*365  ##<< biomass turnover rate (12 days)
-        ,eps = 0.5      ##<< carbon use efficiency
-        ,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (predators respire)
+        ,eps = 0.5      ##<< carbon use efficiency for growth respiration
+        ,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (part by predators which respire and corresponding amount of N must be mineralized)
         ,iR = 0        ##<< input modelled explicitely
         #,iL = 300         # g/m2 input per year (half NPP)
         ,iL = 400         # g/m2 input per year (half NPP)
@@ -57,7 +58,8 @@ parms0 <- list(
         ,plantNUp = 0
         ,useFixedAlloc=FALSE    ##<< set to true to use Fixed enzyme allocation (alpha = 0.5)
         ,iP = 10.57 #0.0289652*365          ##<< plant uptake iP I
-        ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
+        #,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
+        ,iB = 25 #0.0110068*365   ##<< immobilization flux iB I
         ,iI = 0     ##<< input of mineral N
         ,l = 0.96   #0.00262647*365       ##<< leaching rate of mineralN l I
 
@@ -125,6 +127,7 @@ simfCNGraph <- function(
     
     cnLs <- seq( 18,62,by=1)
     cnLs <- seq( 18,40,by=2)
+    #cnLs <- seq( 18,40,by=0.5)
     #cnLs <- seq( 18,80,by=0.5)
     #cnLs <- seq( 18,160,by=5)
     cnL <- 23
@@ -143,7 +146,7 @@ simfCNGraph <- function(
                             #plotResSeam1(res, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
                             #plotResSeam1(res, "topright", cls = c("I"))
                             #trace(derivSeam2, recover) #untrace(derivSeam2)
-                            #tmp <- derivSeam2(0, xE[1:length(x0)+1], parmsInit)
+                            tmp <- derivSeam2(0, xE[1:length(x0)+1], within(parmsInit, isRecover <- TRUE))
                             xE
                         })
                 #lapply(resL, "[[", "alpha")
@@ -154,22 +157,40 @@ simfCNGraph <- function(
     resC <- subset(resCAll, cnL <= 160)
     resC$MmImbMon <- resC$MmImb/12
     resC$respOMon <- resC$respO/12
+    resC$CUE <- resC$synB / resC$uC
+    resC$cnDOM <- resC$decC / resC$decN
+    
+    
 
     #p8a <- ggplot(subset(resC, scen=="Revenue"), aes(x=cnL, y=isLimN)) + geom_line()
     #p8a
-    resCRev <- subset(resC, scen=="Revenue")
-    cnTER <- resCRev$cnL[ which.min( abs(1-resCRev$pNsyn) ) ]
+    .tmp.f <- function(){
+        resCRev <- subset(resC, scen=="Revenue")
+        cnTER <- cnLs[ which.min( abs(1-resCRev$pNsyn) ) ]
+        #cnTER <- cnLs[ which.min( abs(resCRev$Phi) ) ]
+        #cnTER <- cnLs[ which.min( abs(resCRev$Mm) ) ]
+        #cnTER <- cnLs[ which.min( abs(resCRev$MmImb) ) ]
+        resCFix <- subset(resC, scen=="Fixed")
+        cnTERFix <- cnLs[ which.min( abs(1-resCFix$pNsyn) ) ]
+        
+        cueSins13 <- 0.6*(1-0.0155*cnLs)
+        cueSins13b <- with(parms0F, nu * cnB / cnTER )
+        Scn <- with(parms0F, cnB / cnLs )
+        Kcn <- median(Scn)
+        cueSins12 <- 0.6 * Scn/(Kcn+Scn)
+    }
     
-    dsp <- melt(resC, id=c("cnL","scen"), measure.vars=c("MmImbMon","respOMon", "B", "alpha"), variable_name="Measure")
+    dsp <- melt(resC, id=c("cnL","scen"), measure.vars=c("MmImbMon","respOMon", "B", "alpha","CUE","cnDOM"), variable_name="Measure")
     dsp$Allocation <- dsp$scen
     levels(dsp$Allocation)
     #levels(dsp$Measure) <- c("Allocation_Ratio (alpha)","Biomass (gC/m^2)","Mineralization[Imb] (gN/m^2/yr)","OverflowRespiration (gC/m2/yr)")
-    levels(dsp$Measure) <- c("Min~Imb~(gNm^{-2}*month^{-1})","Overflow~(gCm^{-2}*month^{-1})","Biomass~(gCm^{-2})", "Allocation~to~ R~(alpha)")
+    #levels(dsp$Measure) <- c("Min~Imb~(gNm^{-2}*month^{-1})","Overflow~(gCm^{-2}*month^{-1})","Biomass~(gCm^{-2})", "Allocation~to~ R~(alpha)")
+    levels(dsp$Measure) <- c("Min~Imb~(gNm^{-2}*month^{-1})","Overflow~(gCm^{-2}*month^{-1})","Biomass~(gCm^{-2})", "Allocation~to~ R~(alpha)","CUE","cnDOM")
     p8 <- ggplot( dsp, aes(x=cnL, y=value, col=Allocation, linetype=Allocation), environment = environment() ) + geom_line(size=1) + 
             #facet_grid(Measure~., scales = "free", labeller= label_parsed ) + 
-            facet_wrap(~Measure, scales = "free_y", labeller = label_parsed ) +
+            facet_wrap(~Measure, scales = "free_y", ncol=2, labeller = label_parsed ) +
             scale_x_continuous('C/N ratio of Litter') + 
-            geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
+            #geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
             #geom_vline(aes(xintercept=cnTER), colour="#990000") +
             theme_bw(base_size=baseFontSize) +
             theme(axis.title.y = element_blank()) +
@@ -178,7 +199,7 @@ simfCNGraph <- function(
     print(p8 + colScale)
     
     if (isPaperBGC){
-        twWin(width=3.3, height=3.2, pointsize=9, pdf="soilPaper14/fig/VarNNoFeedback.pdf")
+        twWin(width=3.3, height=4.2, pointsize=9, pdf="soilPaper14/fig/VarNNoFeedback.pdf")
         print( p8 + colScale + theme(legend.position = c(0.14,1), legend.justification=c(0,1)) ) 
         dev.off()
     }
@@ -210,7 +231,7 @@ simfCNGraph <- function(
             #facet_grid(Measure~., scales = "free", labeller= label_parsed ) + 
             facet_wrap(~Element, scales = "free_y" ) +
             scale_x_continuous('C/N ratio of Lit') +
-            geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
+            #geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
             theme_bw(base_size=baseFontSize) +
             #theme(axis.title.y = element_blank()) +
             ylab("Revenue") +
@@ -231,7 +252,8 @@ simInitSteady <- function(
     resAll <- lapply( c("Revenue","Fixed","Match"), function(scen){
                 parmsInit <- parmsScen[[scen]]
                 parmsInit$isFixedI <- TRUE
-                times <- seq(0,800, length.out=801)
+                #parmsInit$epsTvr <- 0.45
+                times <- seq(0,200, length.out=801)
                 #times <- seq(0,10000, length.out=101)
                 #res <- res1 <- as.data.frame(lsoda( x0, times, derivSeam2, parms=within( parmsInit, isRecover <- TRUE)))
                 res <- res1 <- as.data.frame(lsoda( x0, times, derivSeam2, parms=parmsInit))
@@ -261,7 +283,7 @@ simInitSteady <- function(
         p1+ colScale
     }
    
-    dsp$value[ dsp$Pool=="L" & dsp$value >300] <- NA
+    dsp$value[ dsp$Pool=="L" & dsp$value >200] <- NA
     p1b <- ggplot( dsp, aes(x=time, y=value, col=Allocation, linetype=Allocation)) + geom_line(size=1) +
             facet_wrap( ~ Pool,ncol=2,scales="free_y") + 
             theme_bw(base_size=baseFontSize) +
@@ -296,6 +318,8 @@ simCO2Increase <- function(
     resAll <- lapply( c("Revenue","Fixed"), function(scen){
             parmsInit <- parmsScen[[scen]]
             parmsInit$isFixedI <- TRUE
+            #parmsInit$eps <- 0.4
+            #parmsInit$epsTvr <- 0.3
             #parmsInit$cnIL <- 30
             x0Pr <- x0
             #x0Pr["I"] <- 0.8
@@ -325,7 +349,7 @@ simCO2Increase <- function(
             res <- res2I <- as.data.frame(lsoda( xE[1:length(x0)+1], times, derivSeam2, parms=parmsC2))
             res2I$time <- res2I$time +t1S 
             xE2 <- unlist(tail(res2I,1))
-            #plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
+            plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
             #plotResSeam1(res, "topright", cls = c("I"))
             #plotResSeam1(res, "topright", cls = c("R","L"))
             #trace(derivSeam2, recover)        #untrace(derivSeam2)

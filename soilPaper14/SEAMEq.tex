@@ -129,7 +129,7 @@ the N pools are modelled explicitly.
 & \qquad (1 -k_{NB}) (\operatorname{tvr}_{ER} +
 \operatorname{tvr}_{EL})/\beta_{E} 
 \\
-\frac{dI}{dt} &= +i_I -k_{IP} -l I +(1-\nu) u_{N,OM} +\Phi +
+\frac{dI}{dt} &= +i_I -k_{IP} -l I +(1-\nu) u_{N,OM} +\Phi_B +
 \operatorname{tvr}_N
 \text{,} 
 \end{align}
@@ -138,7 +138,7 @@ the N pools are modelled explicitly.
 \noindent where the balance of the inorganic nitrogen pool $I$ sums inorganic
 inputs $i_I$, plant uptake $k_{IP}$, leaching $l I$, the apparent mineralization
 due to soil heterogeneity $(1 -\nu) u_{N,OM}$, which is explaind below,
-mineralization-immobilization flux $\Phi$, and mineralization of a part of
+mineralization-immobilization flux $\Phi_B$, and mineralization of a part of
 microbial turnover $\operatorname{tvr}_N$.
 
 N uptake was modelled as a PAR scheme, where apparantly part of the organic N is
@@ -202,14 +202,14 @@ M_{\operatorname{Imb}} &= u_N - (\operatorname{syn}_E/\beta_E +
 
 Potential biomass synthesis carbon constrained by N, $C_{\operatorname{synBN}}$,
 is computed based on the potential immobilization flux
-$u_{\operatorname{imm,Pot}}$. The real mineralization-immobilization flux $\Phi$ is the difference
+$u_{\operatorname{imm,Pot}}$. The real mineralization-immobilization flux $\Phi_B$ is the difference
 between potential immobilization and excess nitrogen mineralization
 $M_{\operatorname{Imb}}$. With carbon limitation this will be a positive
 mineralization flux. With substrate nitrogen limitaiton, this will be a
 negative flux corresponding to immobilization. Its magnitude is smaller than
 the potential immobilization.
 With uptake nitrogen limitation (i.e. required nitrogen flux is larger than
-potential immobilization) $\Phi = -u_{\operatorname{imm,Pot}}$ and stoichiometry
+potential immobilization) $\Phi_B = -u_{\operatorname{imm,Pot}}$ and stoichiometry
 is balanced by overflow respiration.
 
 \subsection{Turnover mineralization fluxes}

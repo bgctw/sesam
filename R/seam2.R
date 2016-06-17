@@ -168,6 +168,8 @@ derivSeam2 <- function(t,x,parms){
         , dR = as.numeric(dR), dL = as.numeric(dL), dB=as.numeric(dB), dI=as.numeric(dI)
     #    wCLim = (CsynBN/CsynBC)^delta
     #    wNLim = (parms$eps*CsynBC/cnB / NsynBN)^delta
+        , uC=as.numeric(uC), synB=as.numeric(synB)
+        , decC=as.numeric(decC), decN=as.numeric(decN)
 ))
 }
 
@@ -226,6 +228,7 @@ plotResSeam2 <- function(res, legendPos="topleft"
     res$Lr <- res$L / res$L[1]  * 100 #max(res$L, na.rm=TRUE)
     res$I100 <- res$I  * 100 
     res$mPhi10 <- -res$Phi  * 10 
+    res$mMm10 <- -res$Mm  * 10 
     res$mMmB10 <- -res$MmB  * 10 
     res$MmB100 <- res$MmB  * 100 
     res$MmB1000 <- res$MmB  * 1000 
