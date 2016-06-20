@@ -36,12 +36,12 @@ derivSeam2 <- function(t,x,parms){
     # Nitrogen balance
     decN <- decR/cnR + decL/cnL + tvrERecycling/parms$cnE
     plantNUp <- pmin(parms$plantNUp, decN/2)    # plants get at maximum half of the decomposed organic N
-    nMinHetero <- (1-parms$nu) * (decN-plantNUp)        # mineralization due to soil heterogeneity (Manzoni 08) 
+    PhiU <- (1-parms$nu) * (decN-plantNUp)       # mineralization due to soil heterogeneity (Manzoni 08) 
     # immobilization flux
     immoPot <- parms$iB * x["I"]
-    uNSubstrate <- (decN -plantNUp -nMinHetero)    # plant uptake also of organic N
-    uN <-  immoPot + uNSubstrate
-    NsynBN <- uN - synE/cnE
+    uNSubstrate <- (decN -plantNUp -PhiU)    # plant uptake also of organic N
+    uNPot <-  immoPot + uNSubstrate
+    NsynBN <- uNPot - synE/cnE
     CsynBN <- (NsynBN*cnB)/parms$eps    # C required for biomass growth and growth respiration under N limitation
     #
     # compute C available for biomass, this time without taking into account immobilization flux
@@ -65,12 +65,14 @@ derivSeam2 <- function(t,x,parms){
     # imbalance fluxes
     respSynE <- (1-parms$eps)/parms$eps * synE
     respO <- uC - (synE+respSynE+synB+rG+rM)
-    MmImb <- uN - (synE/parms$cnE + synB/parms$cnB)
-    MmB <- MmImb - immoPot
-    Phi <- MmB + nMinHetero
+    PhiB <- uNSubstrate - (synE/parms$cnE + synB/parms$cnB) # imbalance mineralization/immobilization flux
+    MmImb <- uNPot - (synE/parms$cnE + synB/parms$cnB)      # imbalance taking into account potential immobilization
+    #PhiB2 <- MmImb - immoPot # should equal PhiB
+    PhiBU <- PhiB + PhiU
     respTvr <- (1-parms$epsTvr) * tvrB 
-    MmTvr <- respTvr/parms$cnB
-    Mm <- Phi + MmTvr       # total mineralization flux including microbial turnover
+    PhiTvr <- respTvr/parms$cnB
+    PhiBU <- PhiB + PhiU             # net microbial mineralization/immobilization flux when taking into account uptake mineralization
+    PhiTotal <- PhiBU + PhiTvr       # total mineralization flux including microbial turnover
     #
     # Revenue strategy
     revLC <- decL / (parms$kNL) / (parms$kmL + EL)
@@ -94,8 +96,9 @@ derivSeam2 <- function(t,x,parms){
                 ,cnOpt=cnOpt
                 , cnR = cnR, cnL=cnL
                 , parms=parms
-                , imm = immoPot
-        )
+                , imm = immoPot          # match strategy with accountin for N-gain by immobilization
+                #, imm = 0               # match strategy not relying on potential immobilization?
+            )
     }
     if( isTRUE(parms$isAlphaFix) ){
         alpha <- 0.5
@@ -116,8 +119,8 @@ derivSeam2 <- function(t,x,parms){
     dLN <- -decL/cnL  +parms$iL/parms$cnIL 
     dR <- -decR +parms$iR +tvrC 
     dRN <- -decR/cnR +parms$iR/parms$cnIR +tvrN 
-    #dI <- +parms$iI +MmB +MmTvr -(parms$kIP+parms$l)*x["I"]
-    dI <- +parms$iI -parms$kIP -leach +MmB +MmTvr +nMinHetero       # plant uptake as absolute parameter
+    #dI <- +parms$iI +MmB +PhiTvr -(parms$kIP+parms$l)*x["I"]
+    dI <- +parms$iI -parms$kIP -leach +PhiB +PhiU +PhiTvr        # plant uptake as absolute parameter
     #if( dI > 0.01 ) recover()    
     #
     if( isTRUE(parms$isFixedS) ){
@@ -140,7 +143,8 @@ derivSeam2 <- function(t,x,parms){
     # parms$iR + +tvrC -(decR + dR)
     # 
     if( diff( unlist(c(uC=uC, usage=respB+synB+synE )))^2 > sqrEps )  stop("biomass mass balance C error")
-    if( diff( unlist(c(uN=uN, usage=synE/parms$cnE + synB/parms$cnB + MmImb )))^2 > .Machine$double.eps)  stop("biomass mass balance N error")
+    #if( diff( unlist(c(uN=uNPot, usage=synE/parms$cnE + synB/parms$cnB + MmImb )))^2 > .Machine$double.eps)  stop("biomass mass balance N error")
+    if( diff( unlist(c(uN=uNSubstrate, usage=synE/parms$cnE + synB/parms$cnB + PhiB )))^2 > .Machine$double.eps)  stop("biomass mass balance N error")
     if( !isTRUE(parms$isFixedS) ){    
         if( diff(unlist(c(dB+dER+dEL+dR+dL+tvrExC+resp,    parms$iR+parms$iL )))^2 > sqrEps )  stop("mass balance C error")
         #if( diff(unlist(c( (dB)/parms$cnB+(dER+dEL)/parms$cnE+dRN+dLN+dI+tvrExN,    parms$iR/parms$cnIR +parms$iL/parms$cnIL -plantNUp +parms$iI -(parms$kIP+parms$l)*x["I"])))^2 > .Machine$double.eps )  stop("mass balance N error")
@@ -153,8 +157,9 @@ derivSeam2 <- function(t,x,parms){
     #
     if( isTRUE(parms$isRecover) ) recover()    
     list( resDeriv, c(respO=as.numeric(respO)
-        , Phi=as.numeric(Phi), MmB=as.numeric(MmB), MmTvr=as.numeric(MmTvr)
-        , immoPot=as.numeric(immoPot), MmImb=as.numeric(MmImb), Mm=as.numeric(Mm)  
+        , PhiB=as.numeric(PhiB), PhiU=as.numeric(PhiU), PhiTvr=as.numeric(PhiTvr) #, MmB=as.numeric(MmB)
+        , PhiBU=as.numeric(PhiBU), PhiTotal=as.numeric(PhiTotal)
+        , immoPot=as.numeric(immoPot), MmImb=as.numeric(MmImb)  
         , alpha=as.numeric(alpha)
         , alphaC=as.numeric(alphaC), alphaN=as.numeric(alphaN)
         , cnR=as.numeric(cnR), cnL=as.numeric(cnL)
@@ -210,7 +215,7 @@ balanceAlphaLargeImmobilization <- function(
 
 
 plotResSeam2 <- function(res, legendPos="topleft"
-        , cls = c("B","ER","EL","respO","Mm")
+        , cls = c("B","ER","EL","respO","PhiTotal")
         , xlab="time (yr)"
         , ylab="gC/m2 , gN/m2 , % ,/yr"
         , subsetCondition=TRUE
@@ -227,18 +232,18 @@ plotResSeam2 <- function(res, legendPos="topleft"
     res$Rr <- res$R / res$R[1]  * 100 #max(res$R, na.rm=TRUE)
     res$Lr <- res$L / res$L[1]  * 100 #max(res$L, na.rm=TRUE)
     res$I100 <- res$I  * 100 
-    res$mPhi10 <- -res$Phi  * 10 
-    res$mMm10 <- -res$Mm  * 10 
+    res$mPhiB10 <- -res$PhiB  * 10 
+    res$mMm10 <- -res$PhiTotal  * 10 
     res$mMmB10 <- -res$MmB  * 10 
     res$MmB100 <- res$MmB  * 100 
     res$MmB1000 <- res$MmB  * 1000 
     res$cnR10 <- res$cnR  * 10
     res$dR <- c(NA, diff(res$R)/diff(res$time))
     res$dS <- c(NA, diff(res$R+res$L)/diff(res$time))
-    #cls <- c("B100","ER_10","EL_10","respO","Mm")
-    #cls <- c("B100","ER_10","EL_10","respO","Mm","eff")
-    #cls <- c("B1000","ER_10","EL_10","Mm")
-    #cls <- c("B","E","respO","Mm","R","L")
+    #cls <- c("B100","ER_10","EL_10","respO","PhiTotal")
+    #cls <- c("B100","ER_10","EL_10","respO","PhiTotal","eff")
+    #cls <- c("B1000","ER_10","EL_10","PhiTotal")
+    #cls <- c("B","E","respO","PhiTotal","R","L")
     matplot( res[subsetCondition,1], res[subsetCondition,cls], type="l", lty=1:20, col=1:20, xlab=xlab, ylab="", ...)
     mtext( ylab, 2, line=2.5, las=0)
     legend(legendPos, inset=c(0.01,0.01), legend=cls, lty=1:20, col=1:20)

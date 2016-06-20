@@ -130,7 +130,7 @@ simfCNGraph <- function(
     #cnLs <- seq( 18,40,by=0.5)
     #cnLs <- seq( 18,80,by=0.5)
     #cnLs <- seq( 18,160,by=5)
-    cnL <- 23
+    cnL <- 40
     resLC <- lapply( cnLs, function(cnL){ 
                 cat(cnL,", ")
                 x0N["LN"] <- x0N["L"]/cnL
@@ -143,10 +143,10 @@ simfCNGraph <- function(
                             parmsInit <- parmsScenF[[scen]]
                             res <- res1 <- as.data.frame(lsoda( x0N, times, derivSeam2, parms=parmsInit))
                             xE <- unlist(tail(res,1))
-                            #plotResSeam1(res, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
+                            #plotResSeam1(res, "topright", cls = c("B10","respO","Rr","Lr","alpha100"))
                             #plotResSeam1(res, "topright", cls = c("I"))
                             #trace(derivSeam2, recover) #untrace(derivSeam2)
-                            tmp <- derivSeam2(0, xE[1:length(x0)+1], within(parmsInit, isRecover <- TRUE))
+                            #tmp <- derivSeam2(0, xE[1:length(x0)+1], within(parmsInit, isRecover <- TRUE))
                             xE
                         })
                 #lapply(resL, "[[", "alpha")
@@ -156,6 +156,8 @@ simfCNGraph <- function(
     #res <- resLC[[7]] 
     resC <- subset(resCAll, cnL <= 160)
     resC$MmImbMon <- resC$MmImb/12
+    resC$PhiBMon <- resC$PhiB/12
+    resC$PhiBUMon <- resC$PhiBU/12
     resC$respOMon <- resC$respO/12
     resC$CUE <- resC$synB / resC$uC
     resC$cnDOM <- resC$decC / resC$decN
@@ -180,7 +182,7 @@ simfCNGraph <- function(
         cueSins12 <- 0.6 * Scn/(Kcn+Scn)
     }
     
-    dsp <- melt(resC, id=c("cnL","scen"), measure.vars=c("MmImbMon","respOMon", "B", "alpha","CUE","cnDOM"), variable_name="Measure")
+    dsp <- melt(resC, id=c("cnL","scen"), measure.vars=c("PhiBUMon","respOMon", "B", "alpha","CUE","cnDOM"), variable_name="Measure")
     dsp$Allocation <- dsp$scen
     levels(dsp$Allocation)
     #levels(dsp$Measure) <- c("Allocation_Ratio (alpha)","Biomass (gC/m^2)","Mineralization[Imb] (gN/m^2/yr)","OverflowRespiration (gC/m2/yr)")
@@ -212,7 +214,7 @@ simfCNGraph <- function(
             facet_wrap(~Measure, scales = "free_y" ) +
             #facet_wrap(~Measure ) +
             scale_x_continuous('C/N ratio of Lit') + 
-            geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
+            #geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
             theme_bw(base_size=baseFontSize) +
             theme(axis.title.y = element_blank()) +
             theme()
