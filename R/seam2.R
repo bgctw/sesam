@@ -96,7 +96,7 @@ derivSeam2 <- function(t,x,parms){
                 ,cnOpt=cnOpt
                 , cnR = cnR, cnL=cnL
                 , parms=parms
-                , imm = immoPot          # match strategy with accountin for N-gain by immobilization
+                , imm = max(0, immoPot-PhiU)     # match strategy with accountin for N-gain by immobilization
                 #, imm = 0               # match strategy not relying on potential immobilization?
             )
     }
@@ -233,10 +233,11 @@ plotResSeam2 <- function(res, legendPos="topleft"
     res$Lr <- res$L / res$L[1]  * 100 #max(res$L, na.rm=TRUE)
     res$I100 <- res$I  * 100 
     res$mPhiB10 <- -res$PhiB  * 10 
-    res$mMm10 <- -res$PhiTotal  * 10 
-    res$mMmB10 <- -res$MmB  * 10 
-    res$MmB100 <- res$MmB  * 100 
-    res$MmB1000 <- res$MmB  * 1000 
+    res$mPhiBU10 <- -res$PhiBU  * 10 
+    res$mPhiTotal10 <- -res$PhiTotal  * 10 
+    #res$mMmB10 <- -res$MmB  * 10 
+    #res$MmB100 <- res$MmB  * 100 
+    #res$MmB1000 <- res$MmB  * 1000 
     res$cnR10 <- res$cnR  * 10
     res$dR <- c(NA, diff(res$R)/diff(res$time))
     res$dS <- c(NA, diff(res$R+res$L)/diff(res$time))

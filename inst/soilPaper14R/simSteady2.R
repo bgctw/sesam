@@ -1,9 +1,11 @@
 # using Seam2 version with nitrogen efficiency nu
-isPaperBGC <- ("paperBGC" %in% commandArgs(trailingOnly = TRUE))
+#isPaperBGC <- ("paperBGC" %in% commandArgs(trailingOnly = TRUE))
 #isPaperBGC <- TRUE
 
 # simulating CO2 increase and bare soil, based on modEezy5
-baseFontSize <- 16  # presentations
+.tmp.f <- function(){
+    baseFontSize <- 16  # presentations
+}
 # based on 
 if( isPaperBGC){
     library(twDev)
@@ -67,7 +69,8 @@ parms0 <- list(
         ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
         ,iI = 0     ##<< input of mineral N
         ,l = 0   #0.00262647*365       ##<< leaching rate of mineralN l I
-        ,nu = 1     # microbial N use efficiency
+        #,nu = 1     # microbial N use efficiency
+        ,nu = 0.9     # microbial N use efficiency
         ,useAlphaCUntilNLimited = TRUE      ##<< do not decrease investment into C enzmyes when NSubstrateLimtited, but only when N-Limited
 )
 
@@ -83,11 +86,11 @@ x0 <- x0Orig <- c( #aE = 0.001*365
         B = 17                     ##<< microbial biomass 
         ,ER  = 2*parms0$km                  ##<< total enzyme pool
         ,EL  = 4*parms0$km                   ##<< total enzyme pool
-        ,R = 1000                 ##<< N rich substrate
-        ,RN = 1000/parms0$cnIR    ##<< N rich substrate N pool
+        ,R = 1000                ##<< N rich substrate
+        ,RN = 1000/parms0$cnIR   ##<< N rich substrate N pool
         ,L = 100                 ##<< N poor substrate
         ,LN = 100/parms0$cnIL    ##<< N poor substrate N pool
-        ,I =  0                  ##<< inorganic pool gN/m2
+        ,I =  0.4                ##<< inorganic pool gN/m2
 )
 x <- x0
 
@@ -122,15 +125,16 @@ simfCNGraph <- function(
             ,RN = 400/cnR    ##<< N rich substrate N pool
             ,L = 100                  ##<< N poor substrate
             ,LN = 100/cnL    ##<< N poor substrate N pool
-            ,I =  0.1                    ##<< inorganic pool
+            #,I =  0.1                    ##<< inorganic pool
+            ,I =  0.4                    ##<< inorganic pool
     )
     
     cnLs <- seq( 18,62,by=1)
-    cnLs <- seq( 18,40,by=2)
-    #cnLs <- seq( 18,40,by=0.5)
+    #cnLs <- seq( 18,40,by=2)
+    cnLs <- seq( 18,40,by=0.5)
     #cnLs <- seq( 18,80,by=0.5)
     #cnLs <- seq( 18,160,by=5)
-    cnL <- 40
+    cnL <- 23
     resLC <- lapply( cnLs, function(cnL){ 
                 cat(cnL,", ")
                 x0N["LN"] <- x0N["L"]/cnL
@@ -201,8 +205,8 @@ simfCNGraph <- function(
     print(p8 + colScale)
     
     if (isPaperBGC){
-        twWin(width=3.3, height=4.2, pointsize=9, pdf="soilPaper14/fig/VarNNoFeedback.pdf")
-        print( p8 + colScale + theme(legend.position = c(0.14,1), legend.justification=c(0,1)) ) 
+        twWin(width=3.3, height=4.4, pointsize=9, pdf="soilPaper14/fig/VarNNoFeedback.pdf")
+        print( p8 + colScale + theme(legend.position = c(0.14,1.02), legend.justification=c(0,1)) ) 
         dev.off()
     }
 
@@ -324,7 +328,7 @@ simCO2Increase <- function(
             #parmsInit$epsTvr <- 0.3
             #parmsInit$cnIL <- 30
             x0Pr <- x0
-            #x0Pr["I"] <- 0.8
+            x0Pr["I"] <- 0.4
             x0Pr["R"] <- 1100
             x0Pr["RN"] <- x0Pr["R"]*parmsInit$cnIR
             # spinup run
@@ -333,7 +337,7 @@ simCO2Increase <- function(
             res <- res1 <- as.data.frame(lsoda( x0Pr, times, derivSeam2, parms=parmsInit))
             #res <- res1f <- as.data.frame(lsoda( x0, times, derivSeam2, parms=within(parms0, useFixedAlloc<-TRUE) ))
             xE <- unlist(tail(res,1))
-            #plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
+            #plotResSeam1(res, "topright", cls = c("B10","respO","PhiBU","Rr","Lr","alpha100"))
             #plotResSeam1(res, "topright", cls = c("ER","EL"))
             #tmp <- derivSeam2(0, xE[1:length(x0)+1], within(parmsInit, isRecover <- TRUE) )
                 
@@ -351,7 +355,7 @@ simCO2Increase <- function(
             res <- res2I <- as.data.frame(lsoda( xE[1:length(x0)+1], times, derivSeam2, parms=parmsC2))
             res2I$time <- res2I$time +t1S 
             xE2 <- unlist(tail(res2I,1))
-            plotResSeam1(res, "topright", cls = c("B10","respO","MmB","Rr","Lr","alpha100"))
+            #plotResSeam1(res, "topright", cls = c("B10","respO","PhiBU","Rr","Lr","alpha100"))
             #plotResSeam1(res, "topright", cls = c("I"))
             #plotResSeam1(res, "topright", cls = c("R","L"))
             #trace(derivSeam2, recover)        #untrace(derivSeam2)
@@ -526,8 +530,8 @@ simPriming <- function(
                 
                 res3S$decRc <- res3Sc$decR
                 res3S$decRp <- res3Sp$decR
-                res3S$Mmc <- res3Sc$Mm
-                res3S$Mmp <- res3Sp$Mm
+                res3S$Mmc <- res3Sc$PhiBU
+                res3S$Mmp <- res3Sp$PhiBU
                 res3S$alphac <- res3Sc$alpha
                 res3S$alphap <- res3Sp$alpha
                 res3S$respRc <- with(res3Sc, resp * decR/(decR+decL))  
@@ -584,7 +588,7 @@ simPriming <- function(
     dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
     levels(dsp$Treatment) <- c("No Litter input","Litter input pulse")
     p3a <- ggplot( dsp, aes(x=timeDay, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
-            xlab("Time (day)")+ ylab("Allocation to R: alpha (gN/m2/yr)") +
+            xlab("Time (day)")+ ylab("Allocation to R: alpha") +
             theme_bw(base_size=baseFontSize) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                

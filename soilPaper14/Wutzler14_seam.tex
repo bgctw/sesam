@@ -178,8 +178,7 @@ ratio of microbial biomass, $\beta_B$.
 \begin{equation} 
 \label{eq:allocMatchCN}
 \frac{\epsilon (\operatorname{dec}_L + \operatorname{dec}_R - r_M)}{
-\nu (\operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R)  +
-\Phi_{B} } =
+\operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R  - \Phi_M } =
 \beta_B
 \text{,}
 \end{equation}
@@ -187,10 +186,16 @@ where $\operatorname{dec}_L$, and $\operatorname{dec}_R$ are
 depolymerization fluxes of the labile and residue resources
 respectively, $r_M$ is maintenance respiration, $\epsilon$ is the 
 intrinsic microbial efficiency, and $\beta$ are C/N ratio of
-the respective pools $i$, and $\Phi_B$ is the mineralization-immobilization
-imbalance flux from mineral N pool to microbes.
-When the current sum of enzyme levels, $E$ is assumed to be in quasi steady
-state for given amounts of resource and microbial biomass, then equation
+the respective pools $i$, and $\Phi_M$ is the net flux of N from microbes to the
+mineral N pool.
+We assume that microbes use the maximal immobilization of inorganic N,
+$u_{\operatorname{imm,Pot}}$ (\ref{eq:uN}), to meet their stoichiometric
+requirements with the Match strategy. 
+Hence, the net N flux is a difference between mineralization during uptake and the
+immobilization: $\Phi_M = \Phi_u - u_{\operatorname{imm,Pot}}$.
+
+ When the current sum of enzyme levels, $E$ is assumed to be in quasi
+steady state for given amounts of resource and microbial biomass, then equation
 \ref{eq:allocMatchCN} can be solved for allocation partitioning, $\alpha$.
 \begin{subequations}
 \label{eq:allocMatch} 
@@ -246,28 +251,18 @@ respective pools.
 There are two partitioning coefficients, $\alpha_C$, with carbon limited
 microbial biomass, and $\alpha_N$, with nitrogen limited microbial biomass. In order to
 avoid frequent large jumps under near co-limitation, SEAM implements a smooth
-transition between these two cases as a weighted average with weights based
-on ratio of required to available biomass synthesis fluxes (derived in
-appendix \ref{app:SEAM}).
+transition between these two cases as a weighted average.
 
 \begin{subequations}
 \label{eq:allocRev}
 \begin{align}
 \alpha &= \frac{w_{\operatorname{CLim}} \alpha_C + w_{\operatorname{NLim}}
 \alpha_N}{w_{\operatorname{CLim}}  + w_{\operatorname{NLim}} } 
-\\
-w_{\operatorname{CLim}} &= \left( \frac{\text{required}}{\text{available}}
-\right)^\delta 
-= \left( \frac{ N_{\operatorname{synBN}} \beta_B }{ C_{\operatorname{synBC}} }
-\right)^\delta
-\\
-w_{\operatorname{NLim}} &= \left( \frac{ C_{\operatorname{synBC}} / \beta_B }{
-N_{\operatorname{synBN}} } \right)^\delta
 \text{,} 
 \end{align}
 \end{subequations}
-where $\delta$ controls the steepness of the transition between the two
-limitations. It was arbitrarily set to a value of 200.
+where $w$ are weights based on the strength of the limitation of the respective
+element, specifically the ratio of required to available biomass synthesis fluxes (\ref{eq:weightsLim}). 
 
 
 \subsection{ Simulation scenarios 
@@ -753,9 +748,19 @@ becomes decoupled from enzyme production and microbial dynamics to a large
 extent in the short term.
 This is contrary to the assumption of most models of the priming effect. While
 such an explanation would greatly complicate comparison between model and data,
-I argue that the model generated patterns of enzyme allocation and SOM turnover
-are still robust in the long term and longer term activity is still determined
-by enzyme production. However, the disagreement in timescale of the
+
+Another option for decreasing the priming timescale is to diminish the
+sustaining positive feedback between enzymes and microbial biomass. Currently,
+grazing is an implicit part of a first order microbial turnover. With increasing
+microbial biomass, grazers become more efficient and decrease microbial biomass
+levels \citep{Clarholm81}. With implementing a time-lagged stronger increase in
+microbial turnover with microbial biomass, biomass levels would decrease faster
+to pre-treatment levels and help to shorten the time-scale of the
+priming effect.
+
+Still, the model generated patterns of enzyme allocation and SOM turnover
+are  robust in the long term and longer term activity is determined
+by enzyme production. The disagreement in timescale of the
 priming effect does not impair the modelling of longer-term microbial community
 controls on SOM cycling.
 
