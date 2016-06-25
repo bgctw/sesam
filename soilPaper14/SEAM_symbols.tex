@@ -6,10 +6,13 @@
 % values of the state variables for the grassland calibration. 
 
 \begin{table}[t]
-\caption{\label{tab:modelParameters}
-Model parameters and drivers. Values before comma
-refer to the prototypical scenarios. Values after comma refers to the
-grassland calibration } \vskip4mm \centering
+\caption{
+\label{tab:modelParameters}
+Model parameters and drivers. Values before comma refer to the prototypical
+scenarios. Values after comma refers to the grassland calibration (TODO adjust) 
+} 
+\vskip4mm
+\centering
 \begin{tabular}{lp{6cm}llp{5.5cm}}
 \tophline
 Symbol &  Definition & Value & Unit & Rational \\
@@ -34,11 +37,11 @@ $\beta_E$ &  C/N ratio of extracellular enzymes & 3.1 & 1 &
 Sterner 2002 \\
 $\beta_{\mathrm{input}_L}$ &  C/N ratio of plant litter inputs & 30,\,70 & 1 &
 Perveen 2014 ($1/\beta$) \\
-$k_R$ &  maximum decomposition rate of $R$ & 4.39e-2 & 1/yr
+$k_R$ &  maximum decomposition rate of $R$ & 1, 4.39e-2 & 1/yr
 & calibrated \\
-$k_L$ &  maximum decomposition rate of $L$ &  1.95 & 1/yr
+$k_L$ &  maximum decomposition rate of $L$ &  5, 1.95 & 1/yr
 & calibrated \\
-$k_N$ &  enzyme turnover &  60 & 1/yr & \citep{Burns13} \\
+$k_N$ &  enzyme turnover rate &  60 & 1/yr & \citep{Burns13} \\
 $k_{NB}$ & enzyme turnover entering DOM rather than $R$ & 
 0.8 & 1 & mostly small proteins \\
 $a_{E}$ &  enzyme production per microbial biomass & 0.365 &
@@ -49,7 +52,7 @@ $\tau$ &  microbial biomass turnover rate & 6.17 & 1/yr & Perveen 2014
 ($s/\epsilon_{\operatorname{Tvr}}$) \\
 $m$ & specific rate of maintenance respiration & 1.825, 0 & 
 1/yr & \citep{Bodegom07}, zero in Perveen 2014 \\
-$\epsilon$ & C substrate use efficiency & 0.53 &
+$\epsilon$ & C substrate use efficiency & 0.5, 0.53 &
 1 & calibrated \\ %Perveen 2014 ($s/(s+r)$ +2\% enzymes) \\
 $\nu$ & aggregated microbial organic N use efficiency & 0.7 &
 0.9 & Manzoni 2008 \\
@@ -76,10 +79,11 @@ $\operatorname{syn}_B $ & C for microbial biomass synthesis &  & g/yr &
 $\operatorname{syn}_E $ & C for enzyme synthesis &  & g/yr & \\
 $\operatorname{tvr}_B $ & microbial biomass turnover C &  & g/yr & \\
 $\operatorname{tvr}_E $ & enzyme turnover C &   & g/yr & \\
-$\operatorname{dec}_X $ & decomposition of resource X & & g/yr & \\
+$\operatorname{dec}_X $ & C in decomposition of resource X & & g/yr & \\
 $u_C,u_N$ & microbial uptake of C and N  & & g/yr & \\
-$\Phi_u, \Phi_B, \Phi_{\operatorname{tvr}}$ & N mineralization with
-uptake, imbalance, turnover & & g/yr & see Fig. \ref{fig:seamNFluxes}
+$\Phi_u, \Phi_B, \Phi_{\operatorname{tvr}}$ & N mineralization with microbial
+DOM uptake, stoichiometric imbalance, and turnover & & g/yr & see Fig.
+\ref{fig:SEAMStructNFluxes}
 \\
 \bottomhline
 \end{tabular}

@@ -11,7 +11,8 @@
 
 
 %% copernicus.cls
-\documentclass[SOIL]{copernicus}
+% \documentclass[SOIL]{copernicus} errors with hyperrefs 
+\documentclass[SOIL,hyperref=break]{copernicus} 
 
 %% Discussion Papers
 %\documentclass[journal abbreviation, hvmath, online]{copernicus}
@@ -20,7 +21,8 @@
 
 \linenumbers
 
-\title{Soil enzyme allocation strategies affect long term soil organic matter cycling and nutrient recycling.}
+\title{Adaptation of soil microbial resource allocation affects long term soil
+organic matter and nutrient cycling.}
 
 \author[1]{Thomas Wutzler}
 
@@ -54,16 +56,15 @@
 
 
 
-\begin{abstract}
-TODO
-\end{abstract}
-
-
 %% only used for copernicus2.cls
 % \abstract{
 %  TEXT
 %  \keywords{TEXT}}
 
+
+\begin{abstract}
+\input{abstract}
+\end{abstract}
 
 \input{Wutzler14_seam}
 
@@ -78,7 +79,7 @@ TODO
 
 \begin{acknowledgements}
 TEXT
-\end{acknowledgements}
+\end{acknowledgements} 
 
 
 

@@ -51,10 +51,14 @@ where $S$ represents either labile $L$ or residue $R$ substrate pools.
 % 
 Substrate depolymerization is modelled first order to substrate
 availability an with a saturating Michaelis-Menten kinetics to enzyme levels:
-\begin{equation}
+\begin{subequations}
 \label{eq:dec}
-dec_S = k_S S \frac{E_S}{k_{m,S} + E_S} 
-\end{equation}
+\begin{align}
+\operatorname{dec}_{S,Pot} &= k_S S
+\\ 
+\operatorname{dec}_S &= dec_{S,Pot} \, \frac{E_S}{k_{m,S} + E_S}
+\end{align}
+\end{subequations}
  
 The DOM pool is assumed to be in fast quasi steady state and all the sum of all
 influxes to the DOM pool (decomposition + part of the enzyme turnover) is taken
@@ -71,17 +75,15 @@ difference between carbon uptake and expenses for enzyme synthesis (eq.
 \ref{eq:synE}) and maintenance respiration (eq.
 \ref{eq:rM}).
 
-\begin{subequations}
-\label{eq:synB}
-\begin{align}
-\label{eq:synBC} C_{\operatorname{synBC}} &= u_C -
-\operatorname{syn}_E/\epsilon - \operatorname{r}_{M} 
-\end{align}
-\end{subequations}
+\begin{equation}
+\label{eq:synBC} 
+C_{\operatorname{synBC}} = u_C -
+\operatorname{syn}_E/\epsilon - \operatorname{r}_{M}
+\end{equation}
 
 If carbon balance for biomass synthesis, $\operatorname{syn}_B$ (eq.
-\ref{eq:NCLim}), is positive, only a fraction $\epsilon$, the intrinsic
-microbial carbon use efficiency, is used for synthesis of biomass and enzymes
+\ref{eq:NCLim}), is positive, only a fraction $\epsilon$, the anabolic
+carbon use efficiency, is used for synthesis of biomass and enzymes
 and the rest is required for catabolic growth respiration $r_G$ to support this
 synthesis.
 The model assumes that requirements for enzyme synthesis and maintenance must be
@@ -181,9 +183,9 @@ biomass and associated growth respiration. The minimum of these fluxes (eq.
 \ref{eq:NCLim}) constrains the synthesis of new biomass. 
 
 \begin{subequations}
-\label{eq:synB}
 \begin{align}
-\label{eq:NCLim} C_{\operatorname{synB}} &=
+\label{eq:NCLim} 
+C_{\operatorname{synB}} &=
 min(C_{\operatorname{synBC}}, C_{\operatorname{synBN}} )
 \end{align}
 \end{subequations}
@@ -248,7 +250,7 @@ respiration. With assuming that predator biomass elemental ratios do not differ
 very much from the one of microbial biomass, a respective proportion of the
 nitrogen must be mineralized.
 \begin{subequations}
-\label{eq:tvrB}
+\label{eq:MinTvrB}
 \begin{align}
 r_{\operatorname{Tvr}} &= (1-\epsilon_{\operatorname{Tvr}}) \,
 \operatorname{tvr}_B

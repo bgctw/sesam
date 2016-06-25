@@ -65,6 +65,9 @@ R: $(OUT_FILES)
 # Figures that are not derived should stay in subdir figOrig
 figs: $(PDFFIGS)
 	cp figOrig/*.pdf fig    # copy figOrig to fig compile dir
+	
+# crop pdf figures	
+cropfigs: figs $(CROP_FILES)
 
 # View main tex file
 view: $(PDFFILE).pdf
