@@ -14,10 +14,12 @@
 % \documentclass[SOIL]{copernicus} errors with hyperrefs 
 \documentclass[SOIL,hyperref=break]{copernicus} 
 
+\usepackage[]{nohyperref}   % else error with nesting levels 
+
 %% Discussion Papers
 %\documentclass[journal abbreviation, hvmath, online]{copernicus}
 
-\begin{document}
+\begin{document} 
 
 \linenumbers
 
@@ -37,7 +39,7 @@ organic matter and nutrient cycling.}
 
 \runningauthor{Wutzler}
 
-\correspondence{Thomas Wutzler\\ (twutz@bgc-jena.mpg.de)}
+\correspondence{Thomas Wutzler\\ (twutz@bgc-jena.mpg.de)} 
 
 
 
@@ -45,7 +47,7 @@ organic matter and nutrient cycling.}
 \pubdiscuss{} %% only important for two-stage journals
 \revised{}
 \accepted{}
-\published{}
+\published{} 
 
 %% These dates will be inserted by the Publication Production Office during the typesetting process.
 

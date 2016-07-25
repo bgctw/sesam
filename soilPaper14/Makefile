@@ -45,11 +45,15 @@ $(FIGDIR)/%.pdfcrop: $(FIGDIR)/%.pdf
 #	pdflatex -quiet $(TEXFILE) -job-name=$(PDFFILE) -output-directory=tmp
 #	mv tmp/$(PDFFILE).pdf .
 bibtex:
-	cp /cygdrive/m/people/twutz/journals/twutz_txt.bib tmp
-	pdflatex -quiet $(TEXFILE) -output-directory=tmp
+	cp /cygdrive/m/people/twutz/journals/twutz_txt.bib tmp/orig.bib
+	# remove Notes field (from "Notes = {" to next "}," 
+	sed -e '/Note\s*=/,/}\,/d' tmp/orig.bib > tmp/twutz_txt.bib
+	#sed -e '/Note\s*=/,/}\,/d' tmp/orig.bib | sed 's/Url\s*=.*},*//' > tmp/twutz_txt.bib
+	# minus continues despite of errors (e.g. with \usepackage[]{nohyperref} ot prevent nesting level errors)
+	-pdflatex -quiet -interaction=nonstopmode $(TEXFILE) -output-directory=tmp
 	cd tmp; bibtex  $(TEXFILE) 
-	pdflatex -quiet $(TEXFILE) -output-directory=tmp
-	pdflatex -quiet $(TEXFILE) -output-directory=tmp
+	-pdflatex -quiet -interaction=nonstopmode $(TEXFILE) -output-directory=tmp
+	-pdflatex -quiet -interaction=nonstopmode $(TEXFILE) -output-directory=tmp
 	mv tmp/$(TEXFILE).pdf ./$(PDFFILE).pdf
 	
 # Compile main tex file
