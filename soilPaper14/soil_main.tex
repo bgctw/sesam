@@ -10,11 +10,16 @@
 %% Differing commands regarding the specific class files are highlighted.
 
 
+
 %% copernicus.cls
 % \documentclass[SOIL]{copernicus} errors with hyperrefs 
-\documentclass[SOIL,hyperref=break]{copernicus} 
+%\documentclass[SOIL,hyperref=break]{copernicus}  % may cause nesting errors 
+\documentclass[SOIL]{copernicus}  
 
-\usepackage[]{nohyperref}   % else error with nesting levels 
+%\newcommand*\chem[1]{\ensuremath{\mathrm{#1}}}
+%\newcommand{\unit}[1]{\ensuremath{\mathrm{#1}}}
+
+%\usepackage[]{nohyperref}   % else error with nesting levels 
 
 %% Discussion Papers
 %\documentclass[journal abbreviation, hvmath, online]{copernicus}
@@ -23,8 +28,8 @@
 
 \linenumbers
 
-\title{Adaptation of soil microbial resource allocation affects long term soil
-organic matter and nutrient cycling.}
+\title{Adaptation of microbial resource allocation to extracellular
+enzymes affects long term soil organic matter and nutrient cycling.}
 
 \author[1]{Thomas Wutzler}
 

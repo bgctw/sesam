@@ -8,82 +8,100 @@
 \begin{table}[t]
 \caption{
 \label{tab:modelParameters}
-Model parameters and drivers. Values before comma refer to the prototypical
-scenarios. Values after comma refers to the grassland calibration (TODO adjust) 
-} 
+Model parameters and drivers. The first value column refers to the
+prototypical example while the subsequent column reports values that
+differ for the grassland calibration (TODO adjust). }
 \vskip4mm
 \centering
-\begin{tabular}{lp{6cm}llp{5.5cm}}
+\begin{tabular}{lp{6cm}lllp{5.5cm}}
 \tophline
-Symbol &  Definition & Value & Unit & Rational \\
+Symbol &  Definition & \multicolumn{2}{c}{Value} & Unit & Rational \\
 \middlehline
-\multicolumn{5}{l}{State variables}  \\
-$L$ &  C in labile substrate & 571 & g & quasi steady state \\
-$L_N$ &  N in labile substrate & 815 & g & by C/N ratio in Perveen 2014
+\multicolumn{6}{l}{State variables}  \\
+$L$ &  C in litter & & 571 & \unit{gm^{-2}} & quasi steady state 
 \\
-$R$ &  C in recalcitrant substrate & 10500 & g & \citep{Allard07} (total stocks
-- L - dR)
+$L_N$ &  N in litter & & 815 & \unit{gm^{-2}} & \citep{Perveen14}
+(by their N/C ratio $\beta$)
 \\
-$R_N$ &  N in recalcitrant substrate & 968 & g & by C/N ratio in Perveen 2014 \\
-$E_L$ &  C in enzymes targeting $L$ & 0.34 & g &  quasi steady state \\
-$E_R$ &  C in enzymes targeting $R$ & 0.21 & g &  quasi steady state \\
-$B$ & microbial biomass C & 89.2 & g &  quasi steady state \\
-$I$ & inorganic N & 2.05 & g & Perveen 2014 \\
+$R$ &  C in residue substrate & & 10500 & \unit{gm^{-2}} &
+\citep{Allard07} (total stocks - L - dR)
 \\
-\multicolumn{5}{l}{Model parameters}  \\
-$\beta_B$ &  C/N ratio of microbial biomass & 11 & 1 & Perveen
-2014 \\
-$\beta_E$ &  C/N ratio of extracellular enzymes & 3.1 & 1 &
-Sterner 2002 \\
-$\beta_{\mathrm{input}_L}$ &  C/N ratio of plant litter inputs & 30,\,70 & 1 &
-Perveen 2014 ($1/\beta$) \\
-$k_R$ &  maximum decomposition rate of $R$ & 1, 4.39e-2 & 1/yr
+$R_N$ &  N in residue substrate & & 968 & \unit{gm^{-2}} & by C/N
+ratio in \citep{Perveen14} \\
+$E_L$ &  C in enzymes targeting $L$ & & 0.34 & \unit{gm^{-2}} & 
+quasi steady state \\
+$E_R$ &  C in enzymes targeting $R$ & & 0.21 & \unit{gm^{-2}} & 
+quasi steady state \\
+$B$ & microbial biomass C & & 89.2 & \unit{gm^{-2}} &  quasi steady
+state \\
+$I$ & inorganic N & & 2.05 & \unit{gm^{-2}} & \citep{Perveen14} \\
+\\
+\multicolumn{6}{l}{Model parameters}  \\
+$\beta_B$ &  C/N ratio of microbial biomass & 11 & & \unit{gg^{-1}} &
+Perveen 2014 
+\\
+$\beta_E$ &  C/N ratio of extracellular enzymes & 3.1 & &
+\unit{gg^{-1}} & Sterner 2002 \\
+$\beta_{\mathrm{input}_L}$ &  C/N ratio of plant litter inputs & 30 & 70 &
+\unit{gg^{-1}} & \citep{Perveen14} ($1/\beta$) \\
+$k_R$ &  maximum decomposition rate of $R$ & 1 & 4.39e-2 & \unit{yr^{-1}}
 & calibrated \\
-$k_L$ &  maximum decomposition rate of $L$ &  5, 1.95 & 1/yr
+$k_L$ &  maximum decomposition rate of $L$ & 5 & 1.95 & \unit{yr^{-1}}
 & calibrated \\
-$k_N$ &  enzyme turnover rate &  60 & 1/yr & \citep{Burns13} \\
+$k_N$ &  enzyme turnover rate &  60  & & \unit{yr^{-1}} & \citep{Burns13} \\
 $k_{NB}$ & enzyme turnover entering DOM rather than $R$ & 
-0.8 & 1 & mostly small proteins \\
-$a_{E}$ &  enzyme production per microbial biomass & 0.365 &
-1/yr & $\approx 6\%$ of biomass synthesis \\ 
-$k_{M}$ &  enzyme half saturation constant & 0.05 & g & magnitude of DOC
-concentration \\
-$\tau$ &  microbial biomass turnover rate & 6.17 & 1/yr & Perveen 2014
-($s/\epsilon_{\operatorname{Tvr}}$) \\
-$m$ & specific rate of maintenance respiration & 1.825, 0 & 
-1/yr & \citep{Bodegom07}, zero in Perveen 2014 \\
-$\epsilon$ & C substrate use efficiency & 0.5, 0.53 &
-1 & calibrated \\ %Perveen 2014 ($s/(s+r)$ +2\% enzymes) \\
+0.8 & & (-) & mostly small proteins \\
+$a_{E}$ &  enzyme production per microbial biomass & 0.365 & &
+\unit{yr^{-1}} & $\approx 6\%$ of biomass synthesis \\ 
+$K_{M}$ &  enzyme half saturation constant & 0.05 & &
+\unit{gm^{-2}} & magnitude of DOC concentration \\
+$\tau$ &  microbial biomass turnover rate & 6.17 & & \unit{yr^{-1}} &
+\citep{Perveen14} ($s/\epsilon_{\operatorname{Tvr}}$) \\
+$m$ & specific rate of maintenance respiration & 1.825 & 0 & 
+\unit{yr^{-1}} & \citep{Bodegom07}, zero in \citep{Perveen14} \\
+$\epsilon$ & anabolic microbial C substrate efficiency & 0.5 & 0.53 &
+(-) & calibrated \\ %\citep{Perveen14} ($s/(s+r)$ +2\% enzymes) \\
 $\nu$ & aggregated microbial organic N use efficiency & 0.7 &
-0.9 & Manzoni 2008 \\
+0.9 & (-) & Manzoni 2008 \\
 $\epsilon_{\operatorname{Tvr}}$ & microbial turnover that is not
-mineralized & 0.3,\,0.8 & 1 & part of microbial turnover is consumed by
+mineralized & 0.3 & 0.8 & (-) & part of turnover is consumed by
 predators
 \\
-$i_{B}$ & maximum microbial uptake rate of inorganic C & 25 & 1/yr 
-& larger than immobilization flux \\
-$l$ & leaching rate & 0.959 &
-1/yr & Perveen 2014 ($l)$ \\
+$i_{B}$ & maximum microbial uptake rate of inorganic N & 25 & & \unit{yr^{-1}} 
+& larger than simulated immobilization flux \\
+$l$ & inorganic N leaching rate & 0 & 0.959 &
+\unit{yr^{-1}} & \citep{Perveen14} ($l)$ \\
 \\
-\multicolumn{5}{l}{Model drivers, i.e. fluxes across system boundary}  \\ 
-$\mathrm{input}_{L}$ & litter C input & 969.16 & g/yr 
-& Perveen 2014 \, ($m_p C^{obs}_p$)\\
-$i_{I}$ & inorganic N input & 22.91 & g/yr 
-& Perveen 2014 \\
-$k_{IP}$ & inorganic plant N uptake & 16.04 &  g/yr 
-& Perveen 2014 (plant export + litter N input)\\
+\multicolumn{6}{l}{Model drivers, i.e. fluxes across system boundary}  \\ 
+$\mathrm{input}_{L}$ & litter C input & & 969.16 &
+\unit{gm^2yr^{-1}} & \citep{Perveen14} \, ($m_p C^{obs}_p$)\\
+$i_{I}$ & inorganic N input & & 22.91 & \unit{gm^2yr^{-1}} 
+& \citep{Perveen14} \\
+$k_{IP}$ & inorganic plant N uptake & & 16.04 & 
+\unit{gm^2yr^{-1}} & \citep{Perveen14} (assuming plant
+steady state: plant N export + litter N input)\\
 \\
-\multicolumn{5}{l}{Fluxes within the system} \\
-$\operatorname{syn}_B $ & C for microbial biomass synthesis &  & g/yr &
+\multicolumn{6}{l}{Fluxes and quantities derived within the system}
 \\
-$\operatorname{syn}_E $ & C for enzyme synthesis &  & g/yr & \\
-$\operatorname{tvr}_B $ & microbial biomass turnover C &  & g/yr & \\
-$\operatorname{tvr}_E $ & enzyme turnover C &   & g/yr & \\
-$\operatorname{dec}_X $ & C in decomposition of resource X & & g/yr & \\
-$u_C,u_N$ & microbial uptake of C and N  & & g/yr & \\
+$\alpha$ & proportion of enzyme investments allocated to production of 
+$E_R$ & & & (-) &
+\\
+$\operatorname{syn}_B $ & C for microbial biomass synthesis &  &
+& \unit{gm^2yr^{-1}} &
+\\
+$\operatorname{syn}_E $ & C for enzyme synthesis &  &
+& \unit{gm^2yr^{-1}} & \\
+$\operatorname{tvr}_B $ & microbial biomass turnover C &  &
+& \unit{gm^2yr^{-1}} & \\
+$\operatorname{tvr}_E $ & enzyme turnover C &  &
+& \unit{gm^2yr^{-1}} & \\
+$\operatorname{dec}_X $ & C in decomposition of resource X ($X$ is $L$ or $R$)
+& & & \unit{gm^2yr^{-1}} & \\
+$u_C,u_N$ & microbial uptake of C and N  & &
+& \unit{gm^2yr^{-1}} & \\
 $\Phi_u, \Phi_B, \Phi_{\operatorname{tvr}}$ & N mineralization with microbial
-DOM uptake, stoichiometric imbalance, and turnover & & g/yr & see Fig.
-\ref{fig:SEAMStructNFluxes}
+DOM uptake, stoichiometric imbalance, and turnover & &
+& \unit{gm^2yr^{-1}} & see Fig. \ref{fig:SEAMStructNFluxes}
 \\
 \bottomhline
 \end{tabular}
