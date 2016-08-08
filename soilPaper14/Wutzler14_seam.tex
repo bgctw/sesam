@@ -109,18 +109,29 @@ Model structure of SEAM: Two resource pools ($L$ and $R$) which differ in their
 elemental ratios are depolymerized by respective enzymes ($E_L$ and $E_R$). The
 simple organic compounds ($\operatorname{DOM}$) are taken up by the microbial
 community  and used for synthesizing new biomass (${B}$), new enzymes, for
-catabolic respiration, and an apparent N mineralization during uptake
-($\Phi_u$). Stoichiometric imbalance between $\operatorname{DOM}$ and ${B}$
-causes overflow respiration or mineralization of excess N ($\Phi_B$) to
-inorganic N ($I$).
-During microbial turnover an additional part of the biomass is mineralized
-($\Phi_{\operatorname{Tvr}}$).
-Boxes correspond to pools, black arrow heads to mass fluxes, white arrow heads
-to other controls, and disks represent partitioning of fluxes. Solid lines
+catabolic respiration. Stoichiometric imbalance between $\operatorname{DOM}$ and ${B}$
+causes overflow respiration or mineralization/immobilization ($\Phi_B$) of
+inorganic N ($I$), which is detailed Fig. \ref{fig:SEAMStructNFluxes}. Boxes
+correspond to pools, black arrow heads to mass fluxes, white arrow heads to other controls, and disks represent partitioning of fluxes. Solid lines
 represent fluxes of both C and N, while dotted and dashed lines represent
 separate C or N fluxes respectively.
 \label{fig:SEAMStruct}
 }
+\end{figure}
+
+\begin{figure}[t] \vspace*{2mm}
+\begin{center}
+%\includegraphics[width=8.3cm]{fig/seam_NFluxes} 
+\includegraphics[scale=0.6]{fig/seam_NFluxes} 
+\end{center}
+\caption{
+In addition to the maybe negative imbalance flux, $\Phi_B$ of microbial biomass,
+$B$, there are additional mineralization fluxes feeding the inorganic pool, $I$,
+due to mineralization during uptake, $\Phi_u$, and mineralization during
+microbial turnover, $\Phi_{\operatorname{tvr}}$. The N dynamics depends also on
+fluxes across the system boundary, namely input of organic N with litter, input
+of inorganic N $iI$, leaching, and plant uptake of inorganic N.
+\label{fig:SEAMStructNFluxes}}
 \end{figure}
 
 The most important assumptions are described in the following paragraphs, while
@@ -143,6 +154,12 @@ The DOM pool is assumed to be in quasi steady state and the sum of all
 influxes to the DOM pool (decomposition + part of the enzyme turnover) is taken
 up by the microbial community. If expenses for maintenance and enzyme production
 cannot be met, the microbial biomass starves and declines.
+
+\subsection{Exchange with inorganic N pools}
+
+TODO 
+
+
 
 \subsection{ Enzyme allocation strategies} 
 \label{sec:AllocStrategies}
@@ -691,22 +708,6 @@ degrade the residues pool, but the N was fixed in microbial biomass and was not
 mineralized to inorganic N. Hence, our experiments reinforced the need for
 representing soil heterogeneity and grazing for making N available for plants
 under N limitation.
-
-\begin{figure}[t] \vspace*{2mm}
-\begin{center}
-%\includegraphics[width=8.3cm]{fig/seam_NFluxes} 
-\includegraphics[scale=0.6]{fig/seam_NFluxes} 
-\end{center}
-\caption{
-In addition to the maybe negative imbalance flux, $\Phi_B$ of microbial
-biomass, $B$, there are additional mineralization fluxes feeding the inorganic
-pool, $I$, due to mineralization during uptake, $\Phi_u$, and mineralization
-during microbial turnover, $\Phi_{\operatorname{tvr}}$. The N dynamics depends
-also on fluxes across the system boundary, namely input of litter $iL$ to the
-soil organic matter ($SOM$), input of inorganic N $iI$, leaching, and plant
-uptake of inorganic N.
-\label{fig:SEAMStructNFluxes}}
-\end{figure}
 
 A refinement of the term of the term N limitation (Table
 \ref{tab:NutrientLimDefs}) is required by the introduction of the additional N
