@@ -24,6 +24,36 @@
 %% Discussion Papers
 %\documentclass[journal abbreviation, hvmath, online]{copernicus}
 
+\usepackage{color,soul} % unfortunately need to define all the used colors
+\definecolor{lightblue}{RGB}{240,246,255}
+\definecolor{lightyellow1}{RGB}{255,255,120}
+\definecolor{lightyellow2}{RGB}{255,255,190}
+\definecolor{darkbrown}{RGB}{81,36,2}
+\definecolor{lightviolet}{RGB}{255,228,248}
+\definecolor{darkviolet}{RGB}{102,0,102}
+\definecolor{lightpurple}{RGB}{255,235,219}
+\definecolor{darkpurple}{RGB}{212,39,73}
+\definecolor{lightgreen}{RGB}{229, 255, 204}
+\definecolor{darkgreen}{RGB}{45, 83, 45}
+\newcommand{\remarkup}[4]{\sethlcolor{lightyellow1}\hl{#1}
+\sethlcolor{#3}\textcolor{#4}{\footnotesize{\hl{#2}}}}
+% \newcommand{\markTW}[2]{\markup{#1}{#2}{yellow!15}{brown!50!black}}
+% \newcommand{\markMM}[2]{\markup{#1}{#2}{blue!4}{blue}}
+% \newcommand{\markAM}[2]{\markup{#1}{#2}{pink!20}{violet}}
+% \newcommand{\markMR}[2]{\markup{#1}{#2}{orange!15}{purple}}
+\newcommand{\remarkTW}[2]{\remarkup{#1}{#2}{lightyellow2}{darkbrown}}
+\newcommand{\remarkSZ}[2]{\remarkup{#1}{#2}{lightblue}{blue}}
+\newcommand{\remarkMS}[2]{\remarkup{#1}{#2}{lightviolet}{darkviolet}}
+\newcommand{\remarkMR}[2]{\remarkup{#1}{#2}{lightpurple}{darkpurple}}
+\newcommand{\remark}[2]{\remarkup{#1}{#2}{lightgreen}{darkgreen}}
+\newcommand{\remTW}[1]{\remarkTW{}{#1}}
+\newcommand{\remSZ}[1]{\remarkMM{}{#1}}
+\newcommand{\remMS}[1]{\remarkAM{}{#1}}
+\newcommand{\remMR}[1]{\remarkMR{}{#1}}
+\newcommand{\rem}[1]{\remark{}{#1}}
+%\renewcommand{\remarkup}[4]{#1}
+
+
 \begin{document} 
 
 \linenumbers
@@ -32,6 +62,10 @@
 enzymes affects long term soil organic matter and nutrient cycling.}
 
 \author[1]{Thomas Wutzler}
+\author[1]{Marion Schrumpf}
+\author[1]{Bernhard Ahrens}
+\author[1]{S\"ohnke Z\"ahle}
+\author[1]{Markus Reichstein}
 
 \affil[1]{Max Planck Institute for Biogeochemistry, Hans-Kn{\"o}ll-Stra{\ss}e 10,
 07745 Jena, Germany }
