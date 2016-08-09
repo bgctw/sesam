@@ -141,18 +141,22 @@ cannot be met, the microbial biomass starves and declines.
 
 \subsection{Exchange with inorganic N pools}
 
-While mineralization by stoichiometric imbalance, $\Phi_B$, is the most widely
-implemented flux from microbial biomass to the inorganic carbon pool
-\citep{Manzoni09}, it is not sufficient to recycle N if microbial biomass is
-itself uptake N limited. Therefore, two additional mineralization fluxes are
-implemented with the SEAM model (Fig. \ref{fig:SEAMStructNFluxes}). First, a
-fraction of microbial DON uptake, termed uptake mineralization $\Phi_u$, is
-apparently mineralized that accounts for C-limited locations in heterogeneous
-soil \citep{Manzoni08}.
+The the mineralization/immobilization flux, $\Phi_B$, lets microbes mineralize
+access N or immobilize required N up to a maximum rate of
+$u_{\operatorname{imm,Pot}}$, which increases linearly with the inorganic N
+pool.
+While this stoichiometric imbalance flux is the most widely implemented flux
+between microbial biomass and the inorganic carbon pool in SOM
+models \citep{Manzoni09}, it is not sufficient to recycle N to the inorganic
+pool if microbial biomass is itself uptake N limited.
+Therefore, two additional mineralization fluxes are implemented with the SEAM
+model (Fig. \ref{fig:SEAMStructNFluxes}). First, a fraction of microbial DON
+uptake, termed uptake mineralization $\Phi_u$, is apparently mineralized that
+accounts for C-limited locations in heterogeneous soil \citep{Manzoni08}.
 Second, a fraction of microbial turnover is mineralized that accounts for
-grazing. Grazers respire part of the grazed biomass C for their energy, and
-must release an equivalent amount of nutrients to match their stoichiometric
-demands. This mineralization component, here termed turnover mineralization
+grazing. Grazers respire part of the grazed biomass C for their energy, and must
+release an equivalent amount of nutrients to match their stoichiometric demands.
+This mineralization component, here termed turnover mineralization
 $\Phi_{\operatorname{tvr}}$, has been formalized in the soil microbial loop
 hypothesis \citep{Clarholm85, Raynaud06}.
 
@@ -176,7 +180,7 @@ required by the introduction of the additional N mineralization fluxes.
 When microbes can meet their stoichiometric demand only by immobilizing
  N, we suggest the term uptake N limitation.
 When the immobilization flux cannot meet microbe's stoichiometric requirements,
-We suggest the term microbial N limitation. Despite the maximum immobilization
+we suggest the term microbial N limitation. Despite the maximum immobilization
 flux there might still be a net mineralization due to uptake mineralization and
 turnover mineralization.
 When there is a net immobilization, i.e. a net transfer from inorganic pool to
