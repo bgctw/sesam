@@ -1,0 +1,96 @@
+%\section{\\ \\ \hspace {-7mm}  SEAM equations \label{app:fAlphaFix}}    %%
+\section{Allocation partitioning that matches microbial stoichiometry
+\label{app:fAlphaFix}}
+%% Appendix B 
+
+The following equation was derived by solving (\ref{eq:allocMatchCN}) for
+allocation partitioning coefficient $\alpha$ using SymPy \citep{Sympy}. The
+sympy script and the R function evaluating the expression are provided as
+electronic supplements.
+
+
+\label{eq:alphaMatch} 
+$
+\alpha_M = -(-E^2 \beta_L \beta_B \beta_R \Phi_M -
+E^2 \beta_L \beta_B \operatorname{dec}_{R,Pot} + 
+E^2 \beta_L \beta_R \operatorname{dec}_{L,Pot} \epsilon
++ E^2 \beta_L \beta_R \operatorname{dec}_{R,Pot} \epsilon -
+E^2 \beta_L \beta_R \epsilon r_M -
+E^2 \beta_B \beta_R \operatorname{dec}_{L,Pot} -
+E \beta_L \beta_B \operatorname{dec}_{R,Pot} K_{M,R} -
+E \beta_L \beta_R \operatorname{dec}_{L,Pot} \epsilon K_{M,R} + 
+E \beta_L \beta_R \operatorname{dec}_{R,Pot} \epsilon K_{M,R}
++ E \beta_B \beta_R \operatorname{dec}_{L,Pot} K_{M,R} + 
+sqrt(E^2 \beta_L^2 \beta_B^2 \beta_R^2 \Phi_M^2 + 
+2 E^2 \beta_L^2 \beta_B^2 \beta_R \operatorname{dec}_{R,Pot} \Phi_M + 
+E^2 \beta_L^2 \beta_B^2 \operatorname{dec}_{R,Pot}^2 -
+2 E^2 \beta_L^2 \beta_B \beta_R^2 \operatorname{dec}_{L,Pot} \epsilon \Phi_M -
+2 E^2 \beta_L^2 \beta_B \beta_R^2 \operatorname{dec}_{R,Pot} \epsilon \Phi_M + 
+2 E^2 \beta_L^2 \beta_B \beta_R^2 \epsilon \Phi_M r_M -
+2 E^2 \beta_L^2 \beta_B \beta_R \operatorname{dec}_{L,Pot} \operatorname{dec}_{R,Pot} \epsilon
+- 2 E^2 \beta_L^2 \beta_B \beta_R \operatorname{dec}_{R,Pot}^2 \epsilon + 
+2 E^2 \beta_L^2 \beta_B \beta_R \operatorname{dec}_{R,Pot} \epsilon r_M + 
+E^2 \beta_L^2 \beta_R^2 \operatorname{dec}_{L,Pot}^2 \epsilon^2 + 
+2 E^2 \beta_L^2 \beta_R^2 \operatorname{dec}_{L,Pot} \operatorname{dec}_{R,Pot} \epsilon^2
+- 2 E^2 \beta_L^2 \beta_R^2 \operatorname{dec}_{L,Pot} \epsilon^2 r_M + 
+E^2 \beta_L^2 \beta_R^2 \operatorname{dec}_{R,Pot}^2 \epsilon^2 -
+2 E^2 \beta_L^2 \beta_R^2 \operatorname{dec}_{R,Pot} \epsilon^2 r_M + 
+E^2 \beta_L^2 \beta_R^2 \epsilon^2 r_M^2 + 
+2 E^2 \beta_L \beta_B^2 \beta_R^2 \operatorname{dec}_{L,Pot} \Phi_M + 
+2 E^2 \beta_L \beta_B^2 \beta_R \operatorname{dec}_{L,Pot} \operatorname{dec}_{R,Pot}
+- 2 E^2 \beta_L \beta_B \beta_R^2 \operatorname{dec}_{L,Pot}^2 \epsilon -
+2 E^2 \beta_L \beta_B \beta_R^2 \operatorname{dec}_{L,Pot} \operatorname{dec}_{R,Pot} \epsilon
++  2 E^2 \beta_L \beta_B \beta_R^2 \operatorname{dec}_{L,Pot} \epsilon r_M + 
+E^2 \beta_B^2 \beta_R^2 \operatorname{dec}_{L,Pot}^2 + 
+4 E \beta_L^2 \beta_B^2 \beta_R^2 \Phi_M^2 K_{M,R} + 
+6 E \beta_L^2 \beta_B^2 \beta_R \operatorname{dec}_{R,Pot} \Phi_M K_{M,R} + 
+2 E \beta_L^2 \beta_B^2 \operatorname{dec}_{R,Pot}^2 K_{M,R} -
+6 E \beta_L^2 \beta_B \beta_R^2 \operatorname{dec}_{L,Pot} \epsilon \Phi_M K_{M,R} -
+6 E \beta_L^2 \beta_B \beta_R^2 \operatorname{dec}_{R,Pot} \epsilon \Phi_M K_{M,R} + 
+8 E \beta_L^2 \beta_B \beta_R^2 \epsilon \Phi_M K_{M,R} r_M -
+4 E \beta_L^2 \beta_B \beta_R \operatorname{dec}_{L,Pot} \operatorname{dec}_{R,Pot} \epsilon K_{M,R}
+- 4 E \beta_L^2 \beta_B \beta_R \operatorname{dec}_{R,Pot}^2 \epsilon K_{M,R} + 
+6 E \beta_L^2 \beta_B \beta_R \operatorname{dec}_{R,Pot} \epsilon K_{M,R} r_M + 
+2 E \beta_L^2 \beta_R^2 \operatorname{dec}_{L,Pot}^2 \epsilon^2 K_{M,R} + 
+4 E \beta_L^2 \beta_R^2 \operatorname{dec}_{L,Pot} \operatorname{dec}_{R,Pot} \epsilon^2 K_{M,R}
+- 6 E \beta_L^2 \beta_R^2 \operatorname{dec}_{L,Pot} \epsilon^2 K_{M,R} r_M + 
+2 E \beta_L^2 \beta_R^2 \operatorname{dec}_{R,Pot}^2 \epsilon^2 K_{M,R} -
+6 E \beta_L^2 \beta_R^2 \operatorname{dec}_{R,Pot} \epsilon^2 K_{M,R} r_M + 
+4 E \beta_L^2 \beta_R^2 \epsilon^2 K_{M,R} r_M^2 + 
+6 E \beta_L \beta_B^2 \beta_R^2 \operatorname{dec}_{L,Pot} \Phi_M K_{M,R} + 
+4 E \beta_L \beta_B^2 \beta_R \operatorname{dec}_{L,Pot} \operatorname{dec}_{R,Pot} K_{M,R}
+- 4 E \beta_L \beta_B \beta_R^2 \operatorname{dec}_{L,Pot}^2 \epsilon K_{M,R} -
+4 E \beta_L \beta_B \beta_R^2 \operatorname{dec}_{L,Pot} \operatorname{dec}_{R,Pot} \epsilon K_{M,R}
++  6 E \beta_L \beta_B \beta_R^2 \operatorname{dec}_{L,Pot} \epsilon K_{M,R} r_M + 
+2 E \beta_B^2 \beta_R^2 \operatorname{dec}_{L,Pot}^2 K_{M,R} + 
+4 \beta_L^2 \beta_B^2 \beta_R^2 \Phi_M^2 K_{M,R}^2 + 
+4 \beta_L^2 \beta_B^2 \beta_R \operatorname{dec}_{R,Pot} \Phi_M K_{M,R}^2 + 
+\beta_L^2 \beta_B^2 \operatorname{dec}_{R,Pot}^2 K_{M,R}^2 -
+4 \beta_L^2 \beta_B \beta_R^2 \operatorname{dec}_{L,Pot} \epsilon \Phi_M K_{M,R}^2 -
+4 \beta_L^2 \beta_B \beta_R^2 \operatorname{dec}_{R,Pot} \epsilon \Phi_M K_{M,R}^2 + 
+8 \beta_L^2 \beta_B \beta_R^2 \epsilon \Phi_M K_{M,R}^2 r_M+ 
+2 \beta_L^2 \beta_B \beta_R \operatorname{dec}_{L,Pot} \operatorname{dec}_{R,Pot} \epsilon K_{M,R}^2
+- 2 \beta_L^2 \beta_B \beta_R \operatorname{dec}_{R,Pot}^2 \epsilon K_{M,R}^2 + 
+4 \beta_L^2 \beta_B \beta_R \operatorname{dec}_{R,Pot} \epsilon K_{M,R}^2 r_M + 
+\beta_L^2 \beta_R^2 \operatorname{dec}_{L,Pot}^2 \epsilon^2 K_{M,R}^2 -
+2 \beta_L^2 \beta_R^2 \operatorname{dec}_{L,Pot} \operatorname{dec}_{R,Pot} \epsilon^2 K_{M,R}^2
+- 4 \beta_L^2 \beta_R^2 \operatorname{dec}_{L,Pot} \epsilon^2 K_{M,R}^2 r_M + 
+\beta_L^2 \beta_R^2 \operatorname{dec}_{R,Pot}^2 \epsilon^2 K_{M,R}^2 -
+4 \beta_L^2 \beta_R^2 \operatorname{dec}_{R,Pot} \epsilon^2 K_{M,R}^2 r_M + 
+4 \beta_L^2 \beta_R^2 \epsilon^2 K_{M,R}^2 r_M^2 + 
+4 \beta_L \beta_B^2 \beta_R^2 \operatorname{dec}_{L,Pot} \Phi_M K_{M,R}^2 -
+2 \beta_L \beta_B^2 \beta_R \operatorname{dec}_{L,Pot} \operatorname{dec}_{R,Pot} K_{M,R}^2
+- 2 \beta_L \beta_B \beta_R^2 \operatorname{dec}_{L,Pot}^2 \epsilon K_{M,R}^2 + 
+2 \beta_L \beta_B \beta_R^2 \operatorname{dec}_{L,Pot} \operatorname{dec}_{R,Pot} \epsilon K_{M,R}^2
++  4 \beta_L \beta_B \beta_R^2 \operatorname{dec}_{L,Pot} \epsilon K_{M,R}^2 r_M + 
+\beta_B^2 \beta_R^2 \operatorname{dec}_{L,Pot}^2 K_{M,R}^2) abs(E))/(2 E^2 \beta_L \beta_B \beta_R \Phi_M
++  2 E^2 \beta_L \beta_B \operatorname{dec}_{R,Pot} -
+2 E^2 \beta_L \beta_R \operatorname{dec}_{L,Pot} \epsilon -
+2 E^2 \beta_L \beta_R \operatorname{dec}_{R,Pot} \epsilon + 
+2 E^2 \beta_L \beta_R \epsilon r_M + 
+2 E^2 \beta_B \beta_R \operatorname{dec}_{L,Pot})
+$,
+
+where $E=E_R+ E_L$
+
+

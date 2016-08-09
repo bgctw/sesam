@@ -12,14 +12,15 @@
 
 
 %% copernicus.cls
-% \documentclass[SOIL]{copernicus} errors with hyperrefs 
-%\documentclass[SOIL,hyperref=break]{copernicus}  % may cause nesting errors 
-\documentclass[SOIL]{copernicus}  
+% \documentclass[soil]{copernicus} errors with hyperrefs 
+%\documentclass[soil,hyperref=break]{copernicus}  % may cause nesting errors 
+\documentclass[soil]{copernicus}  
 
 %\newcommand*\chem[1]{\ensuremath{\mathrm{#1}}}
 %\newcommand{\unit}[1]{\ensuremath{\mathrm{#1}}}
 
 %\usepackage[]{nohyperref}   % else error with nesting levels 
+%\usepackage{breqn}          % for breaking long equations \begin{dmath}
 
 %% Discussion Papers
 %\documentclass[journal abbreviation, hvmath, online]{copernicus}
@@ -58,8 +59,7 @@
 
 \linenumbers
 
-\title{Adaptation of microbial resource allocation to extracellular
-enzymes affects long term soil organic matter and nutrient cycling.}
+\title{Adaptation of microbial resource allocation affects long term soil organic matter and nutrient cycling.}
 
 \author[1]{Thomas Wutzler}
 \author[1]{Marion Schrumpf}
@@ -116,6 +116,17 @@ enzymes affects long term soil organic matter and nutrient cycling.}
 
 \include{SEAMEq}
 
+% copy from calcMatchAlphaSeam2
+% replace
+% cnL \beta_L
+% cnOpt \beta_B
+% cnR \beta_R
+% eps \epsilon
+% imm  \Phi_M
+% decPotR \operatorname{dec}_{S,Pot}
+% rMaint r_M
+% kmR K_{M,R}
+\include{alphaFix}
 
 
 \begin{acknowledgements}

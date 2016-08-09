@@ -502,16 +502,16 @@ resScens$dS <- resScens$dR + resScens$dL
 resScens$leaching <- resScens$I * parms0$l
 predM <- melt(resScens, 1:2)
 predM$variable <- relevel(relevel(relevel( relevel(predM$variable, "dR"),"R"),"L"),"alpha")
-levels(predM$variable)[match(c("L","R","dR","I","leaching","PhiBU","PhiTotal"), levels(predM$variable))] <- c("L~(gm^{-2})","R~(g^{-2})","dR~(gm^{-2}*a^{-1})","I~(gm^{-2})","leach.(gm^{-2}*a^{-1})","Phi_BU~(gm^{-2}*a^{-1})","N-Min~(gm^{-2}*a^{-1})")
+levels(predM$variable)[match(c("L","R","dR","I","leaching","PhiBU","PhiTotal"), levels(predM$variable))] <- c("L~(gm^{-2})","R~(g^{-2})","dR~(gm^{-2}*yr^{-1})","I~(gm^{-2})","leach.(gm^{-2}*yr^{-1})","Phi_BU~(gm^{-2}*yr^{-1})","Phi~(gm^{-2}*yr^{-1})")
 predMCtrl <- subset(predM, scenario %in% "control")
 
 dsObs <- data.frame(value=obs, sd=sdObs, time=timesExpFit, scenario="control")
 dsObs$variable <- relevel(relevel( relevel(as.factor(rownames(dsObs)), "N"), "dR"),"Cf")
-levels(dsObs$variable)[match(c("Cf","dR","N","leach"), levels(dsObs$variable))] <- c("L~(gm^{-2})","dR~(gm^{-2}*a^{-1})","I~(gm^{-2})","leach.(gm^{-2}*a^{-1})")
+levels(dsObs$variable)[match(c("Cf","dR","N","leach"), levels(dsObs$variable))] <- c("L~(gm^{-2})","dR~(gm^{-2}*yr^{-1})","I~(gm^{-2})","leach.(gm^{-2}*yr^{-1})")
 #dssObs <- subset( dsObs, dsObs$variable %in% dsObs$variable[na.omit(pmatch(c("alpha","L","dR","I","leaching"), dsObs$variable))] )
 dssObs <- dsObs[grep(c("^alpha|^L|^dR|^I|^leach"),dsObs$variable),]
-#p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~|^N-Min~|^leach"),predMCtrl$variable),], time <=5)
-p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^N-Min~|^leach"),predMCtrl$variable),], time <=5)
+#p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~|^Phi~|^leach"),predMCtrl$variable),], time <=5)
+p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~|^leach"),predMCtrl$variable),], time <=5)
         , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
         geom_line(size=baseLineSize) +
         geom_point( data=dssObs, colour="black" )+
@@ -524,7 +524,7 @@ p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^N-Min~|^lea
         theme()
 p1
 
-p1b <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^I~|^N-Min~"),predM$variable),], time <=5)
+p1b <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~"),predM$variable),], time <=5)
         , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
         geom_line(size=baseLineSize) +
         #facet_wrap( ~ variable,  scales="free_y", nrow=6, ncol=1) +
@@ -550,7 +550,7 @@ print(p1b, vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
 #------------- plotting differently for presentations
 .tmp.f <- function(){
     twWin(7,4.6)
-    p1p <- ggplot( dss <- subset( predMCtrl[grep(c("^L~|^R~|^dR~|^I~|^N-Min~|^leach"),predMCtrl$variable),], time <=5)
+    p1p <- ggplot( dss <- subset( predMCtrl[grep(c("^L~|^R~|^dR~|^I~|^Phi~|^leach"),predMCtrl$variable),], time <=5)
                     , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
             geom_line(size=baseLineSize) +
             geom_point( data=dssObs, colour="black", size=3 )+
@@ -564,7 +564,7 @@ print(p1b, vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
     p1p
     
     twWin(5.7,4.6)
-    p1bp <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^N-Min~|^I~"),predM$variable),], time <=5)
+    p1bp <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^Phi~|^I~"),predM$variable),], time <=5)
                     , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
             geom_line(size=baseLineSize) +
             facet_wrap( ~ variable,  scales="free_y", labeller = label_parsed) +

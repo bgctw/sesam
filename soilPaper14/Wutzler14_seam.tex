@@ -3,8 +3,7 @@
 % % \introduction[modified heading if necessary] 
 The global element cycles of carbon (C) and nitrogen (N) are intrically linked
 and cannot be understood without their interactions 
-\citep{Thornton07,Janssens10, Zaehle11}%TODO uncomment but latex levels fail
-. 
+\citep{Thornton07,Janssens10, Zaehle11}. 
 The links between nutrient cycles are especially strong
 in the dynamics of soil organic matter (SOM) because all of the SOM has to be
 depolymerized and successively mineralized by a microbial community with a
@@ -26,7 +25,7 @@ ratio, such as many fungi, or species with lower C/N ratio, such as many
 bacteria \citep{Cleveland07, Xu13}, although the flexibility is very narrow.
 As a third option, decomposers can adapt their allocation of resources into
 production of different extracellular enzymes to preferentially degrade
-fractions of SOM that differ by their stoichiometry \citep{Moorhead12}. 
+fractions of SOM that differ by their stoichiometry \citep{Moorhead12}.
 
 Representation and consequences of stoichiometry on element cycling differ
 between models at different scales. Most soil models at ecosystem scale
@@ -38,7 +37,7 @@ important effect of community adaptation and their emerging effects on element c
 microbial groups that differed in expression of different enzymes resulted in a
 simulated approximately equally high CUE across a wider range of litter
 stoichiometry \citep{Kaiser14}. Hence, there is a need to capture the effects of community
-adaptation also in models at ecosystem scale.
+adaptation also in models at ecosystem scale. 
 
 Effects of microbial diversity can be represented at ecosystem scale by at least
 two options. First, competition of several microbial populations can be
@@ -252,7 +251,7 @@ The partitioning coefficient is derived by equating the C/N ratio of the sum of
 uptake fluxes after other expenses to the C/N ratio of microbial biomass,
 $\beta_B$.
 
-\begin{equation} 
+\begin{equation}
 \label{eq:allocMatchCN}
 \frac{\epsilon (\operatorname{dec}_L + \operatorname{dec}_R - r_M)}{
 \operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R  - \Phi_M } =
@@ -277,11 +276,12 @@ When the current sum of enzyme levels, $E$ is assumed to be in quasi
 steady state for given amounts of resource and microbial biomass, then equation
 \ref{eq:allocMatchCN} can be solved for allocation partitioning, $\alpha$,
 because the decompostion fluxes $\operatorname{dec}_L$ and
-$\operatorname{dec}_R$ are functions of $\alpha$.
+$\operatorname{dec}_R$ are functions of $\alpha$ (Appendix
+\ref{app:fAlphaFix}).
 \begin{subequations}
 \label{eq:allocMatch} 
 \begin{align}
-\alpha_M &= f_{\operatorname{{\alpha}Fix}}(L,\beta_L,R,\beta_R, E_L + E_R,
+\alpha_M &= f_{\operatorname{{\alpha}Fix}}(L,\beta_L,R,\beta_R, E_L, E_R, r_M,
 \Phi_M)
 \\
 \alpha &= \begin{cases}
@@ -302,7 +302,7 @@ derivation is given with supplementary material.
 
 The \textbf{Revenue} strategy assumes that microbial community adapts in a way
 so that investment into enzyme production is proportional to their revenue, i.e.
-their return per investment regarding the currently limiting element: 
+their return per investment regarding the currently limiting element:
 \begin{subequations}
 \label{eq:allocRev}
 \begin{align}
@@ -315,7 +315,8 @@ their return per investment regarding the currently limiting element:
 where $\operatorname{rev}_S$ is the revenue from given resource $S$ ($S$ is
 either $L$ or $R$) under C and N limitation respectively. The return is the
 current decomposition flux from the resource degraded by the respective enzyme,
-and the investment is assumed to be equal to enzyme turnover to keep current enzyme levels, $E_S^*$.
+and the investment is assumed to be equal to enzyme turnover to keep current
+enzyme levels, $E_S^*$.
 % : $a_E B = k_{NR} E_R^* + k_{NL} E_L^*$.
 \begin{subequations}
 \label{eq:allocRev2}
@@ -611,13 +612,13 @@ Calibrated Seam model predictions matched observed values of the Laqueuille
 intensive pasture (dots and errorbars left). Prescribed alteration of C and N
 inputs led to subsequent shifts in enzyme allocation ($\alpha$) and affected
 development of soil pools (right) compared to the scenario of observed inputs
-(control as in right).
+(control same as in left panel).
 Increased N substrate limitation, either due to elevated \chem{CO_2} or due to
 decreasing inorganic N inputs, caused an increase in litter pool, $L$, and a
 decrease in mineral N pool, $I$. If the substrate N limitation could not be
 balanced by inorganic N input, then the change rate of the residue pool, $dR$,
 decreased down to negative values, i.e. losses.
-\label{fig:pastureFit}
+\label{fig:pastureFit} 
 }
 \end{figure}   
 
@@ -691,16 +692,15 @@ community adaptation.
 
 The SEAM model focuses on community adaptation of enzyme production. It predicts
 a change in the ratio of enzyme activities of enzymes degrading C-rich plant
-litter versus enzymes degrading the N-rich residue SOM.
-However, in a spatial context at global scale, low variation in stoichiometry
-of N-degrading versus C-degrading enzymatic activity have been observed
-\citep{Sinsabaugh09}, implying either issues with measurement of enzymatic
-stoichiometry or implying further conservative constraints on the enzymatic
-flexibility of microbial communities.
-Such stoichiometric constraints have a large effect on SOM cycling and hence
-need further study.
-
-XX TODO new Lit, rewrite
+litter versus enzymes degrading the N-rich residue SOM when changing inputs of
+inorganic N to the soil.
+While low variation in stoichiometry of N-degrading versus C-degrading enzymatic
+activity is observed across biomes \citep{Sinsabaugh09}, microcosm studies
+detect short-term changes of enzyme activities with N fertilization
+\citep{Kumar16}, but their observations differ between different kinds of N-degrading
+enzymes. It implies that the simplifying assumptions of the SEAM model are
+in line with more detailed models but cannot be directly compared and
+validated by observations yet.
 
 \subsection{SOM can store and release N}
 Nitrogen was stored in residue SOM during periods of high N inputs and
@@ -885,9 +885,9 @@ suitable to be used as a component within larger scale land surface models.
 \conclusions   
 %% \conclusions[modified heading if necessary]
  
-The adaptation of allocating resources into the production of different enzymes
-is an important means of the microbial community to react to changing resource
-stoichiometry. Allocation adaptation strategies helped microbial biomass in SEAM
+Adaptating resources allocation into the production of different
+enzymes is an effective means of the microbial community to react to changing
+resource stoichiometry. Allocation adaptation strategies helped microbial biomass in SEAM
 (Fig. \ref{fig:SEAMStruct}) simulations to grow larger biomass across a wider
 range of resource stoichiometry (Fig. \ref{fig:VarNNoFeedback}). Among the
 tested strategies, the revenue strategy was particularly successful, which took
