@@ -125,23 +125,25 @@ equations are given in Appendix \ref{app:SEAM}.
 \include{SEAM_symbols} 
 
 Decomposition of litter and residue pool follows an inverse Michaelis-Menten
-kinetics, which is first order to amount of OM, and saturating with the amount
-of enzymes. C/N ratios, $\beta$, of the decomposition flux is equal to the C/N
-ratios of the decomposed pool. C/N ratios of biomass and enzymes are fixed while
-those of the resource pools may change over time due to changing C/N ratio of
-total influx to these pools. Imbalances in stoichiometry of uptake and microbial
-requirements are compensated by overflow respiration or N mineralization.
+kinetics \citep{Schimel03}, which is first order to the amount of OM, and
+saturating with the amount of the respective enzyme. C/N ratios, $\beta$, of the
+decomposition flux is equal to the C/N ratios of the decomposed pool. C/N ratios
+of biomass and enzymes are fixed while those of the resource pools may change
+over time due to changing C/N ratio of total influx to these pools. Imbalances
+in stoichiometry of uptake and microbial requirements are compensated by
+overflow respiration or N mineralization.
 Total enzyme allocation is a fixed fraction, $a_E$, of the microbial biomass,
 $B$, per time. But microbial community can use different strategies (Section
-\ref{sec:AllocStrategies}) to adjust their allocation to produce new enzymes.
-The DOM pool is assumed to be in quasi steady state and the sum of all
-influxes to the DOM pool (decomposition + part of the enzyme turnover) is taken
+\ref{sec:AllocStrategies}) to adjust their allocation to production of
+alternative kinds of new enzymes.
+The DOM pool is assumed to be in quasi steady state and the sum of all influxes
+to the DOM pool, i.e. decomposition plus part of the enzyme turnover, is taken
 up by the microbial community. If expenses for maintenance and enzyme production
 cannot be met, the microbial biomass starves and declines.
 
 \subsection{Exchange with inorganic N pools}
 
-The the mineralization/immobilization flux, $\Phi_B$, lets microbes mineralize
+The imbalance flux, $\Phi_B$, lets microbes mineralize
 access N or immobilize required N up to a maximum rate of
 $u_{\operatorname{imm,Pot}}$, which increases linearly with the inorganic N
 pool.
@@ -327,11 +329,14 @@ enzyme levels, $E_S^*$.
 \begin{align}
 \operatorname{rev}_{SC} &= \frac{\text{return}}{\text{investment}} 
 = \frac{\operatorname{dec}_{S,Pot} \frac{E_S^*}{K_{M,S} + E_S^*}} {k_{NS}E_S^*} 
-= \frac{\operatorname{dec}_{S,Pot}} {k_{NS}(K_{M,S} + E_S^*)} \\ 
+= \frac{\operatorname{dec}_{S,Pot}} {k_{NS}(K_{M,S} + E_S^*)} 
+\\ 
 \operatorname{rev}_{SN} &= \frac{\operatorname{dec}_{S,Pot}
 \frac{E_S^*}{K_{M,S} + E_S^*} / \beta_S} {k_{NS} E_S^* / \beta_E} 
-= \frac{\operatorname{dec}_{S,Pot}}{k_{NS} (K_{M,S} + E_S^*)} 
-\frac{\beta_E}{\beta_S}
+= \operatorname{rev}_{SC} \frac{\beta_E}{\beta_S}
+% \\
+% = \frac{\operatorname{dec}_{S,Pot}}{k_{NS} (K_{M,S} + E_S^*)} 
+% \frac{\beta_E}{\beta_S}
 \text{,} 
 \end{align}
 \end{subequations}
@@ -457,15 +462,17 @@ the system.
 First, the results of several prototypical artificial simulation scenarios
 clarify the general behaviour and features of the SEAM model. Next, results of a
 parameter calibration demonstrate the model's ability to
-simulate the observed C and N dynamics of an intensive pasture.
+simulate the observed C and N dynamics of an intensive pasture and explore
+feedbacks with the dynamics of the inorganic N pool.
 
 \subsection{Prototypical simulation scenarios}
 \label{sec:ResultsProto}
 
-With the \textbf{VarN-Incubation} scenario, there were differences among
-allocation strategies for the dependence of allocation $\alpha$ on the N
-content of the litter resource. The different strategies caused marked changes
-in biomass and imbalance fluxes (Fig. \ref{fig:VarNNoFeedback}).
+With the \textbf{VarN-Incubation} scenario, where the resource pools were fixed,
+there were differences among allocation strategies for the dependence of
+allocation $\alpha$ on the N content of the litter resource. The different
+strategies caused marked changes in biomass and imbalance fluxes (Fig.
+\ref{fig:VarNNoFeedback}).
  
 \begin{figure}[t] \vspace*{2mm}
 \begin{center}
@@ -473,10 +480,10 @@ in biomass and imbalance fluxes (Fig. \ref{fig:VarNNoFeedback}).
 \end{center}
 \caption{
 Match enzyme allocations strategy yielded highest resource efficiency, i.e.
-lowest mineralization fluxes with the VarN-scenario. Microbes with alternative
-strategies, however, competed better indicated by a higher biomass. Carbon use
-efficiency (CUE) and C/N ratio of the decomposition flux (cnDOM) helped to
-explain the different patterns.
+lowest mineralization fluxes at steady state with the VarN-scenario. Microbes
+with alternative strategies, however, competed better indicated by a higher
+biomass. Carbon use efficiency (CUE) and C/N ratio of the decomposition flux
+(cnDOM) helped to explain the different patterns.
 \label{fig:VarNNoFeedback}}
 \end{figure}
 
@@ -493,8 +500,8 @@ expenditures were allocated into R degrading enzymes. This resulted in higher
 mineralization of excess N, but in turn allowed for a higher microbial biomass.
 With litter lacking enough N (higher C/N ratios), investment into R-degrading enzymes
 increased to about 30\%, a value that was much lower than with the the Match
-strategy. Hence, the Revenue strategy yielded higher C overflow respiration
-associated with low carbon use efficiency. However, at the same time, it
+strategy. Hence, the Revenue strategy yielded higher overflow respiration
+associated with low carbon use efficiency (CUE). However, at the same time, it
 yielded higher levels of microbial biomass.
 
 The Fixed strategy yielded higher N-mineralization due to stoichiometric
@@ -507,14 +514,13 @@ to intermediate values of all the other outputs.
 % \ref{fig:VarNNoFeedback}). The reason for this increase, here, was a lower
 % proportion of uptake flux compared to immobilization flux with lower biomass.
 
-With the \textbf{Feedback-Steady} scenario, which included feedback to the
-resource pools, both Fixed and the Revenue strategies caused
+With the \textbf{Feedback-Steady} scenario, where resource pools where refueled
+by microbial and enzyme turnover, both Fixed and the Revenue strategies caused
 resource pools to approach a steady state.
-However, the microbes with Match strategy solely degraded the
-stoichiometrically better matching high-N residue pool, $R$ (Fig.
-\ref{fig:SimSteady}). Hence, they declined together with the R residues
-pool despite the large amount of N accumulating in the stoichiometrically less
-favourable litter pool (Fig. \ref{fig:SimSteady}).
+However, the microbes with Match strategy solely degraded the stoichiometrically
+better matching high-N residue pool, $R$. Hence, they declined together with the
+R residues pool despite the large amount of N accumulating in the
+stoichiometrically less favourable litter pool (Fig. \ref{fig:SimSteady}).
 
 \begin{figure}[t]
 \vspace*{2mm}
@@ -561,23 +567,23 @@ mineralization most strongly with the Revenue strategy with the Priming scenario
 \label{fig:PrimingMin}}
 \end{figure}
 
-With the \textbf{\chem{CO_2}-Fertilization} scenario, enzyme allocation strategies
-yielded most marked differences between strategies in both SOM stocks (Fig.
-\ref{fig:CO2Increase}) and nutrient recycling (Fig. \ref{fig:CO2IncreaseImb}).
+With the \textbf{\chem{CO_2}-Fertilization} scenario, where litter C input was
+increased, enzyme allocation strategies yielded most marked differences between
+strategies in both SOM stocks (Fig. \ref{fig:CO2Increase}) and nutrient
+recycling (Fig. \ref{fig:CO2IncreaseImb}).
 While litter stocks $L$ increased with both scenarios, the residues stock $R$
-slightly increased with the Fixed strategy but declined with the Revenue strategy. In
-addition N mineralization was much stronger with the Revenue scenario during
-elevated \chem{CO_2} period, with largest contribution from mineralization by
-microbial turnover.
+slightly increased with the Fixed strategy but declined with the Revenue
+strategy. In addition N mineralization was much stronger with the Revenue
+scenario during elevated \chem{CO_2} period, with largest contribution from
+mineralization by microbial turnover.
 
 \begin{figure}[t] \vspace*{2mm}
 \begin{center}
 \includegraphics[width=8.3cm]{fig/CO2Increase}
 \end{center}
 \caption{
-Revenue strategy led to a depletion of SOM, i.e.
-nutrient mining, during increased carbon litter inputs
-in years 10 to 60 with the \chem{CO_2}-Fertilization scenario.
+Revenue strategy led to a depletion of SOM, i.e. mining, during increased carbon
+litter inputs in years 10 to 60 with the \chem{CO_2}-Fertilization scenario.
 \label{fig:CO2Increase}}
 
 \end{figure}

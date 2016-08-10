@@ -30,6 +30,7 @@ R0 <-  SOM0_Allard07 - L0_Perveen14   #640*0.1*0.18*1000 rho*10cm*Corg
 
 NLoss_A_Perveen14 <- 0.0055 # phi_i - l*N - phi_up
 
+
 parms0 <- list(
         cnB = 11         ##<< Perveen14, slightly higher than cnR
         ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
@@ -579,3 +580,6 @@ print(p1b, vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
     p1bp
     direct.label(p1bp, list(last.points, hjust = 0.7, vjust = 1))
 }    
+
+# intitial state for table
+xBaseSt
