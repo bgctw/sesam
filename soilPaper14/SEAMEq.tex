@@ -3,6 +3,8 @@
 \section{SEAM equations \label{app:SEAM}}    
 %% Appendix A
 
+\remarkSZ{why not use C and N consistently here?}{}
+
 \subsection{Carbon fluxes}
 \begin{subequations}
 \label{eq:SEAM}
@@ -28,7 +30,7 @@ The specific fluxes are detailed below.
 
 Total enzyme production $\operatorname{syn}_E$, maintenance respiration
 $\operatorname{r}_{M}$, and microbial turnover $\operatorname{tvr}_B$ are
-modelled as a first order kinetics of biomass:
+modelled as a first-order kinetics of biomass:
 \begin{subequations}
 \begin{align}
 \label{eq:synE} \operatorname{syn}_E &= a_E B \\
@@ -40,12 +42,12 @@ modelled as a first order kinetics of biomass:
 % \end{equation}
 
 Enzyme turnover ($\operatorname{tvr}_{ER}$ and $\operatorname{tvr}_{EL}$) is
-modelled as first order kinetics of enzyme levels.
+modelled as first-order kinetics of enzyme levels.
 \begin{equation}
 \label{eq:tvrE}
 \operatorname{tvr}_{ES} = k_{NS} E_S \text{,}
 \end{equation}
-where $S$ represents either litter $L$ or residue $R$ substrate pools.  
+where $S$ represents the litter $L$ and residue $R$ substrate pools, respectively.  
 
 % \begin{subequations}
 % \begin{align}
@@ -54,7 +56,7 @@ where $S$ represents either litter $L$ or residue $R$ substrate pools.
 % \end{align}
 % \end{subequations}
 % 
-Substrate depolymerization is modelled first order to substrate
+Substrate depolymerisation is modelled first-order to substrate
 availability with a saturating Michaelis-Menten kinetics to enzyme levels:
 \begin{subequations}
 \label{eq:dec}
@@ -65,7 +67,7 @@ availability with a saturating Michaelis-Menten kinetics to enzyme levels:
 \end{align}
 \end{subequations}
  
-The DOM pool is assumed to be in fast quasi steady state and all the sum of all
+The DOM pool is assumed to be in quasi steady state, and hence, the sum of all
 influxes to the DOM pool (decomposition + part of the enzyme turnover) is taken
 up by microbial community.
 \begin{equation}
@@ -86,13 +88,13 @@ C_{\operatorname{synBC}} = u_C -
 \operatorname{syn}_E/\epsilon - \operatorname{r}_{M}
 \end{equation}
 
-If carbon balance for biomass synthesis, $\operatorname{syn}_B$ (eq.
+If the carbon balance for biomass synthesis, $\operatorname{syn}_B$ (eq.
 \ref{eq:NCLim}), is positive, only a fraction $\epsilon$, the anabolic
-carbon use efficiency, is used for synthesis of biomass and enzymes
-and the rest is required for catabolic growth respiration $r_G$ to support this
+carbon use efficiency is used for synthesis of biomass and enzymes,
+whereas the rest is used for catabolic growth respiration $r_G$ to support this
 synthesis.
 The model assumes that requirements for enzyme synthesis and maintenance must be
-met. Hence, the balance could become negative where microbial biomass starves
+met. Hence, the microbial carbon balance can become negative where microbial biomass starves
 and declines.
 
 \begin{subequations}
@@ -121,9 +123,9 @@ synthesis and is given below by eq.
 Nitrogen fluxes and pools are derived by dividing the respective fluxes with the
 C/N ratio, $\beta$, of their source.
 
-The C/N ratios $\beta_B$ and $\beta_E$ of the microbial biomass and of the
-enzymes, are fixed. The C/N ratio of the litter pools, however, may change over
-time and the N pools are modelled explicitly.
+The C/N ratios $\beta_B$ and $\beta_E$ of the microbial biomass and 
+enzymes are assumed to be fixed. However, the C/N ratio of the substrate pools
+may change over time and thus the substrate N pools are modelled explicitly.
 \begin{subequations}
 \label{eq:SEAMN}
 \begin{align}
@@ -147,19 +149,19 @@ time and the N pools are modelled explicitly.
 
 \noindent where the balance of the inorganic nitrogen pool $I$ sums inorganic
 inputs $i_I$, plant uptake $k_{IP}$, leaching $l I$, and the exchange flux with
-soil mirobial biomass, $\Phi$. This exchange flux, here, is the sum of the
-apparent mineralization due to soil heterogeneity, $\Phi_u$,
-mineralization-immobilization imbalance flux, $\Phi_B$ (\ref{eq:PhiB}), and
-mineralization of a part of microbial turnover ,$\Phi_{\operatorname{tvr}}$
-(\ref{eq:PhiTvr}), to compensate predator's stoichiometery for predator's
-respiration (section \ref{sec:Tvr}).
+soil microbial biomass, $\Phi$. The latter is the sum of the
+apparent mineralization
+due to soil heterogeneity \citep{Manzoni08}, $\Phi_u$, mineralisation-immobilisation
+imbalance flux, $\Phi_B$ (\ref{eq:PhiB}), and mineralisation of a part of microbial
+turnover ,$\Phi_{\operatorname{tvr}}$ (\ref{eq:PhiTvr}, section \ref{sec:Tvr}).
 
-Organic N uptake, $u_{N,OM}$, was modelled as a PAR scheme, where apparantly
-part of the organic N  that is taken up from DON is mineralized because of soil
-spots with high N concentration in DOM \citep{Manzoni08}. Potential nitrogen
-uptake is the sum of organic N uptake and the potential immobilization
-flux ($u_{\operatorname{imm,Pot}}$). Uptake from DOM is assumed equal to
-influxes to DOM times the apparent nitrogen use efficiency $\nu$.
+Organic N uptake, $u_{N,OM}$, was modelled as a PAR scheme,
+where a part of the organic N that is taken up from DON is mineralised
+accounting at soil core scale accounting for imbalance flux at sub-scale soil
+spots with high N concentration in DOM \citep{Manzoni08}.
+Potential nitrogen uptake is the sum of organic N uptake and the potential
+immobilisation flux ($u_{\operatorname{imm,Pot}}$). Uptake from DOM is assumed
+equal to influxes to DOM times the apparent nitrogen use efficiency $\nu$.
 \begin{subequations}
 \label{eq:uN}
 \begin{align}
@@ -175,7 +177,7 @@ u_{\operatorname{imm,Pot}} &= i_B I
 where C/N ratios $\beta_L$ and $\beta_R$ are calculated based on current C
 and N substrate pools: $\beta_L = L/L_N$.  
 
-The nitrogen available for biomass synthesis is the difference of nitrogen
+The nitrogen available for biomass synthesis is the difference of microbial nitrogen
 uptake and expenses for enzyme synthesis. This translates to a nitrogen
 constraint for the carbon used for biomass synthesis and its associated
 catabolic growth respiration: $C_{\operatorname{synB}} \le
@@ -190,7 +192,7 @@ C_{\operatorname{synBN}} &= \beta_B \, N_{\operatorname{synBN}}  / \epsilon
 
 
 \subsection{Imbalance fluxes of C versus N limited microbes }
-There are constraints of each element for the carbon flux for synthesis of new
+There are constraints of each element on the synthesis of new
 biomass and associated growth respiration. The minimum of these fluxes (eq.
 \ref{eq:NCLim}) constrains the synthesis of new biomass. 
 \begin{equation}
@@ -201,7 +203,7 @@ min(C_{\operatorname{synBC}}, C_{\operatorname{synBN}} )
 
 The excess elements are lost by imbalance fluxes (eq. \ref{eq:imbalance}).
 The excess carbon is respired by overflow respiration, $r_O$, and the excess
-nitrogen is mineralized, $M_{\operatorname{Imb}}$, so that the mass
+nitrogen is mineralised, $M_{\operatorname{Imb}}$, so that the mass
 balance is closed.
 \begin{subequations}
 \label{eq:imbalance}
@@ -216,13 +218,13 @@ M_{\operatorname{Imb}} &= u_N -
 \end{align} 
 \end{subequations}
 
-The real mineralization-immobilization flux $\Phi_B$ is the difference between
-potential immobilization and excess nitrogen mineralization.
-With carbon limitation this will be a positive mineralization flux. With
-substrate nitrogen limitation, this will be a negative flux corresponding to
-immobilization.
-With uptake nitrogen limitation, i.e. required immobilization is larger than
-potential immobilization, $\Phi_B = -u_{\operatorname{imm,Pot}}$ and
+The actual mineralisation-immobilisation flux $\Phi_B$ is the difference between
+the potential immobilisation flux and excess nitrogen mineralization.
+If microbes are limited by carbon availability, $\Phi_B$ will be positive, whereas with 
+substrate nitrogen limitation, $\Phi_B$ will be a negative flux, corresponding to
+N immobilisation.
+With uptake nitrogen limitation, i.e. required immobilisation is larger than
+potential immobilisation, $\Phi_B = -u_{\operatorname{imm,Pot}}$ and
 stoichiometry must be balanced by overflow respiration.
 
 \subsection{Weight of an element limitation}
@@ -244,7 +246,7 @@ N_{\operatorname{synBN}} } \right)^\delta
 \text{,} 
 \end{align}
 \end{subequations}
-where parameter $\delta$, which was arbitrarily set to 200, controls
+where parameter $\delta$, arbitrarily set to 200, controls
 the steepness of the transition between the two limitations.
 $X_{\operatorname{synBY}}$ denotes the available flux of element X for
 biosynthesis and associated respiration given the limitation of element Y
@@ -253,7 +255,7 @@ biosynthesis and associated respiration given the limitation of element Y
 
 \subsection{Turnover mineralization fluxes \label{sec:Tvr}}
 In addition to mineralization flux due to stoichiometric imbalance, a part of
-microbial biomass is mineralized during microbial turnover, e.g. by grazing. A
+microbial biomass is mineralised during microbial turnover, e.g. by grazing. A
 part $(1-\epsilon_{\operatorname{tvr}})$ of the biomass is used for catabolic
 respiration. With assuming that predator biomass elemental ratios do not differ
 very much from the one of microbial biomass, a respective proportion of N must

@@ -1,4 +1,7 @@
 %% Copernicus Publications Manuscript Preparation Template for LaTeX Submissions
+%DIF LATEXDIFF DIFFERENCE FILE
+%DIF DEL prevVersion/soil_main.tex   Wed Aug 10 09:02:25 2016
+%DIF ADD soil_main.tex               Wed Aug 24 10:53:46 2016
 %% ---------------------------------
 %% This template should be used for the following class files: copernicus.cls, copernicus2.cls, copernicus_discussions.cls
 %% The class files, the Copernicus LaTeX Manual with detailed explanations regarding the comments
@@ -19,7 +22,11 @@
 %\newcommand*\chem[1]{\ensuremath{\mathrm{#1}}}
 %\newcommand{\unit}[1]{\ensuremath{\mathrm{#1}}}
 
-\usepackage[]{nohyperref}   % else error with nesting levels 
+%DIF 22c22
+%DIF < %\usepackage[]{nohyperref}   % else error with nesting levels 
+%DIF -------
+\usepackage[]{nohyperref}   % else error with nesting levels  %DIF > 
+%DIF -------
 %\usepackage{breqn}          % for breaking long equations \begin{dmath}
 
 %% Discussion Papers
@@ -53,6 +60,25 @@
 \newcommand{\remMR}[1]{\remarkMR{}{#1}}
 \newcommand{\rem}[1]{\remark{}{#1}}
 %\renewcommand{\remarkup}[4]{#1}
+%DIF PREAMBLE EXTENSION ADDED BY LATEXDIFF
+%DIF UNDERLINE PREAMBLE %DIF PREAMBLE
+\RequirePackage[normalem]{ulem} %DIF PREAMBLE
+\RequirePackage{color}\definecolor{RED}{rgb}{1,0,0}\definecolor{BLUE}{rgb}{0,0,1} %DIF PREAMBLE
+\providecommand{\DIFadd}[1]{{\protect\color{blue}\uwave{#1}}} %DIF PREAMBLE
+\providecommand{\DIFdel}[1]{{\protect\color{red}\sout{#1}}}                      %DIF PREAMBLE
+%DIF SAFE PREAMBLE %DIF PREAMBLE
+\providecommand{\DIFaddbegin}{} %DIF PREAMBLE
+\providecommand{\DIFaddend}{} %DIF PREAMBLE
+\providecommand{\DIFdelbegin}{} %DIF PREAMBLE
+\providecommand{\DIFdelend}{} %DIF PREAMBLE
+%DIF FLOATSAFE PREAMBLE %DIF PREAMBLE
+\providecommand{\DIFaddFL}[1]{\DIFadd{#1}} %DIF PREAMBLE
+\providecommand{\DIFdelFL}[1]{\DIFdel{#1}} %DIF PREAMBLE
+\providecommand{\DIFaddbeginFL}{} %DIF PREAMBLE
+\providecommand{\DIFaddendFL}{} %DIF PREAMBLE
+\providecommand{\DIFdelbeginFL}{} %DIF PREAMBLE
+\providecommand{\DIFdelendFL}{} %DIF PREAMBLE
+%DIF END PREAMBLE EXTENSION ADDED BY LATEXDIFF
 
 \begin{document} 
 
@@ -64,12 +90,15 @@ soil organic matter and nutrient cycling.}
 \author[1]{Thomas Wutzler}
 \author[1]{Marion Schrumpf}
 \author[1]{Bernhard Ahrens}
-\author[1,2]{S\"onke Zaehle}
-\author[1,2]{Markus Reichstein}
+\DIFdelbegin %DIFDELCMD < \author[1]{%%%
+\DIFdel{S\"ohnke Z\"ahle}\DIFdelend \DIFaddbegin \author[1,2]{\DIFadd{S\"onke Zaehle}\DIFaddend }
+\DIFdelbegin %DIFDELCMD < \author[1]{%%%
+\DIFdelend \DIFaddbegin \author[1,2]{\DIFaddend Markus Reichstein}
 
 \affil[1]{Max Planck Institute for Biogeochemistry, Hans-Kn{\"o}ll-Stra{\ss}e 10,
 07745 Jena, Germany }
-\affil[2]{Michael Stifel Center Jena for Data-driven and Simulation Science, Jena, Germany}
+\DIFaddbegin \affil[2]{Michael Stifel Center Jena for Data-driven and Simulation Science, Jena, Germany}
+\DIFaddend 
 
 %% The [] brackets identify the author to the corresponding affiliation, 1, 2, 3, etc. should be inserted.
 
@@ -132,9 +161,9 @@ soil organic matter and nutrient cycling.}
 
 \begin{acknowledgements}
 We thank Nazia Perveen and S\'{e}bastien Fontaine for letting us reuse the data
-that they used for fitting the SYMPHONY model. SZ acknowledges support from the
+that they used for fitting the SYMPHONY model\DIFaddbegin \DIFadd{. SZ acknowledges support from the
 European Research Council (ERC) under the European Union?s Horizon 2020 research
-and innovation programme (QUINCY; grant no. 647204).
+and innovation programme (QUINCY; grant no. 647204)}\DIFaddend .
 \end{acknowledgements} 
 
 

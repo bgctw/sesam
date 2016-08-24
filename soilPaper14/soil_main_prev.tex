@@ -19,7 +19,7 @@
 %\newcommand*\chem[1]{\ensuremath{\mathrm{#1}}}
 %\newcommand{\unit}[1]{\ensuremath{\mathrm{#1}}}
 
-\usepackage[]{nohyperref}   % else error with nesting levels 
+%\usepackage[]{nohyperref}   % else error with nesting levels 
 %\usepackage{breqn}          % for breaking long equations \begin{dmath}
 
 %% Discussion Papers
@@ -54,6 +54,7 @@
 \newcommand{\rem}[1]{\remark{}{#1}}
 %\renewcommand{\remarkup}[4]{#1}
 
+
 \begin{document} 
 
 \linenumbers
@@ -64,12 +65,11 @@ soil organic matter and nutrient cycling.}
 \author[1]{Thomas Wutzler}
 \author[1]{Marion Schrumpf}
 \author[1]{Bernhard Ahrens}
-\author[1,2]{S\"onke Zaehle}
-\author[1,2]{Markus Reichstein}
+\author[1]{S\"ohnke Z\"ahle}
+\author[1]{Markus Reichstein}
 
 \affil[1]{Max Planck Institute for Biogeochemistry, Hans-Kn{\"o}ll-Stra{\ss}e 10,
 07745 Jena, Germany }
-\affil[2]{Michael Stifel Center Jena for Data-driven and Simulation Science, Jena, Germany}
 
 %% The [] brackets identify the author to the corresponding affiliation, 1, 2, 3, etc. should be inserted.
 
@@ -105,17 +105,17 @@ soil organic matter and nutrient cycling.}
 
 
 \begin{abstract}
-\input{abstract}
+\input{prevVersion/abstract}
 \end{abstract}
 
-\input{Wutzler14_seam}
+\input{prevVersion/Wutzler14_seam}
 
 
 
 
 \appendix
 
-\include{SEAMEq}
+\include{prevVersion/SEAMEq}
 
 % copy from calcMatchAlphaSeam2
 % replace
@@ -127,14 +127,12 @@ soil organic matter and nutrient cycling.}
 % decPotR \operatorname{dec}_{S,Pot}
 % rMaint r_M
 % kmR K_{M,R}
-\include{alphaFix}
+\include{prevVersion/alphaFix}
 
 
 \begin{acknowledgements}
 We thank Nazia Perveen and S\'{e}bastien Fontaine for letting us reuse the data
-that they used for fitting the SYMPHONY model. SZ acknowledges support from the
-European Research Council (ERC) under the European Union?s Horizon 2020 research
-and innovation programme (QUINCY; grant no. 647204).
+that they used for fitting the SYMPHONY model. 
 \end{acknowledgements} 
 
 
