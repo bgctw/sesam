@@ -512,32 +512,40 @@ levels(dsObs$variable)[match(c("Cf","dR","N","leach"), levels(dsObs$variable))] 
 #dssObs <- subset( dsObs, dsObs$variable %in% dsObs$variable[na.omit(pmatch(c("alpha","L","dR","I","leaching"), dsObs$variable))] )
 dssObs <- dsObs[grep(c("^alpha|^L|^dR|^I|^leach"),dsObs$variable),]
 #p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~|^Phi~|^leach"),predMCtrl$variable),], time <=5)
-p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~|^leach"),predMCtrl$variable),], time <=5)
+#p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~|^leach"),predMCtrl$variable),], time <=5)
+p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^L~|^dR~|^I~|^leach"),predMCtrl$variable),], time <=5)
         , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
         geom_line(size=baseLineSize) +
         geom_point( data=dssObs, colour="black" )+
         geom_errorbar( data=dssObs,aes(ymin=value-sd, ymax=value+sd), width=.25, colour="black") +
-        facet_grid( variable ~ .,  scales="free_y", labeller = label_parsed) +
+        #facet_grid( variable ~ .,  scales="free_y", labeller = label_parsed) +
+        facet_wrap( ~ variable,  scales="free_y", labeller = label_parsed) +
         theme_bw(base_size=baseFontSize) +
         theme(axis.title.y = element_blank()) + 
         xlab("time (yr)") +
         theme(legend.position = "none") +
         theme()
+twWin(3.27, 2)
 p1
+#savePlot("soilPaper14/fig/pastureFitMatch.pdf","pdf")
 
 p1b <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~"),predM$variable),], time <=5)
         , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
         geom_line(size=baseLineSize) +
         #facet_wrap( ~ variable,  scales="free_y", nrow=6, ncol=1) +
-        facet_grid( variable ~ .,  scales="free_y", labeller = label_parsed) +
+        facet_wrap( ~ variable,  scales="free_y", ncol=2L, labeller = label_parsed) +
+        #facet_grid( variable ~ .,  scales="free_y", labeller = label_parsed) +
         theme_bw(base_size=baseFontSize) +
         theme(axis.title.y = element_blank()) + 
         xlab("time (yr)") +
-        theme(legend.position = "bottom") +
+        #theme(legend.position = "bottom") +
+        theme(legend.position = c(0.95,-0.08), legend.justification=c(1,0)) +
         theme(legend.title = element_blank()) +
         guides(linetype=guide_legend(nrow=4,byrow=TRUE)) +
         theme()
+twWin(3.27, 3.5)
 p1b
+#savePlot("soilPaper14/fig/pastureFitInputScenarios.pdf","pdf")
 
 twWin(3.27, 5.9)
 #twWin(7.5,8.7)
@@ -546,6 +554,7 @@ pushViewport(viewport(layout = grid.layout(1, 2)))
 print(p1, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
 print(p1b, vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
 #savePlot("soilPaper14/fig/pastureFit.pdf","pdf")
+
 
 
 #------------- plotting differently for presentations
