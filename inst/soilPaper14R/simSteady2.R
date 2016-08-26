@@ -24,6 +24,8 @@ myColors <- brewer.pal(5,"Dark2")
 }
 #names(myColors) <- .simpleCap(names(parmsScen))
 colScale <- scale_colour_manual(name = "Allocation",values = myColors)
+.treatments <- structure(c(1,0.5), names=c("Litter input pulse","No Litter input"))
+sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
 
 
 # gC/m2 and gN/m2, /yr
@@ -593,8 +595,9 @@ simPriming <- function(
     #dspN$var <- "Phi[Total]~(gNm^{-2}*yr^{-1})"
     dspN$var <- "N-Mineralization~(gNm^{-2}*yr^{-1})"
     dspB <- rbind(dsp,dspN)
+    dspB$Treatment <- relevel(dspB$Treatment, ref="Litter input pulse") # pulse first
     dspB$var <- factor(dspB$var, unique(dspB$var))
-    p3b <- ggplot( dspB, aes(x=timeDay, y=value, lty=Allocation, col=Allocation, group=interaction(Treatment,Allocation))) + geom_line(size=1) +
+    p3b <- ggplot( dspB, aes(x=timeDay, y=value, lty=Allocation, col=Allocation, size=Treatment, group=interaction(Treatment,Allocation))) + geom_line() +
             facet_grid(var ~ .,scales="free_y", labeller = label_parsed) + 
             xlab("Time (day)")+ 
             theme_bw(base_size=baseFontSize) +
@@ -604,9 +607,10 @@ simPriming <- function(
     print(p3b + colScale)
     if (isPaperBGC){
         twWin(width=3.3, height=3.5, pointsize=9, pdf="soilPaper14/fig/PrimingMinDec.pdf")
-        print(p3b + colScale + 
+        print(p3b + colScale + sizeScale +
                         theme(legend.position = c(0.9,-0.025), legend.justification=c(1,0) ) +
                         #theme(legend.position="bottom") +
+                        theme( legend.box = "horizontal") +
                         theme( plot.margin = unit( c(0.06,0.02,0,0.02), "in" ) ) )
         dev.off()
     }

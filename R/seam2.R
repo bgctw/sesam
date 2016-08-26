@@ -83,7 +83,9 @@ derivSeam2 <- function(t,x,parms){
     alphaN <- revRN / (revLN + revRN)  
     #
     alpha <- if( isTRUE(parms$useAlphaCUntilNLimited) || immoPot < uNSubstrate/100 ){ 
-                balanceAlphaSmallImmobilization(alphaC, alphaN, CsynBN, CsynBC, parms$eps*CsynBC/cnB, NsynBN) 
+                balanceAlphaSmallImmobilization(alphaC)
+                balanceAlphaSmallImmobilization(alphaC, alphaN, CsynBN, CsynBC
+                                , NsynBC=parms$eps*CsynBC/cnB, NsynBN) 
             } else {
                 balanceAlphaLargeImmobilization(alphaC, alphaN, isLimN, isLimNSubstrate, immoAct=-MmB, immoPot=immoPot)
             }

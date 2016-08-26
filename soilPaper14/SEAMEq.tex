@@ -3,8 +3,6 @@
 \section{SEAM equations \label{app:SEAM}}    
 %% Appendix A
 
-\remarkSZ{why not use C and N consistently here?}{}
-
 \subsection{Carbon fluxes}
 \begin{subequations}
 \label{eq:SEAM}
@@ -76,9 +74,9 @@ u_C = \operatorname{dec}_L + \operatorname{dec}_R +  k_{NB}
 (\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})
 \end{equation}
 
-Under carbon limitation, carbon available for synthesis of new biomass and
+Under C limitation, C available for synthesis of new biomass and
 associated catabolic growth respiration, $C_{\operatorname{synBC}}$, is the
-difference between carbon uptake and expenses for enzyme synthesis (eq.
+difference between C uptake and expenses for enzyme synthesis (eq.
 \ref{eq:synE}) and maintenance respiration (eq.
 \ref{eq:rM}).
 
@@ -88,13 +86,13 @@ C_{\operatorname{synBC}} = u_C -
 \operatorname{syn}_E/\epsilon - \operatorname{r}_{M}
 \end{equation}
 
-If the carbon balance for biomass synthesis, $\operatorname{syn}_B$ (eq.
+If the C balance for biomass synthesis, $\operatorname{syn}_B$ (eq.
 \ref{eq:NCLim}), is positive, only a fraction $\epsilon$, the anabolic
-carbon use efficiency is used for synthesis of biomass and enzymes,
+carbon use efficiencey (CUE) is used for synthesis of biomass and enzymes,
 whereas the rest is used for catabolic growth respiration $r_G$ to support this
 synthesis.
 The model assumes that requirements for enzyme synthesis and maintenance must be
-met. Hence, the microbial carbon balance can become negative where microbial biomass starves
+met. Hence, the microbial C balance can become negative where microbial biomass starves
 and declines.
 
 \begin{subequations}
@@ -113,7 +111,7 @@ and declines.
 \end{align}
 \end{subequations}
 %\noident
-where $C_{\operatorname{synB}}$ is the carbon balance for biomass
+where $C_{\operatorname{synB}}$ is the C balance for biomass
 synthesis and is given below by eq.
 \ref{eq:NCLim}.
 
@@ -147,7 +145,7 @@ may change over time and thus the substrate N pools are modelled explicitly.
 \end{align}
 \end{subequations}
 
-\noindent where the balance of the inorganic nitrogen pool $I$ sums inorganic
+\noindent where the balance of the inorganic N pool $I$ sums inorganic
 inputs $i_I$, plant uptake $k_{IP}$, leaching $l I$, and the exchange flux with
 soil microbial biomass, $\Phi$. The latter is the sum of the
 apparent mineralization
@@ -159,9 +157,9 @@ Organic N uptake, $u_{N,OM}$, was modelled as a PAR scheme,
 where a part of the organic N that is taken up from DON is mineralised
 accounting at soil core scale accounting for imbalance flux at sub-scale soil
 spots with high N concentration in DOM \citep{Manzoni08}.
-Potential nitrogen uptake is the sum of organic N uptake and the potential
+Potential N uptake is the sum of organic N uptake and the potential
 immobilisation flux ($u_{\operatorname{imm,Pot}}$). Uptake from DOM is assumed
-equal to influxes to DOM times the apparent nitrogen use efficiency $\nu$.
+equal to influxes to DOM times the apparent N use efficiency $\nu$.
 \begin{subequations}
 \label{eq:uN}
 \begin{align}
@@ -177,9 +175,9 @@ u_{\operatorname{imm,Pot}} &= i_B I
 where C/N ratios $\beta_L$ and $\beta_R$ are calculated based on current C
 and N substrate pools: $\beta_L = L/L_N$.  
 
-The nitrogen available for biomass synthesis is the difference of microbial nitrogen
-uptake and expenses for enzyme synthesis. This translates to a nitrogen
-constraint for the carbon used for biomass synthesis and its associated
+The N available for biomass synthesis is the difference of microbial N
+uptake and expenses for enzyme synthesis. This translates to a N
+constraint for the C used for biomass synthesis and its associated
 catabolic growth respiration: $C_{\operatorname{synB}} \le
 C_{\operatorname{synBN}}$.
 \begin{subequations}
@@ -202,8 +200,8 @@ min(C_{\operatorname{synBC}}, C_{\operatorname{synBN}} )
 \end{equation}
 
 The excess elements are lost by imbalance fluxes (eq. \ref{eq:imbalance}).
-The excess carbon is respired by overflow respiration, $r_O$, and the excess
-nitrogen is mineralised, $M_{\operatorname{Imb}}$, so that the mass
+The excess C is respired by overflow respiration, $r_O$, and the excess
+N is mineralised, $M_{\operatorname{Imb}}$, so that the mass
 balance is closed.
 \begin{subequations}
 \label{eq:imbalance}
@@ -219,11 +217,11 @@ M_{\operatorname{Imb}} &= u_N -
 \end{subequations}
 
 The actual mineralisation-immobilisation flux $\Phi_B$ is the difference between
-the potential immobilisation flux and excess nitrogen mineralization.
-If microbes are limited by carbon availability, $\Phi_B$ will be positive, whereas with 
-substrate nitrogen limitation, $\Phi_B$ will be a negative flux, corresponding to
+the potential immobilisation flux and excess N mineralization.
+If microbes are limited by C availability, $\Phi_B$ will be positive, whereas with 
+substrate N limitation, $\Phi_B$ will be a negative flux, corresponding to
 N immobilisation.
-With uptake nitrogen limitation, i.e. required immobilisation is larger than
+With microbial N limitation, i.e. required immobilisation is larger than
 potential immobilisation, $\Phi_B = -u_{\operatorname{imm,Pot}}$ and
 stoichiometry must be balanced by overflow respiration.
 
@@ -238,11 +236,11 @@ biosynthesis.
 \begin{align}
 w_{\operatorname{CLim}} &= \left( \frac{\text{required}}{\text{available}}
 \right)^\delta 
-= \left( \frac{ N_{\operatorname{synBN}} \beta_B }{ C_{\operatorname{synBC}} }
+= \left( \frac{ C_{\operatorname{synBN}} }{ C_{\operatorname{synBC}} }
 \right)^\delta
 \\
-w_{\operatorname{NLim}} &= \left( \frac{ C_{\operatorname{synBC}} / \beta_B }{
-N_{\operatorname{synBN}} } \right)^\delta
+w_{\operatorname{NLim}} &= \left( \frac{ \epsilon \, C_{\operatorname{synBC}} /
+\beta_B }{ N_{\operatorname{synBN}} } \right)^\delta
 \text{,} 
 \end{align}
 \end{subequations}
@@ -277,7 +275,7 @@ of the microbial turnover probably enters the DOM pool again (e.g. by cell
 lysis) and is taken up again by microbial biomass. The increased uptake nearly
 cancels with an increased turnover. Hence, SEAM does not explicitly consider this
 shortcut loop so that fewer model parameters are required.
-Note, however, that turnover, uptake, and carbon use efficiency in the model are
+Note, however, that turnover, uptake, and CUE in the model are
 slightly lower than in the real system where this shortcut operates.
 
 
