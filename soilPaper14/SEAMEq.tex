@@ -13,7 +13,7 @@
 \frac{dL}{dt} &=  - \operatorname{dec}_L + \operatorname{input}_L
 \\
 \frac{dR}{dt} &=  - \operatorname{dec}_R +
-\epsilon_{\operatorname{tvr}}  \operatorname{tvr}_B + (1 -k_{NB})
+\epsilon_{\operatorname{tvr}}  \operatorname{tvr}_B + (1 -\kappa_E)
 (\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})
 \text{,} 
 \end{align}
@@ -22,7 +22,7 @@ where $\alpha$ is the proportion of total investment into enzymes
 that is allocated to the residue pool $R$ (section
 \ref{sec:AllocStrategies}), $\operatorname{input}_L$
 is the litter C input to the system, $\epsilon_{\operatorname{tvr}}$ is the
-fraction of microbial turnover C that is respired by predators, and $k_{NB}$ is the fraction of enzyme turnover
+fraction of microbial turnover C that is respired by predators, and $\kappa_E$ is the fraction of enzyme turnover
 that is transferred to the DOM instead of the $R$ pool.
 The specific fluxes are detailed below.
 
@@ -70,7 +70,7 @@ influxes to the DOM pool (decomposition + part of the enzyme turnover) is taken
 up by microbial community.
 \begin{equation}
 \label{eq:uC}
-u_C = \operatorname{dec}_L + \operatorname{dec}_R +  k_{NB}
+u_C = \operatorname{dec}_L + \operatorname{dec}_R +  \kappa_E
 (\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})
 \end{equation}
 
@@ -88,7 +88,7 @@ C_{\operatorname{synBC}} = u_C -
 
 If the C balance for biomass synthesis, $\operatorname{syn}_B$ (eq.
 \ref{eq:NCLim}), is positive, only a fraction $\epsilon$, the anabolic
-carbon use efficiencey (CUE) is used for synthesis of biomass and enzymes,
+carbon use efficiency (CUE) is used for synthesis of biomass and enzymes,
 whereas the rest is used for catabolic growth respiration $r_G$ to support this
 synthesis.
 The model assumes that requirements for enzyme synthesis and maintenance must be
@@ -133,7 +133,7 @@ may change over time and thus the substrate N pools are modelled explicitly.
 \frac{dR_N}{dt} &=  - \operatorname{dec}_R /\beta_{R} +
 \epsilon_{\operatorname{tvr}} \operatorname{tvr}_B /\beta_{B} + \notag 
 \\
-& \qquad (1 -k_{NB}) (\operatorname{tvr}_{ER} +
+& \qquad (1 -\kappa_E) (\operatorname{tvr}_{ER} +
 \operatorname{tvr}_{EL})/\beta_{E} 
 \\
 \frac{dI}{dt} &= +i_I -k_{IP} -l I +\Phi
@@ -153,7 +153,7 @@ due to soil heterogeneity \citep{Manzoni08}, $\Phi_u$, mineralisation-immobilisa
 imbalance flux, $\Phi_B$ (\ref{eq:PhiB}), and mineralisation of a part of microbial
 turnover ,$\Phi_{\operatorname{tvr}}$ (\ref{eq:PhiTvr}, section \ref{sec:Tvr}).
 
-Organic N uptake, $u_{N,OM}$, was modelled as a PAR scheme,
+Organic N uptake, $u_{N,OM}$, was modelled as a parallel scheme (PAR),
 where a part of the organic N that is taken up from DON is mineralised
 accounting at soil core scale accounting for imbalance flux at sub-scale soil
 spots with high N concentration in DOM \citep{Manzoni08}.
@@ -166,7 +166,7 @@ equal to influxes to DOM times the apparent N use efficiency $\nu$.
 u_N &= \nu u_{N,OM} + u_{\operatorname{imm,Pot}}
 \\
 u_{N,OM} &= \operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R +
-k_{NB} (\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})/\beta_E
+\kappa_E (\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})/\beta_E
 \\
 u_{\operatorname{imm,Pot}} &= i_B I 
 \text{,}
