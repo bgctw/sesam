@@ -36,6 +36,15 @@
 %% for the whole article with \linenumbers.
 \usepackage{lineno}
 
+% displaying large table as non-float
+\usepackage{caption}
+\usepackage{longtable}
+\usepackage{setspace}
+\newcommand{\tophline}[0]{\hline}
+\newcommand{\middlehline}[0]{\hline}
+\newcommand{\bottomhline}[0]{\hline}
+
+
 \journal{Soil Biology \& Biochemistry}
 
 \begin{document}
@@ -62,18 +71,23 @@
 %% \address{Address\fnref{label3}}
 %% \fntext[label3]{}
 
-\title{Adaptation of soil microbial resource allocation affects long term soil
-organic matter and nutrient cycling.}
+\title{Adaptation of microbial resource allocation affects modeled long term
+soil organic matter and nutrient cycling}
 
 %% use optional labels to link authors explicitly to addresses:
 %% \author[label1,label2]{}
 %% \address[label1]{}
 %% \address[label2]{}
 
-\author{Thomas Wutzler}
+\author[1]{Thomas Wutzler}
+\author[1,2]{S\"onke Zaehle}
+\author[1]{Marion Schrumpf}
+\author[1]{Bernhard Ahrens}
+\author[1,2]{Markus Reichstein}
 
-\address{Max Planck Institute for Biogeochemistry, Hans-Kn{\"o}ll-Stra{\ss}e 10,
+\address[1]{Max Planck Institute for Biogeochemistry, Hans-Kn{\"o}ll-Stra{\ss}e 10,
 07745 Jena, Germany }
+\address[2]{Michael Stifel Center Jena for Data-driven and Simulation Science, Jena, Germany}
 
 \begin{abstract}
 \input{abstract}
@@ -82,8 +96,10 @@ organic matter and nutrient cycling.}
 
 \begin{keyword}
 %% keywords here, in the form: keyword \sep keyword
+soil \sep  enzyme \sep  model \sep  stoichiometry \sep  adaptation \sep  microbe
 
 %% PACS codes here, in the form: \PACS code \sep code
+%\PACS  30.020 \sep
 
 %% MSC codes here, in the form: \MSC code \sep code
 %% or \MSC[2008] code \sep code (2000 is the default)
@@ -97,11 +113,31 @@ organic matter and nutrient cycling.}
 
 
 \linenumbers
+
+
+\begin{abstract}
+\input{abstract}
+\end{abstract}
+
 \input{Wutzler14_seam}
 
 %% The Appendices part is started with the command \appendix;
 %% appendix sections are then done as normal sections
 %% \appendix
+
+\appendix
+
+%\include{SEAM_symbols}
+
+\include{SEAMEq}
+
+\begin{acknowledgements}
+We thank Nazia Perveen and S\'{e}bastien Fontaine for letting us reuse the data
+that they used for fitting the SYMPHONY model. TW acknowleges support from Deutsche Forschungsgemeinschaft CRC 1076
+``AquaDiva''. SZ acknowledges support from the European Research Council (ERC)
+under the European Union's Horizon 2020 research and innovation programme
+(QUINCY; grant no. 647204).
+\end{acknowledgements} 
 
 %% \section{}
 %% \label{}
@@ -110,7 +146,7 @@ organic matter and nutrient cycling.}
 %% bibitems, please use
 %%
 \bibliographystyle{elsarticle-harv} 
-\bibliography{twutz_txt}
+\bibliography{twutz_txt} 
 
 %% else use the following coding to input the bibitems directly in the
 %% TeX file.

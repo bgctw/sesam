@@ -88,15 +88,6 @@ inputs from deposition and fertilisers, as well as prescribed
 uptake of inorganic N by roots. SEAM computes output fluxes of heterotrophic
 respiration and leaching of inorganic N at monthly to decadal time scale.
 
-Key features are: first, the representation of several SOM pools that differ by
-their stoichiometry, and second, the representation of specific enzymes that
-degrade those SOM pools. The quality spectrum is modelled by two classes: a C
-rich litter pool, $\operatorname{L}$, and a N rich pool that consists of
-microbial residues, $\operatorname{R}$ (Fig. \ref{fig:SEAMStruct}). The most
-important assumptions are described in the following paragraphs, while the
-symbols are explained in Tab. \ref{tab:modelParameters} and detailed model
-equations are given in Appendix \ref{app:SEAM}.
-
 \begin{figure}[t] \vspace*{2mm}
 \begin{center}
 \includegraphics[width=8.3cm]{fig/seam2}
@@ -118,9 +109,56 @@ separate C or N fluxes respectively.
 }
 \end{figure}
 
+\begin{table*}[t]
+\caption{
+%\captionof{table}{
+\label{tab:modelStates}
+State variables and input with initial values and input fluxes. Values refer to the Laqueuille pasture calibration. }
+%\vskip4mm
+%\centering
+\begin{tabular}{lp{4cm}lllp{5.5cm}}
+%{\setstretch{1} \begin{longtable}{lp{4cm}lllp{4cm}}
+\tophline
+Symbol &  Definition & \multicolumn{2}{c}{Value} & Unit & Rational \\
+\middlehline
+$L$ &  C in litter & & 571 & \unit{g~m^{-2}} & quasi steady state 
+\\
+$L_N$ &  N in litter & & 8.15 & \unit{g~m^{-2}} & \citep{Perveen14}
+(by their N/C ratio $\beta$)
+\\
+$R$ &  C in residue substrate & & 10500 & \unit{g~m^{-2}} &
+\citep{Allard07} (total stocks - L - dR)
+\\
+$R_N$ &  N in residue substrate & & 968 & \unit{g~m^{-2}} & by C/N
+ratio in \citep{Perveen14} \\
+$E_L$ &  C in enzymes targeting $L$ & & 0.34 & \unit{g~m^{-2}} & 
+quasi steady state \\
+$E_R$ &  C in enzymes targeting $R$ & & 0.20 & \unit{g~m^{-2}} & 
+quasi steady state \\
+$B$ & microbial biomass C & & 89.2 & \unit{g~m^{-2}} &  quasi steady
+state \\
+$I$ & inorganic N & & 2.09 & \unit{g~m^{-2}} & \citep{Perveen14} \\
+\middlehline
+$\mathrm{input}_{L}$ & litter C input & & 969.16 &
+\unit{g~m^2yr^{-1}} & \citep{Perveen14} \, ($m_p C^{obs}_p$)\\
+$i_{I}$ & inorganic N input & & 22.91 & \unit{g~m^2yr^{-1}} 
+& \citep{Perveen14} \\
+$k_{IP}$ & inorganic plant N uptake & & 16.04 & 
+\unit{g~m^2yr^{-1}} & \citep{Perveen14} (assuming plant
+steady state: plant N export + litter N input)\\
+\bottomhline
+\end{tabular}
+%\end{longtable}}
+\end{table*}
 
-
-\include{SEAM_symbols} 
+Key features are: first, the representation of several SOM pools that differ by
+their stoichiometry, and second, the representation of specific enzymes that
+degrade those SOM pools. The quality spectrum is modelled by two classes: a C
+rich litter pool, $\operatorname{L}$, and a N rich pool that consists of
+microbial residues, $\operatorname{R}$ (Fig. \ref{fig:SEAMStruct}). The most
+important assumptions are described in the following paragraphs, while the
+symbols are explained in Tab. \ref{tab:modelParameters} and detailed model
+equations are given in Appendix \ref{app:SEAM}.
 
 Decomposition of the litter and residue pools follows an inverse
 Michaelis-Menten kinetics \citep{Schimel03}, which is first-order to the amount of OM, and
@@ -442,24 +480,26 @@ increased C inputs during years 10 to 60, and applied initial litter inputs
 again during the next 50 years. The litter N inputs were kept constant over
 time, implying an increase in the litter C/N ratio of 20\%.
 
-\subsection{Calibration to a fertilised grassland site}
+\subsection{Calibration to a fertilised pasture site}
 \label{sec:methodsPasture}
 
 To test the capacity of SEAM to simulate the net carbon storage of a
-grassland site including feedback of the inorganic N pool, we calibrated the
+pasture site including feedback of the inorganic N pool, we calibrated the
 model to data of an intensive pasture. The intensive
 pasture calibration was tackled only with the Revenue strategy, because the
 Match strategy had already been proven invalid with the prototypical Feedback
 experiment and the control case of the Fixed strategy did not allow for adaptation
 of microbial enzyme allocation.
 
-The model drivers and most of the parametrisation were taken
-from \citet{Perveen14}. The site is a temperate permanent grassland located at
-an altitude of 1040m a.s.l. in France (Laqueuille, 45\textdegree{38}'N,
-2\textdegree{44}'E), receives an annual precipitation of 1200~mm and has an
-annual mean temperature of  7 \textdegree{C}.
+The model drivers and most of the parametrisation and drivers (Tables
+\ref{tab:modelParameters} and \ref{tab:modelStates}) were taken from
+\citet{Perveen14}.
+The site is a temperate permanent pasture located at an altitude of 1040m
+a.s.l. in France (Laqueuille, 45\textdegree{38}'N, 2\textdegree{44}'E), receives
+an annual precipitation of 1200~mm and has an annual mean temperature of  7
+\textdegree{C}.
 
-The N-balance of the fertilised grassland is characterised by high inorganic
+The N-balance of the fertilised pasture is characterised by high inorganic
 N-inputs. A fraction of this N is sequestered in accumulating SOM, a fraction is
 lost to leaching, while the remainder is exported with plant biomass harvest.
 Plant uptake of inorganic N was computed as the sum of plant litter production
@@ -966,16 +1006,14 @@ Together with implementing the influence of environmental factors such as
 temperature and moisture \citep{Davidson12}, these changes will make SEAM more
 suitable to be used as a component within larger scale land surface models.
  
-\conclusions   
-%% \conclusions[modified heading if necessary]
- 
+\conclusions
+% % \conclusions[modified heading if necessary]
 The SEAM model (Fig. \ref{fig:SEAMStruct}) provides a holistic description of
 community adaptations. It yields qualitatively similar predictions as
 microbial-group-explicit models with the ability to represent priming effects,
 bank mechanism, and a continuous SOM sequestration with high inorganic N inputs
-(Fig.
-\ref{fig:pastureFitScen}). Hence, this study provides an important step for
-providing an abstract description of microbial community effects and
+(Fig. \ref{fig:pastureFitScen}). Hence, this study provides an important step
+for providing an abstract description of microbial community effects and
 adaptations, with the long-term goal of including the important mechanisms into
 earth system models.
 
@@ -992,8 +1030,7 @@ nutrient strategies. Accounting for adaptations will be especially important
 when studying the competition for nutrients between soil microorganism and
 plants, because SOM can function as a storage to sequester surplus nutrients and
 prevent them from being lost from the system (Fig.
-\ref{fig:CO2Increase} and \ref{fig:CO2IncreaseImb}). 
-
+\ref{fig:CO2Increase} and \ref{fig:CO2IncreaseImb}).
 
 
 

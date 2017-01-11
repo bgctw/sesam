@@ -1,0 +1,13 @@
+Highlights
+
+SEAM, a model of soil organic matter (SOM) cycling is presented.
+
+Microbial community adaptation of enzyme production is modeled in an abstract holistic manner. 
+
+Simulated rhizosphere priming effects allow plants to liberate nitrogen (N) from SOM under N limitation.
+
+Continuous carbon (C) and N sequestration with high inorganic N inputs is simulated at the Laquille pasture site.
+
+Strong effects of decomposer community adaptation on C and N use efficiencies are shown. 
+
+Optimality is promising approach for scaling up microbial processes to ecosystem SOM models.

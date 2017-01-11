@@ -19,11 +19,24 @@
 %\newcommand*\chem[1]{\ensuremath{\mathrm{#1}}}
 %\newcommand{\unit}[1]{\ensuremath{\mathrm{#1}}}
 
-\usepackage[]{nohyperref}   % else error with nesting levels 
+%\usepackage[]{nohyperref}   % else error with nesting levels 
 %\usepackage{breqn}          % for breaking long equations \begin{dmath}
 
 %% Discussion Papers
 %\documentclass[journal abbreviation, hvmath, online]{copernicus}
+
+% displaying large table as non-float
+\usepackage{caption}
+\usepackage{longtable}
+\usepackage{setspace}
+%\newcommand{\tophline}[0]{\hline}
+%\newcommand{\middlehline}[0]{\hline}
+%\newcommand{\bottomhline}[0]{\hline}
+
+% saving some space before headings
+% \usepackage{titlesec}
+% \titlespacing\section{0pt}{12pt plus 4pt}{8pt}
+% \titlespacing\subsection{0pt}{12pt}{8pt}
 
 \usepackage{color,soul} % unfortunately need to define all the used colors
 \definecolor{lightblue}{RGB}{240,246,255}
@@ -111,9 +124,9 @@ soil organic matter and nutrient cycling}
 \input{Wutzler14_seam}
 
 
-
-
 \appendix
+
+%\include{SEAM_symbols}
 
 \include{SEAMEq}
 
@@ -139,7 +152,7 @@ and innovation programme (QUINCY; grant no. 647204).
 
 
 
-\bibliographystyle{copernicus}
+\bibliographystyle{copernicus} 
 
 %\bibliography{../../../journals/twutz_txt}
 %\bibliography{/cygdrive/z/twutz/journals/twutz_txt}
