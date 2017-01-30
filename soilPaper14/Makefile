@@ -2,6 +2,7 @@
 
 # Usually, only these lines need changing
 TEXFILE= soil_main
+#TEXFILE= SBB_main
 PDFFILE = Wutzler14_seam
 RDIR= ../inst/soilPaper14R
 FIGDIR= ./fig
@@ -45,9 +46,11 @@ $(FIGDIR)/%.pdfcrop: $(FIGDIR)/%.pdf
 #	pdflatex -quiet $(TEXFILE) -job-name=$(PDFFILE) -output-directory=tmp
 #	mv tmp/$(PDFFILE).pdf .
 bibtex:
+	#cp /cygdrive/m/people/twutz/journals/twutz_txt.bib tmp/orig.bib
 	cp /cygdrive/m/people/twutz/journals/twutz_txt.bib tmp/orig.bib
 	# remove Notes field (from "Notes = {" to next "}," 
-	sed -e '/Note\s*=/,/}\,/d' tmp/orig.bib > tmp/twutz_txt.bib
+	#sed -e '/Note\s*=/,/}\,/d' tmp/orig.bib > tmp/twutz_txt.bib
+	sed -e '/Note\s*=/,/}\,/d' tmp/orig.bib > twutz_txt.bib
 	#sed -e '/Note\s*=/,/}\,/d' tmp/orig.bib | sed 's/Url\s*=.*},*//' > tmp/twutz_txt.bib
 	# minus continues despite of errors (e.g. with \usepackage[]{nohyperref} ot prevent nesting level errors)
 	-pdflatex -quiet -interaction=nonstopmode $(TEXFILE) -output-directory=tmp

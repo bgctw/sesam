@@ -82,29 +82,33 @@ derivSeam2 <- function(t,x,parms){
     alphaC <- revRC / (revLC + revRC)  
     alphaN <- revRN / (revLN + revRN)  
     #
-    alpha <- if( isTRUE(parms$useAlphaCUntilNLimited) || immoPot < uNSubstrate/100 ){ 
-                balanceAlphaSmallImmobilization(alphaC)
-                balanceAlphaSmallImmobilization(alphaC, alphaN, CsynBN, CsynBC
-                                , NsynBC=parms$eps*CsynBC/cnB, NsynBN) 
-            } else {
-                balanceAlphaLargeImmobilization(alphaC, alphaN, isLimN, isLimNSubstrate, immoAct=-MmB, immoPot=immoPot)
-            }
-    if( isTRUE(parms$isAlphaMatch) ){
+    if( isTRUE(parms$isAlphaMatch) || isTRUE(parms$isAlphaEnzMax) ){
         synB0 <- max(0, synB)
         #cnOpt <- (parms$cnE*synE + parms$cnB*synB0)/(synE+synB0)  # optimal biomass ratio
         cnOpt <- (synE+synB0)/(synE/cnE + synB0/parms$cnB)  # optimal biomass ratio
         # calcMatchAlphaEnz
-        alpha <- calcMatchAlphaSeam2( E=ER+EL, decPotR=decRp, decPotL=decLp, rMaint=rM 
+        alpha <- alphaMatch <- calcMatchAlphaSeam2( E=ER+EL, decPotR=decRp, decPotL=decLp, rMaint=rM 
                 ,cnOpt=cnOpt
                 , cnR = cnR, cnL=cnL
                 , parms=parms
                 , imm = max(0, immoPot-PhiU)     # match strategy with accountin for N-gain by immobilization
                 #, imm = 0               # match strategy not relying on potential immobilization?
             )
-    }
-    if( isTRUE(parms$isAlphaFix) ){
+			if( isTRUE(parms$isAlphaEnzMax) ){
+				w <- getGradualWeight(PhiB,0.005)	# 0 for PhiB < 0.05, i.e. immobilization, i.e. C limitation
+				alpha <- (1-w)*0.5 + w*alphaMatch 
+			}
+	} else {
+		alpha <- if( isTRUE(parms$useAlphaCUntilNLimited) || immoPot < uNSubstrate/100 ){ 
+					balanceAlphaSmallImmobilization(alphaC, alphaN, CsynBN, CsynBC
+							, NsynBC=parms$eps*CsynBC/cnB, NsynBN)
+				} else {
+					balanceAlphaLargeImmobilization(alphaC, alphaN, isLimN, isLimNSubstrate, immoAct=-MmB, immoPot=immoPot)
+				}
+	}
+   	if( isTRUE(parms$isAlphaFix) ){
         alpha <- 0.5
-    }        
+    } 
     #
     # tvr that feeds back to R pool, assume that N in SOM for resp (by epsTvr) is mineralized
     tvrC <- +parms$epsTvr*tvrB  +(1-parms$kNB)*(tvrER +tvrEL) 

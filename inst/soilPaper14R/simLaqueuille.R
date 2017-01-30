@@ -8,9 +8,11 @@ if( isPaperBGC){
     loadPkg()
     baseFontSize <- 9  # pubs
     baseLineSize <- 1
+	themeDefault <- theme_classic(base_size=baseFontSize)
 } else {
-    baseFontSize <- 16  # pubs
+    baseFontSize <- 16  # presentations
     baseLineSize <- 1.2
+	themeDefault <- theme_classic(base_size=baseFontSize)
 }
 library(ggplot2)
 library(grid)   #unit
@@ -519,33 +521,55 @@ p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^L~|^dR~|^I~|^leach"),predMCtrl$v
         geom_point( data=dssObs, colour="black" )+
         geom_errorbar( data=dssObs,aes(ymin=value-sd, ymax=value+sd), width=.25, colour="black") +
         #facet_grid( variable ~ .,  scales="free_y", labeller = label_parsed) +
-        facet_wrap( ~ variable,  scales="free_y", labeller = label_parsed) +
-        theme_bw(base_size=baseFontSize) +
+        #facet_wrap( ~ variable,  scales="free_y", labeller = label_parsed) +
+		facet_wrap( ~ variable,  scales="free_y", labeller = label_parsed) +
+		themeDefault + 
+		theme(strip.background = element_blank()) +			
+        #theme_bw(base_size=baseFontSize) +
         theme(axis.title.y = element_blank()) + 
         xlab("time (yr)") +
         theme(legend.position = "none") +
-        theme()
+		annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf)+
+        c()
 twWin(3.27, 2)
 p1
 #savePlot("soilPaper14/fig/pastureFitMatch.pdf","pdf")
 
+#library(ggthemes) # theme_tufte does not display axes lines
 p1b <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~"),predM$variable),], time <=5)
         , aes(x=time, y=value, linetype=scenario, colour=scenario)) +
-        geom_line(size=baseLineSize) +
+		geom_hline(yintercept=0, color="grey75") +		
+		geom_line(size=baseLineSize) +
         #facet_wrap( ~ variable,  scales="free_y", nrow=6, ncol=1) +
-        facet_wrap( ~ variable,  scales="free_y", ncol=2L, labeller = label_parsed) +
-        #facet_grid( variable ~ .,  scales="free_y", labeller = label_parsed) +
-        theme_bw(base_size=baseFontSize) +
-        theme(axis.title.y = element_blank()) + 
+        #facet_wrap( ~ variable,  scales="free_y", ncol=2L, labeller = label_parsed) +
+		facet_wrap( ~ variable,  scales="free", ncol=2L, labeller = label_parsed) +
+		themeDefault +
+		#theme_tufte() +
+		theme(strip.background = element_blank()) +			
+		theme(axis.title.y = element_blank()) + 
         xlab("time (yr)") +
-        #theme(legend.position = "bottom") +
+		#annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf)+
+		#theme(legend.position = "bottom") +
         theme(legend.position = c(0.95,-0.08), legend.justification=c(1,0)) +
         theme(legend.title = element_blank()) +
         guides(linetype=guide_legend(nrow=4,byrow=TRUE)) +
-        theme()
+		#theme(panel.grid.major.x=element_line(colour="grey75")) +
+		#annotate("segment", x=1:5, xend=1:5, y=-Inf, yend=)
+        c()
 twWin(3.27, 3.5)
 p1b
+# use scale="free" to get x-axis ticks
+# then remove lables
+#http://stackoverflow.com/questions/38986702/add-tick-marks-to-facet-plots-in-r
+g1<-ggplotGrob(p1b)
+#g1
+# look for axis-b and dig down what are the lables
+for( g in c(16,17,18,19) )
+	g1[[1]][[g]]$children[[2]]$grobs[[2]] <- NULL #nullGrob()
+grid.newpage()
+grid.draw(g1)
 #savePlot("soilPaper14/fig/pastureFitInputScenarios.pdf","pdf")
+
 
 twWin(3.27, 5.9)
 #twWin(7.5,8.7)

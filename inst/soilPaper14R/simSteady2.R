@@ -5,20 +5,22 @@
 # simulating CO2 increase and bare soil, based on modEezy5
 .tmp.f <- function(){
     baseFontSize <- 16  # presentations
+	themeDefault <- theme_bw(base_size=baseFontSize) + theme(strip.background = element_blank())
 }
 # based on 
 if( isPaperBGC){
     library(twDev)
     loadPkg()
     baseFontSize <- 9  # pubs
+	themeDefault <- theme_classic(base_size=baseFontSize)
 } 
 library(ggplot2)
 library(grid)   #unit
 library(reshape)  # melt
 library(RColorBrewer) # brewer.pal
 
-# use the same colors in every graph - color-blind friendly
-myColors <- brewer.pal(5,"Dark2")
+# use the same colors in every graph - first 3 color-blind safe
+myColors <- brewer.pal(5,"Dark2")	
 .simpleCap <- function(s) {
     paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
 }
@@ -27,6 +29,7 @@ colScale <- scale_colour_manual(name = "Allocation",values = myColors)
 .treatments <- structure(c(1,0.5), names=c("Litter input pulse","No Litter input"))
 sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
 
+themeDefault <- theme_classic()  
 
 # gC/m2 and gN/m2, /yr
 parms0 <- list(
@@ -98,9 +101,10 @@ x <- x0
 
 
 parmsScen <- list(
-        Revenue = parms0
-        ,Fixed = within(parms0, {isAlphaFix <- TRUE})
-        ,Match = within(parms0, {isAlphaMatch <- TRUE})
+		Revenue = parms0
+		,Fixed = within(parms0, {isAlphaFix <- TRUE})
+		,Match = within(parms0, {isAlphaMatch <- TRUE})
+		,EnzMax = within(parms0, {isAlphaEnzMax <- TRUE})
 )
 names(myColors) <- names(parmsScen)
 
@@ -115,7 +119,8 @@ simfCNGraph <- function(
             Revenue = parms0F
             ,Fixed = within(parms0F, {isAlphaFix <- TRUE})
             ,Match = within(parms0F, {isAlphaMatch <- TRUE})
-    )
+			,EnzMax = within(parms0F, {isAlphaEnzMax <- TRUE})
+	)
     
     cnR <- 6.8
     cnL <- 30
@@ -136,19 +141,25 @@ simfCNGraph <- function(
     cnLs <- seq( 18,40,by=0.5)
     #cnLs <- seq( 18,80,by=0.5)
     #cnLs <- seq( 18,160,by=5)
-    cnL <- 23
-    resLC <- lapply( cnLs, function(cnL){ 
+	cnL <- 36
+	cnL <- 23
+	cnL <- 18
+	cnL <- 20.5
+	resLC <- lapply( cnLs, function(cnL){ 
                 cat(cnL,", ")
                 x0N["LN"] <- x0N["L"]/cnL
                 times <- seq(0,10, length.out=101)
                 #times <- seq(0,10000, length.out=101)
                 #scen <- "Match"
                 #scen <- "Revenue"
-                resL <- lapply( names(parmsScenF), function(scen){
+				#scen <- "EnzMax"
+				resL <- lapply( names(parmsScenF), function(scen){
                 #resL <- lapply( "Revenue", function(scen){
                             parmsInit <- parmsScenF[[scen]]
+							#times <- seq(0,0.04, length.out=101)
                             res <- res1 <- as.data.frame(lsoda( x0N, times, derivSeam2, parms=parmsInit))
                             xE <- unlist(tail(res,1))
+							#plot( alpha ~ time, res)
                             #plotResSeam1(res, "topright", cls = c("B10","respO","Rr","Lr","alpha100"))
                             #plotResSeam1(res, "topright", cls = c("I"))
                             #trace(derivSeam2, recover) #untrace(derivSeam2)
@@ -158,6 +169,7 @@ simfCNGraph <- function(
                 #lapply(resL, "[[", "alpha")
                 resScen <- cbind( data.frame(scen=names(parmsScenF), do.call( rbind, resL )))
             })
+	cat("\n")
     resC <- resCAll <- do.call( rbind, resLC )
     #res <- resLC[[7]] 
     resC <- subset(resCAll, cnL <= 160)
@@ -167,6 +179,7 @@ simfCNGraph <- function(
     resC$respOMon <- resC$respO/12
     resC$CUE <- resC$synB / resC$uC
     resC$cnDOM <- resC$decC / resC$decN
+	resC$scen <- factor(resC$scen, names(parmsScen))
     
     
 
@@ -191,24 +204,31 @@ simfCNGraph <- function(
     dsp <- melt(resC, id=c("cnL","scen"), measure.vars=c("PhiBUMon","respOMon", "B", "alpha","CUE","cnDOM"), variable_name="Measure")
     dsp$Allocation <- dsp$scen
     levels(dsp$Allocation)
+	#dsp$Allocation <- factor(dsp$Allocation, levels=names(parmsScen))
     #levels(dsp$Measure) <- c("Allocation_Ratio (alpha)","Biomass (gC/m^2)","Mineralization[Imb] (gN/m^2/yr)","OverflowRespiration (gC/m2/yr)")
     #levels(dsp$Measure) <- c("Min~Imb~(gNm^{-2}*month^{-1})","Overflow~(gCm^{-2}*month^{-1})","Biomass~(gCm^{-2})", "Allocation~to~ R~(alpha)")
-    levels(dsp$Measure) <- c("Min~Imb~(gNm^{-2}*month^{-1})","Overflow~(gCm^{-2}*month^{-1})","Biomass~(gCm^{-2})", "Allocation~to~ R~(alpha)","CUE","cnDOM")
+    levels(dsp$Measure) <- c("Min~Imb~Phi[B]~(gNm^{-2}*month^{-1})","Overflow~(gCm^{-2}*month^{-1})","Biomass~(gCm^{-2})", "Allocation~to~ R~(alpha)","CUE","cnDOM")
     p8 <- ggplot( dsp, aes(x=cnL, y=value, col=Allocation, linetype=Allocation), environment = environment() ) + geom_line(size=1) + 
             #facet_grid(Measure~., scales = "free", labeller= label_parsed ) + 
-            facet_wrap(~Measure, scales = "free_y", ncol=2, labeller = label_parsed ) +
-            scale_x_continuous('C/N ratio of Litter') + 
+            #facet_wrap(~Measure, scales = "free_y", ncol=2, labeller = label_parsed ) +
+			facet_wrap(~Measure, scales = "free", ncol=2, labeller = label_parsed ) +
+			scale_x_continuous('C/N ratio of Litter') + 
             #geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
             #geom_vline(aes(xintercept=cnTER), colour="#990000") +
-            theme_bw(base_size=baseFontSize) +
+			themeDefault +
             theme(axis.title.y = element_blank()) +
-            theme()
+			theme(strip.background = element_blank()) +			
+            c()
     #twWin(6)
     print(p8 + colScale)
     
     if (isPaperBGC){
-        twWin(width=3.3, height=4.4, pointsize=9, pdf="soilPaper14/fig/VarNNoFeedback.pdf")
-        print( p8 + colScale + theme(legend.position = c(0.14,1.02), legend.justification=c(0,1)) ) 
+        twWin(width=3.3, height=5.4, pointsize=9, pdf="soilPaper14/fig/VarNNoFeedback.pdf")
+        print( 
+				p8 + colScale + theme(strip.background = element_blank()) + 
+					 theme(legend.position = c(0.19,1-0.01), legend.justification=c(0,1))  +
+					c()
+		)
         dev.off()
     }
 
@@ -221,7 +241,7 @@ simfCNGraph <- function(
             #facet_wrap(~Measure ) +
             scale_x_continuous('C/N ratio of Lit') + 
             #geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
-            theme_bw(base_size=baseFontSize) +
+			themeDefault +
             theme(axis.title.y = element_blank()) +
             theme()
     #twWin(6)
@@ -240,10 +260,10 @@ simfCNGraph <- function(
             facet_wrap(~Element, scales = "free_y" ) +
             scale_x_continuous('C/N ratio of Lit') +
             #geom_vline(aes(xintercept=cnTER), colour="#990000", linetype="dashed") +
-            theme_bw(base_size=baseFontSize) +
+			themeDefault +
             #theme(axis.title.y = element_blank()) +
             ylab("Revenue") +
-            theme()
+            c()
     #twWin(6)
     p8b 
 }
@@ -256,8 +276,10 @@ simInitSteady <- function(
     scen <- "Match"
     scen <- "Fixed"
     scen <- "Revenue"
+	scen <- "EnzMax"
     x0S <- x0
-    resAll <- lapply( c("Revenue","Fixed","Match"), function(scen){
+    resAllSteady <- lapply( c("Revenue","Fixed","Match","EnzMax"), function(scen){
+				print(scen)
                 parmsInit <- parmsScen[[scen]]
                 parmsInit$isFixedI <- TRUE
                 #parmsInit$epsTvr <- 0.45
@@ -275,7 +297,8 @@ simInitSteady <- function(
                 res$scen <- scen
                 res
             })
-    resScen <- do.call( rbind, resAll)
+    resScen <- do.call( rbind, resAllSteady)
+	resScen$scen <- factor(resScen$scen, levels=names(parmsScen))
     
     dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("R","L","B"),variable_name="Pool")
     names(dsp)[names(dsp)=="scen"] <- "Allocation"
@@ -284,7 +307,7 @@ simInitSteady <- function(
 
     .tmp.f <- function(){
         p1 <- ggplot( dsp, aes(x=time, y=value, lty=Pool, col=Allocation)) + geom_line(size=1) + 
-                theme_bw(base_size=baseFontSize) +
+				themeDefault +
                 ylim(c(100,3000)) +
                 labs(x="Time (yr)", y="Carbon stock (gC/m2)", linetype="Substrate pool") +
                 theme()                
@@ -292,21 +315,24 @@ simInitSteady <- function(
     }
    
     dsp$value[ dsp$Pool=="L" & dsp$value >200] <- NA
-    p1b <- ggplot( dsp, aes(x=time, y=value, col=Allocation, linetype=Allocation)) + geom_line(size=1) +
-            facet_wrap( ~ Pool,ncol=2,scales="free_y") + 
-            theme_bw(base_size=baseFontSize) +
+	dsp$value[ dsp$Pool=="B" & dsp$value >90] <- NA
+	p1b <- ggplot( dsp, aes(x=time, y=value, col=Allocation, linetype=Allocation)) + geom_line(size=1) +
+            #facet_wrap( ~ Pool,ncol=2,scales="free_y") + 
+			facet_wrap( ~ Pool,ncol=2,scales="free") + 
+			themeDefault +
             labs(x="Time (yr)", y=expression(Carbon~stock~(gCm^{-2}))) +
             #theme(legend.position = c(1.00,0.8), legend.justification=c(1,1))
-            theme(legend.position = c(1.00,0), legend.justification=c(1,0))
-            theme()                
+            theme(legend.position = c(1.00,0), legend.justification=c(1,0)) +
+			theme(strip.background = element_blank()) +			
+            c()                
     print(p1b+ colScale)
     
     
     if (isPaperBGC){
         twWin(width=3.3, height=2.5, pointsize=9, pdf="soilPaper14/fig/SimSteady.pdf")
         print(p1b + colScale + 
-            #theme(legend.position = c(0.53,.99), legend.justification=c(0.5,1))
-            theme()
+            theme(legend.position = c(1,0), legend.justification=c(1,.1)) +
+			c()
             )
         dev.off()
     }
@@ -323,7 +349,9 @@ simCO2Increase <- function(
     t2I = 50
     t3S <- 50
     fInputInc = 1.2
-    resAll <- lapply( c("Revenue","Fixed"), function(scen){
+	#scens <- c("Revenue","Fixed","EnzMax")	#EnzMax steady is far off and destroys graph 
+	scens <- c("Revenue","Fixed")
+	resAllFace <- lapply( scens, function(scen){
             parmsInit <- parmsScen[[scen]]
             parmsInit$isFixedI <- TRUE
             #parmsInit$eps <- 0.4
@@ -376,36 +404,45 @@ simCO2Increase <- function(
             #plotResSeam1(resc, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
             resc
     })
-    resScen <- do.call( rbind, resAll)
+    resScen <- do.call( rbind, resAllFace)
+	resScen$scen <- factor(resScen$scen, levels=scens)
 
     resScen$RL <- resScen$R + resScen$L
     dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("L","R","RL"),variable_name="Pool")
     levels(dsp$Pool) <- c("L","R","L+R")
-    dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
+    dsp$Allocation <- dsp$scen #factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
     #names(dsp)[names(dsp)=="scen"] <- "Allocation"
     #p1 <- ggplot( dsp, aes(x=time, y=value, fill=Pool, lty=scen)) + geom_area()
 
     .tmp.f <- function(){
         p2 <- ggplot( dsp, aes(x=time, y=value, lty=Pool, col=Allocation)) + geom_line(size=1) + 
                 xlab("Time (yr)")+ ylab("Carbon stock (gC/m2)") + labs(linetype="Substrate pool") +
-                theme_bw(base_size=baseFontSize) +
+				themeDefault +
                 #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
                 theme()                
         p2 + colScale
     }
 
-    p2f <- ggplot( dsp, aes(x=time, y=value, col=Allocation, linetype=Allocation)) + geom_line(size=1) + 
-            facet_grid(Pool ~ .,scales="free_y") + 
-            xlab("Time (yr)")+ ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype="Substrate pool") +
-            theme_bw(base_size=baseFontSize) +
+    p2f <- ggplot( subset(dsp, Allocation %in% c("Fixed","Revenue")), aes(x=time, y=value, col=Allocation, linetype=Allocation)) + geom_line(size=1) + 
+            #facet_grid(Pool ~ .,scales="free_y") + 
+			facet_grid(Pool ~ .,scales="free") + 
+			xlab("Time (yr)")+ ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype="Substrate pool") +
+			themeDefault +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
         theme(legend.position = c(0.95,1.04), legend.justification=c(1,1)) +
-        theme()               
+		theme(panel.border = element_rect(colour = "black", fill=NA)) +
+		theme(strip.background = element_blank()) +			
+		theme(panel.grid.major.x=element_line(colour="grey75")) +
+		c()
     print(p2f + colScale)
     
     if (isPaperBGC){
         twWin(width=3.3, height=3.3, pointsize=9, pdf="soilPaper14/fig/CO2Increase.pdf")
-        print(p2f + colScale+ theme(legend.position = c(1.0,1.0), legend.justification=c(1,1)) +theme( plot.margin = unit( c(0,0,0,0) , "in" ) )
+        print(
+				p2f + colScale 	+ theme(legend.position = c(1.0,1.0)-0.01, legend.justification=c(1,1)) +
+						theme( plot.margin = unit( c(0,0,0,0)+0.02 , "in" ) ) +
+						theme(panel.grid.major.x=element_line(colour="grey75")) +
+						c()
         )
         dev.off()
     }
@@ -417,7 +454,7 @@ simCO2Increase <- function(
 
     p2b <- ggplot( dsCN, aes(x=time, y=iL)) + geom_line(size=1) + 
             xlab("Time (yr)")+ ylab("Input") + ylim(c(0,500)) +
-            theme_bw(base_size=baseFontSize) +
+			themeDefault +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
         theme()
     p2b
@@ -436,18 +473,23 @@ simCO2Increase <- function(
     p2 <- ggplot( dsp, aes(x=time, y=value, col=Allocation, linetype=Allocation)) + geom_line(size=1) +
             facet_grid(Pool ~ .,scales="free_y", labeller=label_parsed) + 
             xlab("Time (yr)")+ ylab(expression(Nitrogen~mineralization~(gNm^{-2}*yr^{-1}))) + #labs(linetype="Ouput fluxes") +
-            theme_bw(base_size=baseFontSize) +
+			themeDefault +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             #theme(legend.position = c(0.95,1.0), legend.justification=c(1,1)) +
         theme(legend.position = c(0.95,0.02), legend.justification=c(1,0)) +
-        theme()                
+		theme(panel.border = element_rect(colour = "black", fill=NA)) +
+		theme(strip.background = element_blank()) +			
+		theme(panel.grid.major.x=element_line(colour="grey75")) +
+		c()                
     p2 + colScale
 
     if (isPaperBGC){
         twWin(width=3.3, height=3.3, pointsize=9, pdf="soilPaper14/fig/CO2IncreaseImb.pdf")
         print(p2 + colScale +
-            theme(legend.position = c(0.95,-0.0), legend.justification=c(1,0)) 
-        )  
+            theme(legend.position = c(0.95,-0.0), legend.justification=c(1,0)) + 
+			theme(panel.grid.major.x=element_line(colour="grey75")) +
+			c()
+		)  
         dev.off()
     }
     
@@ -468,7 +510,9 @@ simPriming <- function(
 ){
     #scen <- "Fixed"
     #scen <- "Revenue"
-    resAll <- lapply( c("Revenue","Fixed"), function(scen){
+	#scens <- c("Revenue","Fixed","EnzMax")
+	scens <- c("Revenue","Fixed")
+    resAllPriming <- lapply( scens, function(scen){
                 parmsInit <- parmsScen[[scen]]
                 parmsInit$isFixedI <- TRUE
                 #parmsInit$kNL <- parmsInit$kNR <- 60; parmsInit$kmL <- parmsInit$kmR <- 0.005
@@ -544,7 +588,8 @@ simPriming <- function(
                 res3S$scen <- scen
                 res3S
             })
-    resScen <- do.call( rbind, resAll)
+    resScen <- do.call( rbind, resAllPriming)
+	resScen$scen <- factor(resScen$scen, levels=scens) 
     resScen$timeDay <- resScen$time*365
     
     endTimeDay <- 200
@@ -554,10 +599,10 @@ simPriming <- function(
     #dsp <- melt( subset(resScen, time < endTime), id=c("timeDay","scen"), measure.vars=c("B"),variable_name="Treatment")
     #dsp <- melt( subset(resScen, time < endTime), id=c("timeDay","scen"), measure.vars=c("limE1","limE2"),variable_name="Treatment")
     #dsp <- melt( subset(resScen, time < endTime), id=c("timeDay","scen"), measure.vars=c("ER","EL"),variable_name="Treatment")
-    dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
+    dsp$Allocation <- dsp$scen #factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
     p3p <- ggplot( dsp, aes(x=timeDay, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
             xlab("Time (day)")+ ylab(expression(R~Depolymerization~(gCm^{-2}*yr^{-1}))) +
-            theme_bw(base_size=baseFontSize) +
+			themeDefault +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
     print(p3p + colScale + theme( plot.margin = unit( c(0,0,0,0) , "in" ) ))
@@ -565,7 +610,9 @@ simPriming <- function(
     if (isPaperBGC){
         twWin(width=3.3, height=2.0, pointsize=9, pdf="soilPaper14/fig/PrimingDec.pdf")
         print( p3p + colScale + #theme(legend.position = c(0.9,1.05), legend.justification=c(1,1)) +
-        theme( plot.margin = unit( c(0,0,0,0) , "in" ) ) )
+        #theme( plot.margin = unit( c(0,0,0,0) , "in" ))
+					c()
+					)
         dev.off()
     }
     
@@ -577,7 +624,7 @@ simPriming <- function(
     #dspN$value[dspN$value < 0.5] <- NA
     p3m <- ggplot( dspN, aes(x=timeDay, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
             xlab("Time (day)")+ ylab(expression(N-Mineralization~(gNm^{-2}*yr^{-1}))) +
-            theme_bw(base_size=baseFontSize) +
+			themeDefault +
             #scale_colour_discrete(drop=TRUE,limits = levels(dspN$Allocation)) +
             theme()                
     print(p3m + colScale)
@@ -593,22 +640,25 @@ simPriming <- function(
     # plot both depoly and NMin in one graph
     dsp$var <- "R~Depolymerization~(gCm^{-2}*yr^{-1})"
     #dspN$var <- "Phi[Total]~(gNm^{-2}*yr^{-1})"
-    dspN$var <- "N-Mineralization~(gNm^{-2}*yr^{-1})"
+    dspN$var <- "N-Mineralization~Phi~(gNm^{-2}*yr^{-1})"
     dspB <- rbind(dsp,dspN)
     dspB$Treatment <- relevel(dspB$Treatment, ref="Litter input pulse") # pulse first
     dspB$var <- factor(dspB$var, unique(dspB$var))
     p3b <- ggplot( dspB, aes(x=timeDay, y=value, lty=Allocation, col=Allocation, size=Treatment, group=interaction(Treatment,Allocation))) + geom_line() +
             facet_grid(var ~ .,scales="free_y", labeller = label_parsed) + 
             xlab("Time (day)")+ 
-            theme_bw(base_size=baseFontSize) +
+            themeDefault +
             theme(axis.title.y=element_blank()) +
             #scale_colour_discrete(drop=TRUE,limits = levels(dspN$Allocation)) +
-            theme()                
+		theme(panel.border = element_rect(colour = "black", fill=NA)) +
+		theme(strip.background = element_blank()) +			
+		theme(panel.grid.major.x=element_line(colour="grey75")) +
+		c()
     print(p3b + colScale)
     if (isPaperBGC){
         twWin(width=3.3, height=3.5, pointsize=9, pdf="soilPaper14/fig/PrimingMinDec.pdf")
         print(p3b + colScale + sizeScale +
-                        theme(legend.position = c(0.9,-0.025), legend.justification=c(1,0) ) +
+                        theme(legend.position = c(0.9,0.02), legend.justification=c(1,0) ) +
                         #theme(legend.position="bottom") +
                         theme( legend.box = "horizontal") +
                         theme( plot.margin = unit( c(0.06,0.02,0,0.02), "in" ) ) )
@@ -627,7 +677,7 @@ simPriming <- function(
     levels(dsp$Treatment) <- c("No Litter input","Litter input pulse")
     p3a <- ggplot( dsp, aes(x=timeDay, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
             xlab("Time (day)")+ ylab("Allocation to R: alpha") +
-            theme_bw(base_size=baseFontSize) +
+            themeDefault +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
     p3a + colScale
@@ -693,7 +743,7 @@ simBareSoil <- function(
     
     p3 <- ggplot( dsp, aes(x=time, y=value, lty=Pool, col=Allocation)) + geom_line(size=1) + 
             xlab("Time (yr)")+ ylab("Carbon~stock~(gCm^{-2})") +
-            theme_bw(base_size=baseFontSize) +
+            themeDefault +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             theme()                
     p3 + colScale
@@ -701,7 +751,7 @@ simBareSoil <- function(
     
     p3b <- ggplot( resScen, aes(x=time, y=tvrR, col=Allocation)) + geom_line(size=1) + 
             xlab("Time (yr)")+ ylab("Turnover time R (yr)") +
-            theme_bw(base_size=baseFontSize) +
+            themeDefault +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
             #ylim(c(0,800)) +
             theme()                
