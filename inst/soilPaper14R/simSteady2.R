@@ -24,7 +24,7 @@ myColors <- brewer.pal(5,"Dark2")
 .simpleCap <- function(s) {
     paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
 }
-#names(myColors) <- .simpleCap(names(parmsScen))
+names(myColors) <- .simpleCap(names(parmsScen))
 colScale <- scale_colour_manual(name = "Allocation",values = myColors)
 .treatments <- structure(c(1,0.5), names=c("Litter input pulse","No Litter input"))
 sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
@@ -206,9 +206,10 @@ simfCNGraph <- function(
     levels(dsp$Allocation)
 	#dsp$Allocation <- factor(dsp$Allocation, levels=names(parmsScen))
     #levels(dsp$Measure) <- c("Allocation_Ratio (alpha)","Biomass (gC/m^2)","Mineralization[Imb] (gN/m^2/yr)","OverflowRespiration (gC/m2/yr)")
-    #levels(dsp$Measure) <- c("Min~Imb~(gNm^{-2}*month^{-1})","Overflow~(gCm^{-2}*month^{-1})","Biomass~(gCm^{-2})", "Allocation~to~ R~(alpha)")
-    levels(dsp$Measure) <- c("Min~Imb~Phi[B]~(gNm^{-2}*month^{-1})","Overflow~(gCm^{-2}*month^{-1})","Biomass~(gCm^{-2})", "Allocation~to~ R~(alpha)","CUE","cnDOM")
-    p8 <- ggplot( dsp, aes(x=cnL, y=value, col=Allocation, linetype=Allocation), environment = environment() ) + geom_line(size=1) + 
+    #levels(dsp$Measure) <- c("Min~Imb~(gN~m^{-2}*month^{-1})","Overflow~(gC~m^{-2}*month^{-1})","Biomass~(gC~m^{-2})", "Allocation~to~ R~(alpha)")
+    levels(dsp$Measure) <- c("Min~Imb~Phi[B]~(gN~m^{-2}*month^{-1})","Overflow~(gC~m^{-2}*month^{-1})","Biomass~(gC~m^{-2})", "Allocation~to~ R~(alpha)","CUE","cnDOM")
+    p8 <- ggplot( dsp, aes(x=cnL, y=value, col=Allocation, linetype=Allocation), environment = environment() ) + 
+			geom_line(size=0.6) + 
             #facet_grid(Measure~., scales = "free", labeller= label_parsed ) + 
             #facet_wrap(~Measure, scales = "free_y", ncol=2, labeller = label_parsed ) +
 			facet_wrap(~Measure, scales = "free", ncol=2, labeller = label_parsed ) +
@@ -316,11 +317,12 @@ simInitSteady <- function(
    
     dsp$value[ dsp$Pool=="L" & dsp$value >200] <- NA
 	dsp$value[ dsp$Pool=="B" & dsp$value >90] <- NA
-	p1b <- ggplot( dsp, aes(x=time, y=value, col=Allocation, linetype=Allocation)) + geom_line(size=1) +
+	p1b <- ggplot( dsp, aes(x=time, y=value, col=Allocation, linetype=Allocation)) + 
+			geom_line(size=0.6) +
             #facet_wrap( ~ Pool,ncol=2,scales="free_y") + 
 			facet_wrap( ~ Pool,ncol=2,scales="free") + 
 			themeDefault +
-            labs(x="Time (yr)", y=expression(Carbon~stock~(gCm^{-2}))) +
+            labs(x="Time (yr)", y=expression(Carbon~stock~(gC~m^{-2}))) +
             #theme(legend.position = c(1.00,0.8), legend.justification=c(1,1))
             theme(legend.position = c(1.00,0), legend.justification=c(1,0)) +
 			theme(strip.background = element_blank()) +			
@@ -464,7 +466,7 @@ simCO2Increase <- function(
     #levels(dsp$Pool) <- c("Overflow respiration","N Mineralization")
     #dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("Mm","Phi","MmTvr"),variable_name="Pool")
     dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("PhiTotal","PhiU","PhiB","PhiTvr"),variable_name="Pool")
-    levels(dsp$Pool) <- c("Total","Uptake~Phi[u]","Imbalance~Phi[B]","Turnover~Phi[tvr]")
+    levels(dsp$Pool) <- c("Total~Phi","Uptake~Phi[u]","Imbalance~Phi[B]","Turnover~Phi[tvr]")
     #dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("resp","respO","Mm","MmImb","B","RN"),variable_name="Pool")
     dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
     #names(dsp)[names(dsp)=="scen"] <- "Allocation"
@@ -600,16 +602,18 @@ simPriming <- function(
     #dsp <- melt( subset(resScen, time < endTime), id=c("timeDay","scen"), measure.vars=c("limE1","limE2"),variable_name="Treatment")
     #dsp <- melt( subset(resScen, time < endTime), id=c("timeDay","scen"), measure.vars=c("ER","EL"),variable_name="Treatment")
     dsp$Allocation <- dsp$scen #factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
-    p3p <- ggplot( dsp, aes(x=timeDay, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
-            xlab("Time (day)")+ ylab(expression(R~Depolymerization~(gCm^{-2}*yr^{-1}))) +
+    p3p <- ggplot( dsp, aes(x=timeDay, y=value, lty=Allocation, col=Allocation, size=Treatment)) + 
+			geom_line() +
+			#geom_line(size=0.6) + 
+            xlab("Time (day)")+ ylab(expression(R~Depolymerization~(gC~m^{-2}*yr^{-1}))) +
 			themeDefault +
             #scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
-            theme()                
-    print(p3p + colScale + theme( plot.margin = unit( c(0,0,0,0) , "in" ) ))
-    
+            c()                
+    print(p3p + colScale + sizeScale + theme( plot.margin = unit( c(0,0,0,0) , "in" ) ))
+
     if (isPaperBGC){
         twWin(width=3.3, height=2.0, pointsize=9, pdf="soilPaper14/fig/PrimingDec.pdf")
-        print( p3p + colScale + #theme(legend.position = c(0.9,1.05), legend.justification=c(1,1)) +
+        print( p3p + colScale + sizeScale + #theme(legend.position = c(0.9,1.05), legend.justification=c(1,1)) +
         #theme( plot.margin = unit( c(0,0,0,0) , "in" ))
 					c()
 					)
@@ -619,15 +623,17 @@ simPriming <- function(
     
     #dspN <- melt( subset(resScen, timeDay < endTimeDay), id=c("timeDay","scen"), measure.vars=c("Mmc","Mmp"),variable_name="Treatment")
     dspN <- melt( subset(resScen, timeDay < endTimeDay), id=c("timeDay","scen"), measure.vars=c("PhiTotalC","PhiTotalP"),variable_name="Treatment")
-    dspN$Allocation <- factor(dspN$scen, levels=c("Fixed","Match","Revenue"))
+	dspN$Allocation <- dsp$scen
+    #dspN$Allocation <- factor(dspN$scen, levels=c("Fixed","Match","Revenue"))
     levels(dspN$Treatment) <- c("No Litter input","Litter input pulse")
     #dspN$value[dspN$value < 0.5] <- NA
-    p3m <- ggplot( dspN, aes(x=timeDay, y=value, lty=Treatment, col=Allocation)) + geom_line(size=1) + 
-            xlab("Time (day)")+ ylab(expression(N-Mineralization~(gNm^{-2}*yr^{-1}))) +
+    p3m <- ggplot( dspN, aes(x=timeDay, y=value, lty=Allocation, col=Allocation, size=Treatment)) + 
+			geom_line() + 
+            xlab("Time (day)")+ ylab(expression(N~Mineralization~(gN~m^{-2}*yr^{-1}))) +
 			themeDefault +
             #scale_colour_discrete(drop=TRUE,limits = levels(dspN$Allocation)) +
             theme()                
-    print(p3m + colScale)
+    print(p3m + colScale + sizeScale)
 
     if (isPaperBGC){
         twWin(width=3.3, height=2, pointsize=9, pdf="soilPaper14/fig/PrimingMin.pdf")
@@ -636,20 +642,44 @@ simPriming <- function(
         theme( plot.margin = unit( c(0.06,0,0,0), "in" ) ) )
         dev.off()
     }
-    
+	
+	grid.newpage()
+	pushViewport(viewport(layout = grid.layout(2, 1)))
+	print(p3p, vp = viewport(layout.pos.row =1,layout.pos.col =1))
+	print(p3m, vp = viewport(layout.pos.row =2,layout.pos.col =1))
+	if (isPaperBGC){
+		twWin(width=3.3, height=4.0, pointsize=9, pdf="soilPaper14/fig/PrimingMinDec.pdf")
+		grid.newpage()
+		pushViewport(viewport(layout = grid.layout(2, 1)))
+		print(p3p + colScale + sizeScale + theme(legend.position = "none") +
+						theme(axis.text.x = element_blank(), axis.title.x=element_blank()) +
+						c()
+				, vp = viewport(layout.pos.row =1,layout.pos.col =1))
+		print(p3m+ colScale + sizeScale +
+						theme(legend.position = c(0.9,0.02), legend.justification=c(1,0) ) +
+						#theme(legend.position="bottom") +
+						theme( legend.box = "horizontal") +
+						#theme( plot.margin = unit( c(0.06,0.02,0,0.02), "in" )  
+						c()
+						, vp = viewport(layout.pos.row =2,layout.pos.col =1))
+		dev.off()
+	}
+	
+	
+	
     # plot both depoly and NMin in one graph
-    dsp$var <- "R~Depolymerization~(gCm^{-2}*yr^{-1})"
+    dsp$var <- "R~Depolymerization~(gC~m^{-2}*yr^{-1})"
     #dspN$var <- "Phi[Total]~(gNm^{-2}*yr^{-1})"
-    dspN$var <- "N-Mineralization~Phi~(gNm^{-2}*yr^{-1})"
+    dspN$var <- "N-Mineralization~Phi~(gN~m^{-2}*yr^{-1})"
     dspB <- rbind(dsp,dspN)
     dspB$Treatment <- relevel(dspB$Treatment, ref="Litter input pulse") # pulse first
     dspB$var <- factor(dspB$var, unique(dspB$var))
     p3b <- ggplot( dspB, aes(x=timeDay, y=value, lty=Allocation, col=Allocation, size=Treatment, group=interaction(Treatment,Allocation))) + geom_line() +
-            facet_grid(var ~ .,scales="free_y", labeller = label_parsed) + 
+            facet_grid(var ~ .,scales="free_y", labeller = label_parsed) +    #, switch="y") + 
             xlab("Time (day)")+ 
             themeDefault +
             theme(axis.title.y=element_blank()) +
-            #scale_colour_discrete(drop=TRUE,limits = levels(dspN$Allocation)) +
+			#scale_colour_discrete(drop=TRUE,limits = levels(dspN$Allocation)) +
 		theme(panel.border = element_rect(colour = "black", fill=NA)) +
 		theme(strip.background = element_blank()) +			
 		theme(panel.grid.major.x=element_line(colour="grey75")) +
@@ -661,7 +691,8 @@ simPriming <- function(
                         theme(legend.position = c(0.9,0.02), legend.justification=c(1,0) ) +
                         #theme(legend.position="bottom") +
                         theme( legend.box = "horizontal") +
-                        theme( plot.margin = unit( c(0.06,0.02,0,0.02), "in" ) ) )
+                        #theme( plot.margin = unit( c(0.06,0.02,0,0.02), "in" )  
+						c())
         dev.off()
     }
     

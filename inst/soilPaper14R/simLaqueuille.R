@@ -1,19 +1,6 @@
 isPaperBGC <- ("paperBGC" %in% commandArgs(trailingOnly = TRUE))
 #isPaperBGC <- TRUE
 
-# simulating CO2 increase and bare soil, based on modEezy5
-# based on 
-if( isPaperBGC){
-    library(twDev)
-    loadPkg()
-    baseFontSize <- 9  # pubs
-    baseLineSize <- 1
-	themeDefault <- theme_classic(base_size=baseFontSize)
-} else {
-    baseFontSize <- 16  # presentations
-    baseLineSize <- 1.2
-	themeDefault <- theme_classic(base_size=baseFontSize)
-}
 library(ggplot2)
 library(grid)   #unit
 library(reshape)  # melt
@@ -21,6 +8,20 @@ library(RColorBrewer) # brewer.pal
 library(twDEMC)
 library(twDEMCPlot)
 library(FME)
+
+# simulating CO2 increase and bare soil, based on modEezy5
+# based on 
+if( isPaperBGC){
+    library(twDev)
+    loadPkg()
+    baseFontSize <- 9  # pubs
+    baseLineSize <- 0.6
+	themeDefault <- theme_classic(base_size=baseFontSize)
+} else {
+    baseFontSize <- 16  # presentations
+    baseLineSize <- 1.2
+	themeDefault <- theme_classic(base_size=baseFontSize)
+}
 
 # gC/m2 and gN/m2, /yr
 # From Perveen 2014 Symphony
@@ -83,6 +84,13 @@ parms0 <- within(parms0,{
             kNR <- kNL <- kN
         })
 parms <- parms0
+testScen <- ""
+
+.tmp.testMicrobialLoop <- function(){
+	testScen <- "_noTvrMin"
+	parms$epsTvr <- parms0$epsTvr <- 1	# nothing of turnover mineralized
+	parms$tau <- parms0$tau <- (0.016906/parms0$epsTvr)*365	# also adjust mircobial tvr when changing epsTvr
+}
 
 .tmp.f <- function(){
     plantExpN <- 2.19 
@@ -269,8 +277,8 @@ pEst0 <- pEst <- unlist(parms0[pEstNames])
 poptDistr <- twConstrainPoptDistr(pEstNames, parDistr)
 pNorm <- transNormPopt( pEst, parDistr=parDistr )
 
-parms0$tau <- (0.016906/0.8)*365
-parms0$epsTvr <- 0.8
+#parms0$epsTvr <- 0.8
+#parms0$tau <- (0.016906/parms0$epsTvr)*365
 parmsFixed <- parms0
 parmsFixed$isFixedR <- parmsFixed$isFixedI <- parmsFixed$isFixedL <- TRUE
 x0Fixed <- x0
@@ -298,19 +306,24 @@ parmsA[names(pNorm)] <- pOrig <- transOrigPopt(pOptFixed, parDistr=parDistr)
 
 #------------- optimization with changing pools in time
 x0LowI <- xEOptFixed;
+if( testScen == "_noTvrMin") x0LowI["I"] <- 0.4	# start from low inorganic carbon pools  
 
+
+iCosts <- c("Cf","dR","respO","dB","N","leach")
 as.numeric(tmp <- costSeam2( pOptFixed, obsOrig, parDistr=parDistr, times = seq(0,10, length.out=301)
-                , yearsAccR=6, x0=x0LowI
+				, iCosts= iCosts
+				, yearsAccR=6, x0=x0LowI
         #,isRecover=TRUE
         #,parms=within(parms0, isRecover <- TRUE)
         ))
+attributes(tmp)$relDiffs
 res <-  attr(tmp,"resLsoda")
 plotResSeam2(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhiTotal10","dR","dS"), ylim=c(0,300))
 abline(v=6, col="grey")
 
 # note default iCosts with dS and dI
 iCosts <- c("Cf","dR","respO","dB","N","leach")
-reso <- optim( pNorm, costSeam2, parDistr=parDistr, control=list(maxit=100)
+reso <- optim( pOptFixed, costSeam2, parDistr=parDistr, control=list(maxit=100)
         , iCosts= iCosts
         , yearsAccR=6, x0=x0LowI
 )
@@ -325,6 +338,7 @@ as.numeric(tmp <- costSeam2( pOpt, obsOrig, parDistr=parDistr, times = seq(0,10,
         #,parms=within(parms0, isRecover <- TRUE)
         ))
 iClose <-  attr(tmp,"iCloseI")
+#if( testScen == "_noTvrMin") iClose <- 30	# before L and R are not in steady state  
 res <- resOpt50 <- attr(tmp,"resLsoda")
 plotResSeam2(res, "topright", cls = c("B","respO","Rr","Lr","alpha100","I100","mPhiTotal10","dR","dS"), ylim=c(0,300))
 timeClose <- resOpt50$time[iClose]
@@ -505,12 +519,13 @@ resScens$dS <- resScens$dR + resScens$dL
 resScens$leaching <- resScens$I * parms0$l
 predM <- melt(resScens, 1:2)
 predM$variable <- relevel(relevel(relevel( relevel(predM$variable, "dR"),"R"),"L"),"alpha")
-levels(predM$variable)[match(c("L","R","dR","I","leaching","PhiBU","PhiTotal"), levels(predM$variable))] <- c("L~(gm^{-2})","R~(g^{-2})","dR~(gm^{-2}*yr^{-1})","I~(gm^{-2})","leach.(gm^{-2}*yr^{-1})","Phi_BU~(gm^{-2}*yr^{-1})","Phi~(gm^{-2}*yr^{-1})")
+levels(predM$variable)[match(c("L","R","dR","I","leaching","PhiBU","PhiTotal"), levels(predM$variable))] <- 
+		c("L~(gC~m^{-2})","R~(gC~m^{-2})","dR~(gC~m^{-2}*yr^{-1})","I~(gN~m^{-2})","leaching~(gN~m^{-2}*yr^{-1})","Phi_BU~(gN~m^{-2}*yr^{-1})","Phi~(gN~m^{-2}*yr^{-1})")
 predMCtrl <- subset(predM, scenario %in% "control")
 
 dsObs <- data.frame(value=obs, sd=sdObs, time=timesExpFit, scenario="control")
 dsObs$variable <- relevel(relevel( relevel(as.factor(rownames(dsObs)), "N"), "dR"),"Cf")
-levels(dsObs$variable)[match(c("Cf","dR","N","leach"), levels(dsObs$variable))] <- c("L~(gm^{-2})","dR~(gm^{-2}*yr^{-1})","I~(gm^{-2})","leach.(gm^{-2}*yr^{-1})")
+levels(dsObs$variable)[match(c("Cf","dR","N","leach"), levels(dsObs$variable))] <- c("L~(gC~m^{-2})","dR~(gC~m^{-2}*yr^{-1})","I~(gN~m^{-2})","leaching~(gN~m^{-2}*yr^{-1})")
 #dssObs <- subset( dsObs, dsObs$variable %in% dsObs$variable[na.omit(pmatch(c("alpha","L","dR","I","leaching"), dsObs$variable))] )
 dssObs <- dsObs[grep(c("^alpha|^L|^dR|^I|^leach"),dsObs$variable),]
 #p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~|^Phi~|^leach"),predMCtrl$variable),], time <=5)
@@ -533,7 +548,7 @@ p1 <- ggplot( dss <- subset( predMCtrl[grep(c("^L~|^dR~|^I~|^leach"),predMCtrl$v
         c()
 twWin(3.27, 2)
 p1
-#savePlot("soilPaper14/fig/pastureFitMatch.pdf","pdf")
+savePlot(paste0("soilPaper14/fig/pastureFitMatch",testScen,".pdf"),"pdf")
 
 #library(ggthemes) # theme_tufte does not display axes lines
 p1b <- ggplot( dss <- subset( predM[grep(c("^alpha$|^L~|^dR~|^I~|^Phi~"),predM$variable),], time <=5)
@@ -577,7 +592,7 @@ grid.newpage()
 pushViewport(viewport(layout = grid.layout(1, 2)))
 print(p1, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
 print(p1b, vp = viewport(layout.pos.row = 1, layout.pos.col = 2))
-#savePlot("soilPaper14/fig/pastureFit.pdf","pdf")
+#savePlot(paste0("soilPaper14/fig/pastureFit",testScen,".pdf","pdf")
 
 
 

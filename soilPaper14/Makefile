@@ -51,12 +51,13 @@ bibtex:
 	# remove Notes field (from "Notes = {" to next "}," 
 	#sed -e '/Note\s*=/,/}\,/d' tmp/orig.bib > tmp/twutz_txt.bib
 	sed -e '/Note\s*=/,/}\,/d' tmp/orig.bib > twutz_txt.bib
+	cp twutz_txt.bib tmp/twutz_txt.bib
 	#sed -e '/Note\s*=/,/}\,/d' tmp/orig.bib | sed 's/Url\s*=.*},*//' > tmp/twutz_txt.bib
 	# minus continues despite of errors (e.g. with \usepackage[]{nohyperref} ot prevent nesting level errors)
-	-pdflatex -quiet -interaction=nonstopmode $(TEXFILE) -output-directory=tmp
-	cd tmp; bibtex  $(TEXFILE) 
-	-pdflatex -quiet -interaction=nonstopmode $(TEXFILE) -output-directory=tmp
-	-pdflatex -quiet -interaction=nonstopmode $(TEXFILE) -output-directory=tmp
+	-pdflatex -quiet -interaction=nonstopmode $(TEXFILE) -aux-directory=tmp -output-directory=tmp
+	cd tmp; bibtex  $(TEXFILE) 	# uses bibtex file in tmp, eclipse uses the one in top-level
+	-pdflatex -quiet -interaction=nonstopmode $(TEXFILE) -aux-directory=tmp -output-directory=tmp
+	-pdflatex -quiet -interaction=nonstopmode $(TEXFILE) -aux-directory=tmp -output-directory=tmp
 	mv tmp/$(TEXFILE).pdf ./$(PDFFILE).pdf
 	
 # Compile main tex file

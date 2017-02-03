@@ -3,7 +3,7 @@
 \section{SEAM equations \label{app:SEAM}}    
 %% Appendix A
 
-For an overview of symbol defintions see tables \ref{tab:modelStates},
+For an overview of symbol definitions see tables \ref{tab:modelStates},
 \ref{tab:modelParameters}, and \ref{tab:furtherSymbols}.
 
 \begin{table*}[t]
@@ -78,22 +78,22 @@ $\alpha$ & proportion of enzyme investments allocated to production of
 $E_R$ & (-) 
 \\
 $\operatorname{syn}_B $ & C for microbial biomass synthesis 
-& \unit{g~m^2yr^{-1}} 
+& \unit{g~m^{-2}yr^{-1}} 
 \\
 $\operatorname{syn}_{E_S} $ & C synthesis of enzymes degrading $S \in \{L,R\}$
-& \unit{g~m^2yr^{-1}} \\
+& \unit{g~m^{-2}yr^{-1}} \\
 $\operatorname{tvr}_B $ & microbial biomass turnover C 
-& \unit{g~m^2yr^{-1}} \\
+& \unit{g~m^{-2}yr^{-1}} \\
 $\operatorname{tvr}_{E_S} $ & enzyme turnover C 
-& \unit{g~m^2yr^{-1}} \\
-$\operatorname{dec}_S $ & C in decomposition of resource $S \in \{L,R\}$
-& \unit{g~m^2yr^{-1}} \\
+& \unit{g~m^{-2}yr^{-1}} \\
+$\operatorname{dec}_S $ & C in depolymerization of resource $S \in \{L,R\}$
+& \unit{g~m^{-2}yr^{-1}} \\
 $u_C,u_N$ & microbial uptake of C and N  
-& \unit{g~m^2yr^{-1}} \\
+& \unit{g~m^{-2}yr^{-1}} \\
 $\Phi_u, \Phi_B, \Phi_{\operatorname{tvr}}, \Phi$ & N mineralization with
 microbial DOM uptake, stoichiometric imbalance, turnover, and total $\Phi =
 \Phi_u + \Phi_B + \Phi_{\operatorname{tvr}}$ (Fig.
-\ref{fig:SEAMStructNFluxes}) & \unit{g~m^2yr^{-1}} \\
+\ref{fig:SEAMStructNFluxes}) & \unit{g~m^{-2}yr^{-1}} \\
 \bottomhline
 \end{tabular}
 %} %stretch
@@ -185,7 +185,7 @@ C_{\operatorname{synBC}} = u_C -
 
 If the C balance for biomass synthesis, $\operatorname{syn}_B$ (eq.
 \ref{eq:NCLim}), is positive, only a fraction $\epsilon$, the anabolic
-carbon use efficiency (CUE) is used for synthesis of biomass and enzymes,
+carbon use efficiency is used for synthesis of biomass and enzymes,
 whereas the rest is used for catabolic growth respiration $r_G$ to support this
 synthesis.
 The model assumes that requirements for enzyme synthesis and maintenance must be
@@ -252,7 +252,7 @@ turnover ,$\Phi_{\operatorname{tvr}}$ (\ref{eq:PhiTvr}, section \ref{sec:Tvr}).
 
 Organic N uptake, $u_{N,OM}$, was modelled as a parallel scheme (PAR),
 where a part of the organic N that is taken up from DON is mineralised
-accounting at soil core scale accounting for imbalance flux at sub-scale soil
+at soil core scale accounting for imbalance flux at sub-scale soil
 spots with high N concentration in DOM \citep{Manzoni08}.
 Potential N uptake is the sum of organic N uptake and the potential
 immobilisation flux ($u_{\operatorname{imm,Pot}}$). Uptake from DOM is assumed

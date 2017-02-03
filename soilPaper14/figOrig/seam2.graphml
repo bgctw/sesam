@@ -119,7 +119,7 @@
           <y:Geometry height="30.0" width="30.0" x="773.3798828125" y="310.5"/>
           <y:Fill color="#FFFFFFE6" color2="#D4D4D4CC" transparent="false"/>
           <y:BorderStyle color="#123EA2" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="26.0" modelName="sides" modelPosition="s" textColor="#000000" visible="true" width="28.0" x="1.0" y="34.0">&lt;html&gt;CO&lt;sub&gt;2&lt;/sub&gt;&lt;/html&gt;</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="26.0" modelName="sides" modelPosition="s" textColor="#000000" visible="true" width="59.0" x="-14.5" y="34.0">&lt;html&gt;CO&lt;sub&gt;2&lt;/sub&gt; efflux&lt;/html&gt;</y:NodeLabel>
           <y:StyleProperties>
             <y:Property class="com.yworks.yfiles.bpmn.view.BPMNTypeEnum" name="com.yworks.bpmn.type" value="EVENT_TYPE_PLAIN"/>
             <y:Property class="java.awt.Color" name="com.yworks.bpmn.icon.line.color" value="#000000"/>
