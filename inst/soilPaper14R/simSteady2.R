@@ -7,6 +7,10 @@
     baseFontSize <- 16  # presentations
 	themeDefault <- theme_bw(base_size=baseFontSize) + theme(strip.background = element_blank())
 }
+library(ggplot2)
+library(grid)   #unit
+library(reshape)  # melt
+library(RColorBrewer) # brewer.pal
 # based on 
 if( isPaperBGC){
     library(twDev)
@@ -14,10 +18,6 @@ if( isPaperBGC){
     baseFontSize <- 9  # pubs
 	themeDefault <- theme_classic(base_size=baseFontSize)
 } 
-library(ggplot2)
-library(grid)   #unit
-library(reshape)  # melt
-library(RColorBrewer) # brewer.pal
 
 # use the same colors in every graph - first 3 color-blind safe
 myColors <- brewer.pal(5,"Dark2")	
@@ -468,7 +468,7 @@ simCO2Increase <- function(
     dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("PhiTotal","PhiU","PhiB","PhiTvr"),variable_name="Pool")
     levels(dsp$Pool) <- c("Total~Phi","Uptake~Phi[u]","Imbalance~Phi[B]","Turnover~Phi[tvr]")
     #dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("resp","respO","Mm","MmImb","B","RN"),variable_name="Pool")
-    dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
+    dsp$Allocation <- dsp$scen #factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
     #names(dsp)[names(dsp)=="scen"] <- "Allocation"
     #p1 <- ggplot( dsp, aes(x=time, y=value, fill=Pool, lty=scen)) + geom_area()
     
@@ -488,7 +488,7 @@ simCO2Increase <- function(
     if (isPaperBGC){
         twWin(width=3.3, height=3.3, pointsize=9, pdf="soilPaper14/fig/CO2IncreaseImb.pdf")
         print(p2 + colScale +
-            theme(legend.position = c(0.95,-0.0), legend.justification=c(1,0)) + 
+            theme(legend.position = c(0.95,+0.05), legend.justification=c(1,0)) + 
 			theme(panel.grid.major.x=element_line(colour="grey75")) +
 			c()
 		)  
@@ -791,6 +791,181 @@ simBareSoil <- function(
 }
 
 
+sensitivityTvrMineralzationCO2Increase <- function(
+### Simulated increase of C-input by 20% during years 10-60
+){
+	#scen <- "Revenue"
+	t1S <- 10
+	t2I = 50
+	t3S <- 50
+	fInputInc = 1.2
+	#scens <- c("Revenue","Fixed","EnzMax")	#EnzMax steady is far off and destroys graph
+	scen <- "Revenue"
+	epsTvr <- parmsScen[[scen]]$epsTvr
+	epsTvr <- 0.29	# below 0.3 C-limited
+	epsTvr <- 0.3	
+	epsTvr <- 0.34
+	epsTvr <- 1
+	epsTvr <- 0.8
+	epsTvrScens <- seq(0.2,0.4,length.out=5)
+	epsTvrScens <- c(seq(0.3,0.34,length.out=7),1)
+	#epsTvrScens <- c(0.3,0.8,1)
+	resAllFaceEps <- lapply( epsTvrScens, function(epsTvr){
+				print(epsTvr)
+				parmsInit <- parmsInit0 <- parmsScen[[scen]]
+				#parmsInit$eps <- 0.8
+				#parmsInit$iB <- 1000	# testing unlimited immobilization 
+				parmsInit$isFixedI <- TRUE
+				parmsInit$epsTvr <- epsTvr
+				# adjust microbial turnover so that input to the R pool is the same
+				#parmsInit$tau <- parmsInit0$tau * parmsInit0$epsTvr/epsTvr	# also adjust mircobial tvr when changing epsTvr
+				parmsInit$eps <- parmsInit0$eps * parmsInit0$epsTvr/epsTvr  # also adjust growth respiration of microbes
+				#
+				#parmsInit$eps <- 0.4
+				#parmsInit$epsTvr <- 0.3
+				#parmsInit$cnIL <- 30
+				x0Pr <- x0
+				x0Pr["I"] <- 0.4
+				x0Pr["R"] <- 1100
+				x0Pr["RN"] <- x0Pr["R"]*parmsInit$cnIR
+				# spinup run
+				times <- seq(0,500, length.out=101)
+				#times <- seq(0,10000, length.out=101)
+				res <- res1 <- as.data.frame(lsoda( x0Pr, times, derivSeam2, parms=parmsInit))
+				#res <- res1f <- as.data.frame(lsoda( x0, times, derivSeam2, parms=within(parms0, useFixedAlloc<-TRUE) ))
+				xE <- unlist(tail(res,1))
+				#plotResSeam1(res, "topright", cls = c("B10","respO","PhiBU","PhiB","Rr","Lr","alpha100"))
+				#plotResSeam1(res, "topright", cls = c("ER","EL"))
+				#tmp <- derivSeam2(0, xE[1:length(x0)+1], within(parmsInit, isRecover <- TRUE) )
+				
+				
+				# 10 yr steady state
+				res <- res1S <- as.data.frame(lsoda( xE[1:length(x0)+1], 1:t1S, derivSeam2, parms=parmsInit))
+				
+				# 30 yr double C input    
+				parmsC2 <- within(parmsInit, { # more C in litter, but not more N 
+							iL <- iL*fInputInc
+							cnIL <- cnIL*fInputInc
+							#plantNUp <- 300/70*4/5  # plant N uptake balancing N inputs
+						}) 
+				times <- seq(0,t2I, length.out=101)
+				res <- res2I <- as.data.frame(lsoda( xE[1:length(x0)+1], times, derivSeam2, parms=parmsC2))
+				res2I$time <- res2I$time +t1S 
+				xE2 <- unlist(tail(res2I,1))
+				#plotResSeam1(res, "topright", cls = c("B10","respO","Rr","Lr","alpha100","PhiBU","PhiB","PhiTotal"))
+				#plotResSeam1(res, "topright", cls = c("I"))
+				#plotResSeam1(res, "topright", cls = c("R","L"))
+				#trace(derivSeam2, recover)        #untrace(derivSeam2)
+				#tmp <- derivSeam2(0, xE[1:length(x0)+1], within(parmsC2, isRecover <- TRUE) )
+				#tmp <- derivSeam2(0, xE2[1:length(x0)+1], within(parmsC2, isRecover <- TRUE) )
+				
+				# 30 yr normal input
+				times <- seq(0,t3S, length.out=101)
+				res <- res3S <- as.data.frame(lsoda( xE2[1:length(x0)+1], times, derivSeam2, parms=parmsInit))
+				res3S$time <- res3S$time +t1S + t2I
+				xE3 <- tail(res3S,1)
+				#plotResSeam1(res, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
+				
+				resc <- rbind( res1S, res2I[-1,], res3S[-1,])
+				resc$scen <- scen
+				resc$epsTvr <- epsTvr
+				#plotResSeam1(resc, "topright", cls = c("B10","respO","Mm","Rr","Lr","alpha100"))
+				resc
+			})
+	resScenEps <- do.call( rbind, resAllFaceEps)
+	resScenEps$scen <- factor(resScenEps$scen, levels=scens)
+	resScenEps$epsTvr <- factor(resScenEps$epsTvr, levels=epsTvrScens)
+	
+	resScenEps$RL <- resScenEps$R + resScenEps$L
+	
+	#library(dplyr)
+	#standardize to steady state for plotting
+	resScenEps <- resScenEps %>% group_by_(~epsTvr) %>% #summarize_(nRec=~n())
+			mutate_(relR = ~R/R[1], relL=~L/L[1], relRL=~RL/RL[1])
+	dsp <- melt(as.data.frame(resScenEps), id=c("time","epsTvr"), measure.vars=c("L","R","RL"),variable_name="Pool")
+	#dsp <- melt(as.data.frame(resScenEps), id=c("time","epsTvr"), measure.vars=c("relL","relR","relRL"),variable_name="Pool")
+	levels(dsp$Pool) <- c("L","R","L+R")
+	levels(dsp$epsTvr) <- paste0(sprintf("%.1f", as.numeric(levels(dsp$epsTvr))*100),"%")
+	#dsp$Allocation <- dsp$scen #factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
+	#names(dsp)[names(dsp)=="scen"] <- "Allocation"
+	#p1 <- ggplot( dsp, aes(x=time, y=value, fill=Pool, lty=scen)) + geom_area()
+	
+	p2f <- ggplot( subset(dsp), aes(x=time, y=value, col=epsTvr)) + 
+			geom_line(size=0.6) + 
+			#facet_grid(Pool ~ .,scales="free_y") + 
+			facet_grid(Pool ~ .,scales="free", labeller = label_parsed) + 
+			xlab("Time (yr)")+ ylab(expression(Carbon~stock~(gC~m^{-2}))) + #labs(linetype="Substrate pool") +
+			scale_colour_discrete(expression(epsilon[tvr])) +
+			themeDefault +
+			#scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
+			theme(legend.position = c(0.99,0.99), legend.justification=c(1,1)) +
+			theme(panel.border = element_rect(colour = "black", fill=NA)) +
+			theme(strip.background = element_blank()) +			
+			theme(panel.grid.major.x=element_line(colour="grey75")) +
+			c()
+	print(p2f)  
+	
+	if (isPaperBGC){
+		twWin(width=3.3, height=3.3, pointsize=9, pdf="soilPaper14/fig/CO2IncreaseSens.pdf")
+		print(
+				p2f + theme(legend.position = c(1.0,1.0)-0.01, legend.justification=c(1,1)) +
+						theme( plot.margin = unit( c(0,0,0,0)+0.02 , "in" ) ) +
+						theme(panel.grid.major.x=element_line(colour="grey75")) +
+						c()
+		)
+		dev.off()
+	}
+		
+	
+	# imbalance fluxes
+	#dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("respO","MmImb"),variable_name="Pool")
+	#levels(dsp$Pool) <- c("Overflow respiration","N Mineralization")
+	#dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("Mm","Phi","MmTvr"),variable_name="Pool")
+	dsp <- melt(as.data.frame(resScenEps), id=c("time","epsTvr"), measure.vars=c("PhiTotal","PhiU","PhiB","PhiTvr"),variable_name="Pool")
+	levels(dsp$Pool) <- c("Total~Phi","Uptake~Phi[u]","Imbalance~Phi[B]","Turnover~Phi[tvr]")
+	levels(dsp$epsTvr) <- paste0(sprintf("%.1f", as.numeric(levels(dsp$epsTvr))*100),"%")
+	#dsp <- melt(resScen, id=c("time","scen"), measure.vars=c("resp","respO","Mm","MmImb","B","RN"),variable_name="Pool")
+	#dsp$Allocation <- factor(dsp$scen, levels=c("Fixed","Match","Revenue"))
+	#names(dsp)[names(dsp)=="scen"] <- "Allocation"
+	#p1 <- ggplot( dsp, aes(x=time, y=value, fill=Pool, lty=scen)) + geom_area()
+	
+	dummy2 <- data.frame(Pool=levels(dsp$Pool)[3], value=0)
+	p2 <- ggplot( dsp, aes(x=time, y=value, col=epsTvr)) +
+			geom_hline(data=dummy2, aes(yintercept = value), colour="grey75" ) +
+			geom_line(size=0.6) +
+			facet_grid(Pool ~ .,scales="free_y", labeller=label_parsed) +
+			xlab("Time (yr)")+ ylab(expression(Nitrogen~mineralization~(gN~m^{-2}*yr^{-1}))) + #labs(linetype="Ouput fluxes") +
+			scale_colour_discrete(expression(epsilon[tvr])) +
+			themeDefault +
+			#scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
+			#theme(legend.position = c(0.95,1.0), legend.justification=c(1,1)) +
+			theme(legend.position = c(0.95,0.02), legend.justification=c(1,0)) +
+			theme(panel.border = element_rect(colour = "black", fill=NA)) +
+			theme(strip.background = element_blank()) +			
+			theme(panel.grid.major.x=element_line(colour="grey75")) +
+			c()                
+	p2 #+ colScale
+	
+	if (isPaperBGC){
+		twWin(width=3.3, height=3.3, pointsize=9, pdf="soilPaper14/fig/CO2IncreaseImbSens.pdf")
+		print(p2 + 
+						theme(legend.position = c(0.99,0.01), legend.justification=c(1,0)) + 
+						theme(panel.grid.major.x=element_line(colour="grey75")) +
+						c()
+		)  
+		dev.off()
+	}
+	
+	
+	.tmp.f <- function(){
+		dsCN$graph <- "Litter C Input"
+		dsp2 <- dsp
+		dsp2$graph <- "Substrate Pools"
+		dspM <- rbind( dsCN)
+	}
+}
+
+
 
 
 #isPaperBGC <- TRUE
@@ -800,4 +975,6 @@ if (isPaperBGC){
     simCO2Increase()
     simPriming()
 }
+
+
 

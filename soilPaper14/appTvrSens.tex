@@ -1,0 +1,71 @@
+\section{Sensitivity to microbial turnover \label{app:TvrSens}}
+
+The importance of N mineralization of microbial turnover, which is caused mainly
+by predators that graze on microbes \citep{Clarholm85, Raynaud06}, was an
+one of the hypotheses in the development of the SEAM.
+This section discusses SEAM's sensitivity to parameterization of microbial
+turnover mineralization.
+
+To this end we performed the \chem{CO_2}-Fertilization experiment using the revenue
+strategy again with varying parameter $\epsilon_{\operatorname{tvr}}$, the part
+of microbial turnover that is not mineralized. We also adjusted microbial
+anabolic efficiency $\epsilon$ by the same but inverse factor in order compare
+simulation results that start from similar steady state of SOM stocks, which
+change with model parameterization.
+
+\begin{figure}[t] \vspace*{2mm}
+\begin{center}
+\includegraphics[width=8.3cm]{fig/CO2IncreaseSens}
+\end{center}
+\caption{
+C-Stocks in the \chem{CO_2}-Fertilization experiment with varying
+mineralization of microbial turnover ($1-\epsilon_{\operatorname{tvr}}$): The
+patterns are similar, unless the system is shifted to another limitation regime.
+\label{fig:CO2IncreaseSens}}
+
+\end{figure}
+\begin{figure}[t] \vspace*{2mm}
+\begin{center}
+\includegraphics[width=8.3cm]{fig/CO2IncreaseImbSens} 
+\end{center}
+\caption{
+N Mineralization in the \chem{CO_2}-Fertilization experiment:
+Mineralization of microbial turnover contributed most of the liberation of SOM-N
+with the Revenue strategy during microbial N limitation.
+After the end of the fertilisation at year 60, microbes with the Revenue
+strategy continued to more strongly immobilize N (negative flux $\Phi_B$).
+\label{fig:CO2IncreaseImbSens}}
+\end{figure}
+
+The change of the residue pool during the period of increased C inputs was very
+similar across different parameterizations as long as the system followed the
+same switches between several limitation states (Fig \ref{fig:CO2IncreaseSens}).
+Contrary, if the re-parameterization shifted the system to different limitation
+states then the dynamics changed qualitatively.
+For example with a value of $\epsilon_{\operatorname{tvr}}=0.34$, there was an
+initial net N mineralization instead of N immobilization, i.e. positive $\Phi_B$
+(Fig.
+\ref{fig:CO2IncreaseImbSens}), i.e. an initially larger distance away from
+maximum immobilization flux. In this case, the change in amount and
+stoichiometry of litter inputs did not drive the system into microbial N
+limitation ($-\Phi_B < u_{immo,Pot}$). This case resulted in the absense of the
+simulated decrease of the residue pool.
+The high initial $\Phi_B$ values resulted from the requirement that with the
+long term steady state, the decomposer system must balance its organic litter N
+inputs by N mineralization. The required increase in litter C/N ratio that could
+shift a system simulated without turnover mineralization to N limitation was
+unreasonably large.
+
+Hence, including the process of mineralization of microbial turnover is crucial
+to SEAM for simulating a reasonable dynamics for shifts between C and N
+limitation.
+Although the SEAM is not sensitive to the exact specification in turnover
+parameters if other parameters are calibrated, there exist thresholds than can
+drive the model to different stoichiometric limitations and can lead to
+substantial changes in model dynamics.
+
+% The simulation of N mining in the \chem{CO_2}-Fertilization experiment was
+% simulated based on a shift from C limitation or substrate N limitation to
+% microbial N limitation and successive associated shift in enzyme allocation.
+ 
+
