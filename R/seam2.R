@@ -75,8 +75,8 @@ derivSeam2 <- function(t,x,parms){
     PhiTotal <- PhiBU + PhiTvr       # total mineralization flux including microbial turnover
     #
     # Revenue strategy
-    revLC <- decL / (parms$kNL) / (parms$kmL + EL)
-    revRC <- decR / (parms$kNR) / (parms$kmR + ER)
+    revLC <- decLp / (parms$kNL) / (parms$kmL + EL)
+    revRC <- decRp / (parms$kNR) / (parms$kmR + ER)
     revLN <- revLC * cnE/cnL
     revRN <- revRC * cnE/cnR
     alphaC <- revRC / (revLC + revRC)  
@@ -103,7 +103,7 @@ derivSeam2 <- function(t,x,parms){
 					balanceAlphaSmallImmobilization(alphaC, alphaN, CsynBN, CsynBC
 							, NsynBC=parms$eps*CsynBC/cnB, NsynBN)
 				} else {
-					balanceAlphaLargeImmobilization(alphaC, alphaN, isLimN, isLimNSubstrate, immoAct=-MmB, immoPot=immoPot)
+					balanceAlphaLargeImmobilization(alphaC, alphaN, isLimN, isLimNSubstrate, immoAct=-PhiB, immoPot=immoPot)
 				}
 	}
    	if( isTRUE(parms$isAlphaFix) ){
