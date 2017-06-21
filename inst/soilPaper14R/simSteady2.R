@@ -6,6 +6,9 @@
 .tmp.f <- function(){
     baseFontSize <- 16  # presentations
 	themeDefault <- theme_bw(base_size=baseFontSize) + theme(strip.background = element_blank())
+	themePosterLarge <- theme_bw(base_size=36) + theme(strip.background = element_blank())
+	
+	
 }
 library(ggplot2)
 library(grid)   #unit
@@ -25,6 +28,7 @@ myColors <- brewer.pal(5,"Dark2")
     paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
 }
 names(myColors) <- .simpleCap(names(parmsScen))
+myColors["Adaptive"] <- myColors["Revenue"] 
 colScale <- scale_colour_manual(name = "Allocation",values = myColors)
 .treatments <- structure(c(1,0.5), names=c("Litter input pulse","No Litter input"))
 sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
@@ -502,6 +506,30 @@ simCO2Increase <- function(
         dsp2$graph <- "Substrate Pools"
         dspM <- rbind( dsCN)
     }
+	
+	.tmp.graphEGU17 <- function(){
+		dsp2 <- dsp
+		levels(dsp2$Allocation) <- c("Adaptive","Fixed")
+		p2 <- ggplot( subset(dsp2, Pool=="Total~Phi"), aes(x=time, y=value, col=Allocation, linetype=Allocation)) + 
+				geom_line(size=2) +
+				#facet_grid(Pool ~ .,scales="free_y", labeller=label_parsed) + 
+				xlab("Time (yr)")+ ylab(expression(N~mineralization~(gNm^{-2}*yr^{-1}))) + #labs(linetype="Ouput fluxes") +
+				themePosterLarge +
+				#scale_colour_discrete(drop=TRUE,limits = levels(dsp$Allocation)) +
+				theme(legend.position = c(0.95,1.0-0.02), legend.justification=c(1,1)) +
+				#theme(legend.position = c(0.95,0.02), legend.justification=c(1,0)) +
+				theme(panel.border = element_rect(colour = "black", fill=NA)) +
+				theme(strip.background = element_blank()) +			
+				theme(panel.grid.major.x=element_line(colour="grey75")) +
+				c()
+		#dev.size("in")
+		#twWin(width=10, height=7.6)
+		library(directlabels)
+		p2 + colScale + theme(legend.position="none")+ 
+				geom_dl(aes(label=Allocation) ,method=list(cex=3,"top.bumptwice"))  
+				#geom_dl(aes(label=Allocation) ,method=list(cex=3,"last.bumpup"))  
+		
+	}
 }
     
 

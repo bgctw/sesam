@@ -1,5 +1,5 @@
 #TeXlipse project settings
-#Thu Feb 02 15:29:57 CET 2017
+#Mon Apr 03 10:25:27 CEST 2017
 markTmpDer=true
 builderNum=2
 outputDir=
@@ -7,7 +7,7 @@ makeIndSty=
 bibrefDir=
 outputFormat=pdf
 tempDir=tmp
-mainTexFile=SBB_main.tex
+mainTexFile=soil_main.tex
 outputFile=Wutzler14_seam.pdf
 langSpell=en
 markDer=true
