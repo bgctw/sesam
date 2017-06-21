@@ -45,7 +45,9 @@ parms0 <- within(parms0,{
             eps1 <- eps2 <- eps
             cnER <- cnEL <- cnE 
             kNR <- kNL <- kN
-        })
+			kIP <- iL / cnIL	# same litter input as plant uptake
+			kIP <- 0			# no plant uptake
+		})
 
 parms <- parms0
 
@@ -56,8 +58,8 @@ x0 <- x0Orig <- c( #aE = 0.001*365
         ,R = 7000                 ##<< N rich substrate
         ,RN = 7000/parms0$cnIR    ##<< N rich substrate N pool
         ,L = 200                  ##<< N poor substrate
-        ,LN = 200/parms0$cnIL    ##<< N poor substrate N pool
-        ,I =  0                    ##<< inorganic pool
+        ,LN = 200/parms0$cnIL     ##<< N poor substrate N pool
+        ,I =  1                   ##<< inorganic pool
 )
 x <- x0
 
@@ -74,8 +76,8 @@ x0Nlim <- c( #aE = 0.001*365
 		,R = 1000                 ##<< N rich substrate
 		,RN = 1000/parms0$cnIR    ##<< N rich substrate N pool
 		,L = 200                  ##<< N poor substrate
-		,LN = 200/parms0$cnIL    ##<< N poor substrate N pool
-		,I =  0                    ##<< inorganic pool
+		,LN = 200/parms0$cnIL     ##<< N poor substrate N pool
+		,I =  0                   ##<< inorganic pool
 )
 x0NlimSeam2 <- c(x0Nlim  
 		,ER  = 1.5*parms0$km                  ##<< total enzyme pool
@@ -83,7 +85,7 @@ x0NlimSeam2 <- c(x0Nlim
 )[c("B","ER","EL","R","RN","L","LN","I")]	##<< make sure to have same order as derivative of Seam2
 
 
-test_that("same as seam fro fixed substrates", {
+test_that("same as seam for fixed substrates", {
     #x0["L"] <- calcLSteady5( parms0$iL, x0["R"], parms=parms0 )
     #x0["B"] <- calcBSteady5( parms0$iL, x0["R"], L=x0["L"], parms=parms0 )
     #x0[c("ER","EL")] <- calcESteady5( x0["B"], parms=parms0 )
@@ -103,79 +105,95 @@ test_that("same as seam fro fixed substrates", {
 	# TODO test
     times <- seq(0,2100, length.out=101)
     #times <- seq(0,10000, length.out=101)
-    res <- res1 <- as.data.frame(lsoda( x0, times, derivSeams2, parms=parmsFixedS))
-	res <- res2 <- as.data.frame(lsoda( x0Seam2, times, derivSeam2, parms=parmsFixedS))
-    xE1 <- unlist(tail(res1,1))
-	xE2 <- unlist(tail(res2,1)); xE2[-(3:4)]
-	expect_equal( xE1["alphaC"], xE2["alphaC"], tolerance=1e-6)
-	expect_equal( xE1[2:7], xE2[c(2,5:9)], tolerance=1e-6)
+    resSteady <- as.data.frame(lsoda( x0, times, derivSeams2, parms=parmsFixedS))
+	resExp <- as.data.frame(lsoda( x0Seam2, times, derivSeam2, parms=parmsFixedS))
+    xESteady <- unlist(tail(resSteady,1))
+	xEExp <- unlist(tail(resExp,1)); xEExp[-(3:4)]
+	expect_equal( xESteady["alphaC"], xEExp["alphaC"], tolerance=1e-6)
+	expect_equal( xESteady[2:7], xEExp[c(2,5:9)], tolerance=1e-6)
 	.tmp.f <- function(){
-		derivSeam2(0, xE2[2:9], within(parmsInit, isRecover<-TRUE))
-		derivSeams2(0, xE2[c(2,5:9)], within(parmsInit, isRecover<-TRUE))
+		derivSeam2(0, xEExp[2:9], within(parmsInit, isRecover<-TRUE))
+		derivSeams2(0, xEExp[c(2,5:9)], within(parmsInit, isRecover<-TRUE))
 	}
 	#
 	# N limitation
-	res <- res1 <- as.data.frame(lsoda( x0Nlim, times, derivSeams2, parms=parmsFixedS))
-	res <- res2 <- as.data.frame(lsoda( x0NlimSeam2, times, derivSeam2, parms=parmsFixedS))
-	xE1 <- unlist(tail(res1,1))
-	xE2 <- unlist(tail(res2,1)); xE2[-(3:4)]
-	expect_equal( xE1["alphaN"], xE2["alphaN"], tolerance=1e-6)
-	expect_equal( xE1[2:7], xE2[c(2,5:9)], tolerance=1e-6)
+	resSteady <- as.data.frame(lsoda( x0Nlim, times, derivSeams2, parms=parmsFixedS))
+	resExp <- as.data.frame(lsoda( x0NlimSeam2, times, derivSeam2, parms=parmsFixedS))
+	xESteady <- unlist(tail(resSteady,1))
+	xEExp <- unlist(tail(resExp,1))
+	expect_equal( xESteady["alphaN"], xEExp["alphaN"], tolerance=1e-6)
+	expect_equal( xESteady[2:7], xEExp[c(2,5:9)], tolerance=1e-6)
 	.tmp.f <- function(){
 		library(dplyr)
 		library(ggplot2)
-		res <- bind_rows( cbind(res1, scen="steady"), cbind(res2,scen="explicit"))
+		res <- bind_rows( cbind(resSteady, scen="steady"), cbind(resExp,scen="explicit"))
 		ggplot(filter(res, time>100), aes(time, B, color=scen)) + geom_line()
 		ggplot(filter(res, time>1), aes(time, respO, color=scen)) + geom_line()
 	}
 })
 
-test_that("same as seam fro fixed substrates", {
-			#x0["L"] <- calcLSteady5( parms0$iL, x0["R"], parms=parms0 )
-			#x0["B"] <- calcBSteady5( parms0$iL, x0["R"], L=x0["L"], parms=parms0 )
-			#x0[c("ER","EL")] <- calcESteady5( x0["B"], parms=parms0 )
-			
-			parmsFixedS <- within(parms0,{
-						isFixedS <- TRUE
-					}) 
-			parmsTvr0 <- within(parms0,{
-						isTvrNil <- TRUE
-						iR <- 160
-					})
-			parmsInit <- parms0
-			#parmsInit <- within(parms0, {isFixedS <- TRUE})
-			#parmsInit <- within(parms0, {isAlphaFix <- TRUE})
-			#parmsInit <- within(parms0, {isAlphaMatch <- TRUE})
-			times <- seq(0,2100, by=2)
+test_that("same as seam with substrate feedbacks", {
+			parmsInit <- within(parms0, {isFixedI<-TRUE; useAlphaCUntilNLimited <- TRUE})
+			times <- seq(0,800, length.out=101)	
+			#times <- c(0,148:151)	
+			#times <- seq(0,2100, by=2)
 			#times <- seq(0,10000, length.out=101)
-			res <- res1 <- as.data.frame(lsoda( x0, times, derivSeams2, parms=parms0))
-			res <- res2 <- as.data.frame(lsoda( x0Seam2, times, derivSeam2, parms=parms0))
-			xE1 <- unlist(tail(res1,1))
-			xE2 <- unlist(tail(res2,1)); 
-			print(xE1);print(xE2[-(3:4)])
-			expect_equal( xE1["alphaC"], xE2["alphaC"], tolerance=1e-6)
-			expect_equal( xE1[2:7], xE2[c(2,5:9)], tolerance=1e-6)
+			resSteady <- as.data.frame(lsoda( x0, times, derivSeams2, parms=parmsInit))
+			resExp <- as.data.frame(lsoda( x0Seam2, times, derivSeam2, parms=parmsInit))
+			xESteady <- unlist(tail(resSteady,1))
+			xEExp <- unlist(tail(resExp,1)); 
+			xpESteady <- unlist(head(tail(resSteady,2),1))	# the previous before end
+			rbind(xESteady, xEExp[names(xESteady)])
+			expect_equal( xESteady["alphaC"], xEExp["alphaC"], tolerance=1e-4)
+			expect_equal( xESteady[2:7], xEExp[c(2,5:9)], tolerance=1e-6)
 			.tmp.f <- function(){
-				derivSeam2(0, xE2[2:9], within(parmsInit, isRecover<-TRUE))
-				derivSeams2(0, xE2[c(2,5:9)], within(parmsInit, isRecover<-TRUE))
+				derivSeams2(0, xEExp[c(2,5:9)], within(parmsInit, isRecover<-TRUE))
+				derivSeam2(0, xEExp[2:9], within(parmsInit, isRecover<-TRUE))
+				derivSeams2(0, xESteady, within(parmsInit, isRecover<-TRUE))
+				derivSeams2(0, xpESteady, within(parmsInit, isRecover<-TRUE))
 			}
 			#
 			# N limitation
-			res <- res1 <- as.data.frame(lsoda( x0Nlim, times, derivSeams2, parms=parmsFixedS))
-			res <- res2 <- as.data.frame(lsoda( x0NlimSeam2, times, derivSeam2, parms=parmsFixedS))
-			xE1 <- unlist(tail(res1,1))
-			xE2 <- unlist(tail(res2,1)); xE2[-(3:4)]
-			expect_equal( xE1["alphaN"], xE2["alphaN"], tolerance=1e-6)
-			expect_equal( xE1[2:7], xE2[c(2,5:9)], tolerance=1e-6)
+			times <- seq(0,800, length.out=101)	
+			resSteady <- as.data.frame(lsoda( x0Nlim, times, derivSeams2, parms=parmsInit))
+			resExp <- as.data.frame(lsoda( x0NlimSeam2, times, derivSeam2, parms=parmsInit))
+			xESteady <- unlist(tail(resSteady,1))
+			xEExp <- unlist(tail(resExp,1))
+			expect_equal( xESteady["B"], xEExp["B"], tolerance=1e-6)
+			expect_equal( xESteady["alphaN"], xEExp["alphaN"], tolerance=1e-6)
+			rbind(xESteady[2:7], xEExp[c(2,5:9)])
+			rbind(xESteady, xEExp[names(xESteady)])
+			expect_equal( xESteady[2:7], xEExp[c(2,5:9)], tolerance=1e-6)
 			.tmp.f <- function(){
 				library(dplyr)
 				library(ggplot2)
-				res <- bind_rows( cbind(res1, scen="steady"), cbind(res2,scen="explicit"))
+				res <- bind_rows( cbind(resSteady, scen="steady"), cbind(resExp,scen="explicit"))
 				ggplot(filter(res, time>1), aes(time, B, color=scen)) + geom_line()
+				ggplot(filter(res, time<500), aes(time, B, color=scen)) + geom_line()
+				ggplot(filter(res, time>1), aes(time, L, color=scen)) + geom_line()
+				ggplot(filter(res, time>1), aes(time, R, color=scen)) + geom_line()
 				ggplot(filter(res, time<500), aes(time, respO, color=scen)) + geom_line()
-				ggplot(filter(res, time<500), aes(time, ER, color=scen)) + geom_line()
+				ggplot(filter(res, time > 10 & time<500), aes(time, ER, color=scen)) + geom_line()
 				ggplot(filter(res, time<500), aes(time, EL, color=scen)) + geom_line()
+				ggplot(filter(res, time<500), aes(time, alphaC, color=scen)) + geom_line()
+				ggplot(filter(res, time<5000), aes(time, alphaN, color=scen)) + geom_line()
+				ggplot(filter(res, time<500 & time > 0), aes(time, alpha, color=scen)) + geom_point()
+				ggplot(filter(res, time>01), aes(time, PhiB, color=scen, linetype=scen)) + geom_line()
+				
 			}
+			# from C to N limitation
+			x0CNLim <- x0; x0CNLim["I"] <- 0
+			x0CNLimSeam2 <- x0Seam2; x0CNLimSeam2["I"] <- 0
+			times <- seq(0,800, length.out=101)	
+			resSteady <- as.data.frame(lsoda( x0CNLim, times, derivSeams2, parms=parmsInit))
+			resExp <- as.data.frame(lsoda( x0CNLimSeam2, times, derivSeam2, parms=parmsInit))
+			xESteady <- unlist(tail(resSteady,1))
+			xEExp <- unlist(tail(resExp,1))
+			expect_equal( xESteady["B"], xEExp["B"], tolerance=1e-6)
+			expect_equal( xESteady["alphaN"], xEExp["alphaN"], tolerance=1e-6)
+			rbind(xESteady[2:7], xEExp[c(2,5:9)])
+			rbind(xESteady, xEExp[names(xESteady)])
+			expect_equal( xESteady[2:7], xEExp[c(2,5:9)], tolerance=1e-3)
 		})
 
 

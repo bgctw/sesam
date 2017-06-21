@@ -65,7 +65,7 @@ derivSeam2 <- function(t,x,parms){
     # imbalance fluxes
     respSynE <- (1-parms$eps)/parms$eps * synE
     respO <- uC - (synE+respSynE+synB+rG+rM)
-    PhiB <- uNSubstrate - (synE/parms$cnE + synB/parms$cnB) # imbalance mineralization/immobilization flux
+    PhiB <- uNSubstrate - (synE/parms$cnE + synB/parms$cnB) # imbalance mineralization/immobilization flux substrates only
     MmImb <- uNPot - (synE/parms$cnE + synB/parms$cnB)      # imbalance taking into account potential immobilization
     #PhiB2 <- MmImb - immoPot # should equal PhiB
     PhiBU <- PhiB + PhiU
@@ -103,9 +103,10 @@ derivSeam2 <- function(t,x,parms){
 					balanceAlphaSmallImmobilization(alphaC, alphaN, CsynBN, CsynBC
 							, NsynBC=parms$eps*CsynBC/cnB, NsynBN)
 				} else {
-					balanceAlphaLargeImmobilization(alphaC, alphaN, isLimN, isLimNSubstrate, immoAct=-PhiB, immoPot=immoPot)
+					balanceAlphaLargeImmobilization(alphaC, alphaN, isLimN, isLimNSubstrate, immoAct=pmax(0,-PhiB), immoPot=immoPot)
 				}
 	}
+	#c(alphaC, alphaN, alpha)
    	if( isTRUE(parms$isAlphaFix) ){
         alpha <- 0.5
     } 
@@ -202,10 +203,12 @@ balanceAlphaLargeImmobilization <- function(
     if( isLimN ) return(alphaN)
     if( isLimNSubstrate ){
         # overall C limited, but only with acquiring N by immobilization
-        # increase proportion into N aquiring enzymes as the proportion of immobilization to its poentential increases 
+        # increase proportion into N aquiring enzymes as the proportion of immobilization 
+		# to its potential increases 
         pN <- immoAct / immoPot 
-        # increase proportion into N aquiring enzymes as the proportion of biomass synthesis that is possible due to immobilization 
-        #pN <- (CSynB - CsynBNSubstrate)/CsynBNSubstrate
+        # increase proportion into N aquiring enzymes as the proportion of biomass synthesis 
+		# that is possible due to immobilization 
+        # pN <- (CSynB - CsynBNSubstrate)/CsynBNSubstrate
         alpha <- alphaC + pN*(alphaN-alphaC)
         return(alpha)
     } 

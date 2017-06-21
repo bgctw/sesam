@@ -22,10 +22,11 @@ derivSeams2 <- function(t,x,parms){
 	ETot <- parms$aE * x["B"] / parms$kN
 	rM <- parms$m * x["B"]          # maintenance respiration
 	tvrB <- parms$tau*x["B"]        # microbial turnover
+	synE <- parms$aE * x["B"]       # total enzyme production per microbial biomass
 	#
 	# declare variables that will be computed/overidden in computeAlphaFluxes
 	# else <<- will override bindings at global space
-	ER <- EL <- tvrER <- tvrEL <- limER <- limEL <- decR <- decL <- tvrERecycling <- uC <- decC <- synE <- 
+	ER <- EL <- tvrER <- tvrEL <- limER <- limEL <- decR <- decL <- tvrERecycling <- uC <- decC <-  
 			CsynBC <- decN <- plantNUp <- PhiU <- immoPot <- uNSubstrate <- uNPot <-
 			NsynBN <- CsynBN <- NsynBNSubstrate <- CsynBNSubstrate <- isLimN <- 
 			isLimNSubstrate <- CsynB <-	PhiB <- synB <- rG <- NA_real_
@@ -33,8 +34,8 @@ derivSeams2 <- function(t,x,parms){
 		ER <<- alpha * ETot
 		EL <<- (1-alpha) * ETot
 		#
-		tvrER <<- parms$kN*ER
-		tvrEL <<- parms$kN*EL
+		tvrER <<- alpha * synE
+		tvrEL <<- (1-alpha) * synE
 		#    
 		limER <<- ER / (parms$kmR + ER)
 		limEL <<- EL / (parms$kmL + EL)
@@ -44,7 +45,6 @@ derivSeams2 <- function(t,x,parms){
 		tvrERecycling <<- parms$kNB*(tvrER+tvrEL)
 		uC <<- decC <<- decR + decL + tvrERecycling
 		#
-		synE <<- parms$aE * x["B"]       # total enzyme production per microbial biomass
 		#synE <<- parms$aEu * uC          # total enzyme production per uptake
 		CsynBC <<- uC - synE/parms$eps - rM  # C required for biomass and growth respiration under C limitation
 		#
@@ -77,19 +77,35 @@ derivSeams2 <- function(t,x,parms){
 			rG <<- 0
 		}
 		PhiB <<- uNSubstrate - (synE/parms$cnE + synB/parms$cnB) # imbalance mineralization/immobilization flux
+		##value<< return the given argument
+		alpha
 	}
-	computeAlphaFluxes(alphaC)
+	alpha <- computeAlphaFluxes(alphaC)
 	if( isLimN ){
-		computeAlphaFluxes(alphaN)
+		alpha <- computeAlphaFluxes(alphaN)
+		if( !isLimN ){ alpha <- computeAlphaFluxes((alphaN+alphaC)/2) }
 	}
-	alpha <- if( isTRUE(parms$useAlphaCUntilNLimited) || immoPot < uNSubstrate/100 ){ 
-				balanceAlphaSmallImmobilization(alphaC, alphaN, CsynBN, CsynBC
-						, NsynBC=parms$eps*CsynBC/cnB, NsynBN)
-			} else {
-				balanceAlphaLargeImmobilization(alphaC, alphaN, isLimN, isLimNSubstrate, immoAct=-PhiB, immoPot=immoPot)
-			}
-	computeAlphaFluxes(alpha)
-	#	
+	#c(alphaC, alphaN, alpha)
+#recover()
+	.tmp.f <- function(){
+		alpha1 <- if( isTRUE(parms$useAlphaCUntilNLimited) || immoPot < uNSubstrate/100 ){ 
+					balanceAlphaSmallImmobilization(alphaC, alphaN, CsynBN, CsynBC
+							, NsynBC=parms$eps*CsynBC/cnB, NsynBN)
+				} else {
+					balanceAlphaLargeImmobilization(alphaC, alphaN, isLimN, isLimNSubstrate, immoAct=pmax(0,-PhiB), immoPot=immoPot)
+				}
+		computeAlphaFluxes(alpha1)
+		# with new alpha new enzyme levels and changed PhiB, CsynBN, ...
+		# do rudimentary fixpoint iteration
+		alpha2 <- if( isTRUE(parms$useAlphaCUntilNLimited) || immoPot < uNSubstrate/100 ){ 
+					balanceAlphaSmallImmobilization(alphaC, alphaN, CsynBN, CsynBC
+							, NsynBC=parms$eps*CsynBC/cnB, NsynBN)
+				} else {
+					balanceAlphaLargeImmobilization(alphaC, alphaN, isLimN, isLimNSubstrate, immoAct=-PhiB, immoPot=immoPot)
+				}
+		alpha <- (alpha1+alpha2)/2 
+		c(alphaC=alphaC, alphaN=alphaN, alpha0=alpha0, alpha1=alpha1, alpha2=alpha2, alpha=alpha)
+	}
     #
     # imbalance fluxes
     respSynE <- (1-parms$eps)/parms$eps * synE
