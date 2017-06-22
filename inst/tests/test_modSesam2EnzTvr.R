@@ -1,5 +1,5 @@
 #require(testthat)
-context("modSesam2")
+context("modSesam2EnzTvr")
 
 parms0 <- list(
         cnB = 7.16
@@ -41,7 +41,6 @@ parms0 <- list(
 		,nu = 0.9     # microbial N use efficiency
 )
 parms0 <- within(parms0,{
-			kmkN <- km*kN
             kmR <- kmL <- km
             eps1 <- eps2 <- eps
             cnER <- cnEL <- cnE 
@@ -102,35 +101,36 @@ test_that("same as seam for fixed substrates", {
     #parmsInit <- within(parms0, {isFixedS <- TRUE})
     #parmsInit <- within(parms0, {isAlphaFix <- TRUE})
     #parmsInit <- within(parms0, {isAlphaMatch <- TRUE})
-    res <- derivSesam2(0, x0, parmsInit)
+    res <- derivSesam2EnzTvr(0, x0, parmsInit)
 	# TODO test
     times <- seq(0,2100, length.out=2)
 	#times <- seq(0,2100, length.out=101)
-    resSteady <- as.data.frame(lsoda( x0, times, derivSesam2, parms=parmsFixedS))
+    resSteady <- as.data.frame(lsoda( x0, times, derivSesam2EnzTvr, parms=parmsFixedS))
 	resExp <- as.data.frame(lsoda( x0Seam2, times, derivSeam2, parms=parmsFixedS))
     xESteady <- unlist(tail(resSteady,1))
 	xEExp <- unlist(tail(resExp,1)); xEExp[-(3:4)]
-	rbind(xESteady, xEExp[names(xESteady)])
-	#sort( (xESteady-xEExp[names(xESteady)])/pmax(1e-10,xEExp[names(xESteady)]))
-	# relaxed precision because enzyme mass fluxes are different
-	expect_equal( xESteady["alphaC"], xEExp["alphaC"], tolerance=1e-2)
-	expect_true ( all(abs(xESteady[2:7]-xEExp[c(2,5:9)])/pmax(1e-10,xEExp[c(2,5:9)]) < 0.05)) # smaller then 5% relative derivation
+	expect_equal( xESteady["alphaC"], xEExp["alphaC"], tolerance=1e-6)
+	expect_equal( xESteady[2:7], xEExp[c(2,5:9)], tolerance=1e-6)
 	.tmp.f <- function(){
 		derivSeam2(0, xEExp[2:9], within(parmsInit, isRecover<-TRUE))
-		derivSesam2(0, xEExp[c(2,5:9)], within(parmsInit, isRecover<-TRUE))
+		derivSesam2EnzTvr(0, xEExp[c(2,5:9)], within(parmsInit, isRecover<-TRUE))
 	}
 	#
 	# N limitation
 	#times <- seq(0,2100, length.out=101)
-	resSteady <- as.data.frame(lsoda( x0Nlim, times, derivSesam2, parms=parmsFixedS))
+	resSteady <- as.data.frame(lsoda( x0Nlim, times, derivSesam2EnzTvr, parms=parmsFixedS))
 	resExp <- as.data.frame(lsoda( x0NlimSeam2, times, derivSeam2, parms=parmsFixedS))
 	xESteady <- unlist(tail(resSteady,1))
 	xEExp <- unlist(tail(resExp,1))
-	rbind(xESteady, xEExp[names(xESteady)])
-	#sort( (xESteady-xEExp[names(xESteady)])/pmax(1e-10,xEExp[names(xESteady)]))
-	expect_equal( xESteady["alphaN"], xEExp["alphaN"], tolerance=1e-2)
-	expect_true ( all(abs(xESteady[2:7]-xEExp[c(2,5:9)])/pmax(1e-10,xEExp[c(2,5:9)]) < 0.1)) # smaller then 10% relative derivation
-	# 8% difference in biomass, because in other version no N needed for enzyme synthesis
+	expect_equal( xESteady["alphaN"], xEExp["alphaN"], tolerance=1e-6)
+	expect_equal( xESteady[2:7], xEExp[c(2,5:9)], tolerance=1e-6)
+	.tmp.f <- function(){
+		library(dplyr)
+		library(ggplot2)
+		res <- bind_rows( cbind(resSteady, scen="steady"), cbind(resExp,scen="explicit"))
+		ggplot(filter(res, time>0), aes(time, B, color=scen)) + geom_line()
+		ggplot(filter(res, time>0), aes(time, respO, color=scen)) + geom_line()
+	}
 })
 
 test_that("same as seam with substrate feedbacks", {
@@ -140,30 +140,38 @@ test_that("same as seam with substrate feedbacks", {
 			#times <- c(0,148:151)	
 			#times <- seq(0,2100, by=2)
 			#times <- seq(0,10000, length.out=101)
-			resSteady <- as.data.frame(lsoda( x0, times, derivSesam2, parms=parmsInit))
+			resSteady <- as.data.frame(lsoda( x0, times, derivSesam2EnzTvr, parms=parmsInit))
 			resExp <- as.data.frame(lsoda( x0Seam2, times, derivSeam2, parms=parmsInit))
 			xESteady <- unlist(tail(resSteady,1))
 			xEExp <- unlist(tail(resExp,1)); 
 			xpESteady <- unlist(head(tail(resSteady,2),1))	# the previous before end
 			rbind(xESteady, xEExp[names(xESteady)])
-			expect_equal( xESteady["alphaC"], xEExp["alphaC"], tolerance=1e-2)
-			expect_true ( all(abs(xESteady[2:7]-xEExp[c(2,5:9)])/pmax(1e-10,xEExp[c(2,5:9)]) < 0.1)) # smaller then 10% relative derivation
+			expect_equal( xESteady["alphaC"], xEExp["alphaC"], tolerance=1e-4)
+			expect_equal( xESteady[2:7], xEExp[c(2,5:9)], tolerance=1e-6)
+			.tmp.f <- function(){
+				derivSesam2EnzTvr(0, xEExp[c(2,5:9)], within(parmsInit, isRecover<-TRUE))
+				derivSeam2(0, xEExp[2:9], within(parmsInit, isRecover<-TRUE))
+				derivSesam2EnzTvr(0, xESteady, within(parmsInit, isRecover<-TRUE))
+				derivSesam2EnzTvr(0, xpESteady, within(parmsInit, isRecover<-TRUE))
+			}
 			#
 			# N limitation
-			#times <- seq(0,800, length.out=101)	
-			resSteady <- as.data.frame(lsoda( x0Nlim, times, derivSesam2, parms=parmsInit))
+			resSteady <- as.data.frame(lsoda( x0Nlim, times, derivSesam2EnzTvr, parms=parmsInit))
 			resExp <- as.data.frame(lsoda( x0NlimSeam2, times, derivSeam2, parms=parmsInit))
 			xESteady <- unlist(tail(resSteady,1))
 			xEExp <- unlist(tail(resExp,1))
+			expect_equal( xESteady["B"], xEExp["B"], tolerance=1e-6)
+			expect_equal( xESteady["alphaN"], xEExp["alphaN"], tolerance=1e-6)
+			rbind(xESteady[2:7], xEExp[c(2,5:9)])
 			rbind(xESteady, xEExp[names(xESteady)])
-			expect_equal( xESteady["alphaN"], xEExp["alphaN"], tolerance=1e-2)
-			expect_true ( all(abs(xESteady[2:7]-xEExp[c(2,5:9)])/pmax(1e-10,xEExp[c(2,5:9)]) < 0.1)) # smaller then 10% relative derivation
+			expect_equal( xESteady[2:7], xEExp[c(2,5:9)], tolerance=1e-6)
 			.tmp.f <- function(){
 				library(dplyr)
 				library(ggplot2)
 				res <- bind_rows( cbind(resSteady, scen="steady"), cbind(resExp,scen="explicit"))
 				ggplot(filter(res, time>1), aes(time, B, color=scen)) + geom_line()
 				ggplot(filter(res, time<500 & time > 0), aes(time, alpha, color=scen)) + geom_point()
+				ggplot(filter(res, time<500), aes(time, B, color=scen)) + geom_line()
 				ggplot(filter(res, time>1), aes(time, L, color=scen)) + geom_line()
 				ggplot(filter(res, time>1), aes(time, R, color=scen)) + geom_line()
 				ggplot(filter(res, time<500), aes(time, respO, color=scen)) + geom_line()
@@ -180,14 +188,16 @@ test_that("same as seam with substrate feedbacks", {
 			times <- seq(0,1200, length.out=2)	
 			#times <- seq(0,1200, length.out=101)	
 			#times <- c(0,seq(140,220, length.out=101))	
-			resSteady <- as.data.frame(lsoda( x0CNLim, times, derivSesam2, parms=parmsInit))
+			resSteady <- as.data.frame(lsoda( x0CNLim, times, derivSesam2EnzTvr, parms=parmsInit))
 			resExp <- as.data.frame(lsoda( x0CNLimSeam2, times, derivSeam2, parms=parmsInit))
 			xESteady <- unlist(tail(resSteady,1))
 			xEExp <- unlist(tail(resExp,1))
+			expect_equal( xESteady["B"], xEExp["B"], tolerance=1e-5)
+			expect_equal( xESteady["alphaN"], xEExp["alphaN"], tolerance=1e-6)
+			rbind(xESteady[2:7], xEExp[c(2,5:9)])
 			rbind(xESteady, xEExp[names(xESteady)])
-			expect_equal( xESteady["alpha"], xEExp["alpha"], tolerance=1e-2)
-			expect_true ( all(abs(xESteady[2:7]-xEExp[c(2,5:9)])/pmax(1e-10,xEExp[c(2,5:9)]) < 0.1)) # smaller then 10% relative derivation
-	})
+			expect_equal( xESteady[2:7], xEExp[c(2,5:9)], tolerance=1e-3)
+		})
 
 
 
