@@ -5,6 +5,7 @@
 # problems with switching alpha between two values
 
 # mg C and N, days
+.tmp.f <- function(){
 x0 <- x0Orig <- c(
         B = 150       ##<< microbial biomass 
         #,DOM = 0    ##<< dissolved organic matter
@@ -45,7 +46,7 @@ parms0 <- within(parms0,{
 
 parms <- parms0
 x <- x0
-
+}
 
 .calcAlphaM <- function(E, respMaint, parms){
     # calculating alpha with maintenance

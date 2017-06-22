@@ -18,7 +18,7 @@ tmp.f.depr <- function(){
     colnames(xInit) <- c("C","N")
 }
 
-
+.tmp.f <- function(){
 x0 <- x0Orig <- c(
         B = 10            ##<< microbial biomass 
         ,E1  = 0.01        ##<< total enzyme pool
@@ -30,7 +30,7 @@ x0 <- x0Orig <- c(
 x <- x0
 
 
-
+.tmp.f <- function(){
 parms0 <- list(
         cnB = 7.16
         ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
@@ -56,6 +56,9 @@ parms0 <- within(parms0,{
 
 parms <- parms0
 x <- x0
+}
+
+}#tmp.f
 
 derivEezy4 <- function(t,x,parms){
     x <- structure( unlist(pmax(1e-16,x)), names=names(x) )      # no negative masses

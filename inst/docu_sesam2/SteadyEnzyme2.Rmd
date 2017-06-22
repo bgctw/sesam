@@ -1,0 +1,75 @@
+---
+title: "SEAM with enzyme levels in quasi steady state"
+output: html_notebook
+---
+
+The SEAM model explicitely tracks enzyme levels. In order to use the model at plot scale or in COMISSION, derive a simpler version, where enzyme levels are assumed to be in fast steady state with production and turnover.
+
+Start with setting $dE=0$: 
+
+- $\operatorname{syn}_{E_R} = \operatorname{tvr}_{E_R}$
+- $\alpha \operatorname{syn}_{E} = \operatorname{tvr}_{E_R}$
+- $\alpha \, a_E \, B = k_N E_R^*$
+    + $E_R^* = \frac{\alpha a_E B}{k_N}$
+- $(1-\alpha) \, a_E \, B = k_N E_L^*$
+    + $E_L^* = \frac{(1-\alpha) a_E B}{k_N}$
+
+Insert $E_R^*$ in equation for allocation:
+$$
+\alpha_C = \frac{\operatorname{rev}_{RC}}{\operatorname{rev}_{LC} + \operatorname{rev}_{RC} }
+$$
+
+$$
+\operatorname{rev}^*_{RC} = \frac{k_R R}{k_N (k_{M,R}+ E_R^*)} = \frac{k_R R}{k_N (k_{M,R}+ \frac{\alpha_C a_E B}{k_N})} = \frac{k_R R}{k_N k_{M,R}+ \alpha_C a_E B}
+$$
+
+$$
+\operatorname{rev}^*_{LC} = \frac{k_L L}{k_N k_{M,L}+ (1 -\alpha_C) a_E B}
+$$
+
+$$
+\alpha_C = \frac{\frac{k_R R}{k_N k_{M,R}+ \alpha_C a_E B}}{ \frac{k_R R}{k_N k_{M,R}+ \alpha_C a_E B} + \frac{k_L L}{k_N k_{M,L}+ (1 -\alpha_C) a_E B}}
+$$
+factor out the denomiator in $\operatorname{rev}_{RC}$:
+$$
+\alpha_C = \frac{k_R R}{k_R R + k_L L \frac{k_N k_{M,R}+ \alpha_C a_E B}{k_N k_{M,L}+ (1 -\alpha_C) a_E B} }
+$$
+
+With $k_{M,L} = k_{M,R} = k_M$, $d_R = k_R R$, $d_L = k_L L$, and $k_M k_N = c_1$:
+
+$$
+\alpha_C = \frac{d_R}{d_R + d_L \frac{c_1 + \alpha_C a_E B}{c_1+ (1 -\alpha_C) a_E B} }
+$$
+
+And solving for $\alpha_C$ using sympy:
+
+$$
+\alpha_C=
+\begin{cases}
+(-2 a_{EB} d_R - c_1 d_L - c_1 d_R + \sqrt{4 a_{EB}^2 d_L d_R + 8 a_{EB} c_1 d_L d_R + c_1^2 d_L^2 + 2 c_1^2 d_L d_R + c_1^2 d_R^2})/(2 a_{EB} (d_L - d_R)),\\
+-(2 a_{EB} d_R + c_1 d_L + c_1 d_R + \sqrt{4 a_{EB}^2 d_L d_R + 8 a_{EB} c_1 d_L d_R + c_1^2 d_L^2 + 2 c_1^2 d_L d_R + c_1^2 d_R^2})/(2 a_{EB} (d_L - d_R))
+\end{cases}
+$$
+
+For nitrogen limitation: $\operatorname{rev}_{SN} = \operatorname{rev}_{SC} \frac{\beta_E}{\beta_S}$
+
+$$
+\alpha_N = \frac{k_R R \beta_R^{-1}}{k_R R \beta_R^{-1} + k_L L \beta_L^{-1}\frac{k_N k_{M,R}+ \alpha_N a_E B}{k_N k_{M,L}+ (1 -\alpha_N) a_E B} }
+$$
+Just redefine $d_R = k_R R \beta_R^{-1}$ and $d_L = k_L L \beta_L^{-1}$, the solution of $\alpha_N$ is the same as for $\alpha_C$.
+
+## Inserting steady enzyme levels into other equations
+
+Enzyme turnover
+$$
+\operatorname{tvr}_{ES} = \operatorname{syn}_{ES} \\
+\operatorname{tvr}_{ER} = k_N E_R^* = \alpha a_e B \\
+\operatorname{tvr}_{EL} = k_N E_L^* = (1-\alpha) a_e B
+$$
+Substrate decomposition
+$$
+\operatorname{dec}_S = \operatorname{dec}_{S,Pot} \frac{E^*_S}{k_{m}+E^*_S} \\
+\operatorname{dec}_R = k_R R \frac{\alpha a_e B/k_N}{k_{m}+\alpha a_e B/k_N} = k_R R \frac{\alpha a_e B}{k_{m} k_N+\alpha a_e B} \\
+\operatorname{dec}_L = k_L L \frac{(1-\alpha) a_e B}{k_{m} k_N +(1-\alpha) a_e B}
+$$
+

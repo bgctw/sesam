@@ -21,6 +21,7 @@ tmp.f.depr <- function(){
 }
 
 
+.tmp.f <- function(){
 x0 <- x0Orig <- c(
         B = 10       ##<< microbial biomass 
         #,DOM = 0    ##<< dissolved organic matter
@@ -55,6 +56,7 @@ parms0 <- within(parms0,{
 
 parms <- parms0
 x <- x0
+}
 
 derivEezy2 <- function(t,x,parms){
     E <- x["E1"]+x["E2"]

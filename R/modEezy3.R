@@ -2,7 +2,7 @@
 # partitioning according to efficiencies and limitations split for enzyme and for biomass
 # mg C and N, days
 
-
+.tmp.f <- function(){
 x0 <- x0Orig <- c(
         #B = 10            ##<< microbial biomass
         B = 250
@@ -44,6 +44,7 @@ parms0 <- within(parms0,{
 
 parms <- parms0
 x <- x0
+}
 
 derivEezy3 <- function(t,x,parms){
     respMaint <- parms$m * x["B"]

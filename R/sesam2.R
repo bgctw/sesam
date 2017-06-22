@@ -216,12 +216,12 @@ attr(computeSesam2AllocationPartitioning,"ex") <- function(){
 	)	
 	x <- c( #aE = 0.001*365
 			B = 17                     ##<< microbial biomass 
-			,ER  = 2*parms0$km                  ##<< total enzyme pool
-			,EL  = 4*parms0$km                   ##<< total enzyme pool
+			,ER  = 2*parms$km                  ##<< total enzyme pool
+			,EL  = 4*parms$km                   ##<< total enzyme pool
 			,R = 1000                ##<< N rich substrate
-			,RN = 1000/parms0$cnIR   ##<< N rich substrate N pool
+			,RN = 1000/parms$cnIR   ##<< N rich substrate N pool
 			,L = 100                 ##<< N poor substrate
-			,LN = 100/parms0$cnIL    ##<< N poor substrate N pool
+			,LN = 100/parms$cnIL    ##<< N poor substrate N pool
 			,I =  0.4                ##<< inorganic pool gN/m2
 	)
 	computeSesam2AllocationPartitioning( dR=parms$kR*x["R"], dL=parms$kL*x["L"], B=x["B"]

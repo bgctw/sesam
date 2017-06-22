@@ -1,6 +1,7 @@
 #library(deSolve)
 # same as 4b but prescribing fixed potential influx (no changing S1 and S2)
 
+.tmp.f <- function(){
 x0 <- x0Orig <- c(
         B = 10             ##<< microbial biomass 
         ,E1  = 0.01        ##<< total enzyme pool
@@ -41,6 +42,7 @@ parms0 <- within(parms0,{
 
 parms <- parms0
 x <- x0
+}
 
 derivEezy4bc <- function(t,x,parms){
     x <- pmax(unlist(x),1e-16)      # no negative masses

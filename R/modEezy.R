@@ -17,39 +17,40 @@ tmp.f.depr <- function(){
     colnames(xInit) <- c("C","N")
 }
 
-
-x0 <- x0Orig <- c(
-        B = 10          ##<< microbial biomass 
-        #,DOM = 0       ##<< dissolved organic matter
-        ,E  = 0.02      ##<< total enzyme pool
-        ,S1 = 500       ##<< N rich substrate
-        ,S2 = 500       ##<< N poor substrate
-        ,I =  0         ##<< inorganic pool
-)
-x <- x0
-
-
-
-parms0 <- list(
-        cnB = 7.16
-        ,cnE = 7.16     #tom 3
-        ,cnS1 = 5
-        ,kN = 0.05   ##<< (per day) enzyme turnover
-        ,kS = 1      ##<< substrate decomposition rate
-        ,aE = 0.05   ##<< C-uptake allocated to enzymes
-        ,K = 0.3     ##<< enzyme half-saturation constant
-        ,m = 0.01    ##<< maintenance respiration rate
-        ,tau = 0.012    ##<< biomass turnover rate
-        ,eps = 0.5      ##<< carbon use efficiency
-)
-parms0 <- within(parms0,{
- kS1 <- kS2 <- kS*500
- K1 <- K2 <- K
- eps1 <- eps2 <- eps
-        })
-
-parms <- parms0
-x <- x0
+.tmp.f <- function(){
+	x0 <- x0Orig <- c(
+	        B = 10          ##<< microbial biomass 
+	        #,DOM = 0       ##<< dissolved organic matter
+	        ,E  = 0.02      ##<< total enzyme pool
+	        ,S1 = 500       ##<< N rich substrate
+	        ,S2 = 500       ##<< N poor substrate
+	        ,I =  0         ##<< inorganic pool
+	)
+	x <- x0
+	
+	
+	
+	parms0 <- list(
+	        cnB = 7.16
+	        ,cnE = 7.16     #tom 3
+	        ,cnS1 = 5
+	        ,kN = 0.05   ##<< (per day) enzyme turnover
+	        ,kS = 1      ##<< substrate decomposition rate
+	        ,aE = 0.05   ##<< C-uptake allocated to enzymes
+	        ,K = 0.3     ##<< enzyme half-saturation constant
+	        ,m = 0.01    ##<< maintenance respiration rate
+	        ,tau = 0.012    ##<< biomass turnover rate
+	        ,eps = 0.5      ##<< carbon use efficiency
+	)
+	parms0 <- within(parms0,{
+	 kS1 <- kS2 <- kS*500
+	 K1 <- K2 <- K
+	 eps1 <- eps2 <- eps
+	        })
+	
+	parms <- parms0
+	x <- x0
+}
 
 derivEezyOrig <- function(t,x,parms){
     # only one enzme pool E_Total is simulated. at each time this split into E1 and E2 by alpha

@@ -7,7 +7,7 @@
 # mg C and N, days
 # moving to gC/m2 yr
 
-
+.tmp.f <- function(){
 x0 <- x0Orig <- c(
         B = 30             ##<< microbial biomass 
         ,E1  = 3        ##<< total enzyme pool
@@ -56,6 +56,7 @@ parms0 <- within(parms0,{
 
 parms <- parms0
 x <- x0
+}
 
 derivEezy4b <- function(t,x,parms){
     x <- pmax(unlist(x),1e-16)      # no negative masses

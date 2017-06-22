@@ -1,6 +1,7 @@
 #library(deSolve)
 # now explicitely modelling immoilization of inorganic N pool I 
 
+.tmp.f <- function(){
 # gC/m2 and gN/m2, /yr
 parms0 <- list(
         cnB = 7.16
@@ -72,6 +73,7 @@ x0 <- x0Orig <- c( #aE = 0.001*365
         ,I =  0                    ##<< inorganic pool
 )
 x <- x0
+}
 
 
 derivEezy6 <- function(t,x,parms){
