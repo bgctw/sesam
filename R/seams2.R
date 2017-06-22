@@ -82,8 +82,19 @@ derivSeams2 <- function(t,x,parms){
 	}
 	alpha <- computeAlphaFluxes(alphaC)
 	if( isLimN ){
+		CsynBN_Clim = CsynBN
+		CsynBC_Clim = CsynBC
 		alpha <- computeAlphaFluxes(alphaN)
-		if( !isLimN ){ alpha <- computeAlphaFluxes((alphaN+alphaC)/2) }
+		if( !isLimN ){ 
+			# when optimizing for C, system is in N-limitation
+			# when optimizing for N, system is not in N-limitation
+			# then comptute a balanced alpha
+			#alpha <- computeAlphaFluxes((alphaN+alphaC)/2)
+			alpha <- balanceAlphaSmallImmobilization(alphaC, alphaN, CsynBN_Clim, CsynBC_Clim
+					, NsynBC=parms$eps*CsynBC/cnB, NsynBN)
+			#c(alphaC=alphaC, alphaN=alphaN, alpha)
+			#c(CsynBN_Clim/CsynBC_Clim, CsynBN/CsynBC)
+		}
 	}
 	#c(alphaC, alphaN, alpha)
 #recover()

@@ -169,15 +169,15 @@ test_that("same as seam with substrate feedbacks", {
 				library(ggplot2)
 				res <- bind_rows( cbind(resSteady, scen="steady"), cbind(resExp,scen="explicit"))
 				ggplot(filter(res, time>1), aes(time, B, color=scen)) + geom_line()
+				ggplot(filter(res, time<500 & time > 0), aes(time, alpha, color=scen)) + geom_point()
 				ggplot(filter(res, time<500), aes(time, B, color=scen)) + geom_line()
 				ggplot(filter(res, time>1), aes(time, L, color=scen)) + geom_line()
 				ggplot(filter(res, time>1), aes(time, R, color=scen)) + geom_line()
 				ggplot(filter(res, time<500), aes(time, respO, color=scen)) + geom_line()
 				ggplot(filter(res, time > 10 & time<500), aes(time, ER, color=scen)) + geom_line()
-				ggplot(filter(res, time<500), aes(time, EL, color=scen)) + geom_line()
+				ggplot(filter(res, time > 10 & time<500), aes(time, EL, color=scen)) + geom_line()
 				ggplot(filter(res, time<500), aes(time, alphaC, color=scen)) + geom_line()
 				ggplot(filter(res, time<5000), aes(time, alphaN, color=scen)) + geom_line()
-				ggplot(filter(res, time<500 & time > 0), aes(time, alpha, color=scen)) + geom_point()
 				ggplot(filter(res, time>01), aes(time, PhiB, color=scen, linetype=scen)) + geom_line()
 				
 			}
@@ -185,11 +185,12 @@ test_that("same as seam with substrate feedbacks", {
 			x0CNLim <- x0; x0CNLim["I"] <- 0
 			x0CNLimSeam2 <- x0Seam2; x0CNLimSeam2["I"] <- 0
 			times <- seq(0,800, length.out=101)	
+			#times <- c(0,seq(140,220, length.out=101))	
 			resSteady <- as.data.frame(lsoda( x0CNLim, times, derivSeams2, parms=parmsInit))
 			resExp <- as.data.frame(lsoda( x0CNLimSeam2, times, derivSeam2, parms=parmsInit))
 			xESteady <- unlist(tail(resSteady,1))
 			xEExp <- unlist(tail(resExp,1))
-			expect_equal( xESteady["B"], xEExp["B"], tolerance=1e-6)
+			expect_equal( xESteady["B"], xEExp["B"], tolerance=1e-5)
 			expect_equal( xESteady["alphaN"], xEExp["alphaN"], tolerance=1e-6)
 			rbind(xESteady[2:7], xEExp[c(2,5:9)])
 			rbind(xESteady, xEExp[names(xESteady)])
