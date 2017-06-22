@@ -101,11 +101,11 @@ test_that("same as seam for fixed substrates", {
     #parmsInit <- within(parms0, {isFixedS <- TRUE})
     #parmsInit <- within(parms0, {isAlphaFix <- TRUE})
     #parmsInit <- within(parms0, {isAlphaMatch <- TRUE})
-    res <- derivSeams2(0, x0, parmsInit)
+    res <- derivSesam2(0, x0, parmsInit)
 	# TODO test
     times <- seq(0,2100, length.out=101)
     #times <- seq(0,10000, length.out=101)
-    resSteady <- as.data.frame(lsoda( x0, times, derivSeams2, parms=parmsFixedS))
+    resSteady <- as.data.frame(lsoda( x0, times, derivSesam2, parms=parmsFixedS))
 	resExp <- as.data.frame(lsoda( x0Seam2, times, derivSeam2, parms=parmsFixedS))
     xESteady <- unlist(tail(resSteady,1))
 	xEExp <- unlist(tail(resExp,1)); xEExp[-(3:4)]
@@ -113,11 +113,11 @@ test_that("same as seam for fixed substrates", {
 	expect_equal( xESteady[2:7], xEExp[c(2,5:9)], tolerance=1e-6)
 	.tmp.f <- function(){
 		derivSeam2(0, xEExp[2:9], within(parmsInit, isRecover<-TRUE))
-		derivSeams2(0, xEExp[c(2,5:9)], within(parmsInit, isRecover<-TRUE))
+		derivSesam2(0, xEExp[c(2,5:9)], within(parmsInit, isRecover<-TRUE))
 	}
 	#
 	# N limitation
-	resSteady <- as.data.frame(lsoda( x0Nlim, times, derivSeams2, parms=parmsFixedS))
+	resSteady <- as.data.frame(lsoda( x0Nlim, times, derivSesam2, parms=parmsFixedS))
 	resExp <- as.data.frame(lsoda( x0NlimSeam2, times, derivSeam2, parms=parmsFixedS))
 	xESteady <- unlist(tail(resSteady,1))
 	xEExp <- unlist(tail(resExp,1))
@@ -138,7 +138,7 @@ test_that("same as seam with substrate feedbacks", {
 			#times <- c(0,148:151)	
 			#times <- seq(0,2100, by=2)
 			#times <- seq(0,10000, length.out=101)
-			resSteady <- as.data.frame(lsoda( x0, times, derivSeams2, parms=parmsInit))
+			resSteady <- as.data.frame(lsoda( x0, times, derivSesam2, parms=parmsInit))
 			resExp <- as.data.frame(lsoda( x0Seam2, times, derivSeam2, parms=parmsInit))
 			xESteady <- unlist(tail(resSteady,1))
 			xEExp <- unlist(tail(resExp,1)); 
@@ -147,15 +147,15 @@ test_that("same as seam with substrate feedbacks", {
 			expect_equal( xESteady["alphaC"], xEExp["alphaC"], tolerance=1e-4)
 			expect_equal( xESteady[2:7], xEExp[c(2,5:9)], tolerance=1e-6)
 			.tmp.f <- function(){
-				derivSeams2(0, xEExp[c(2,5:9)], within(parmsInit, isRecover<-TRUE))
+				derivSesam2(0, xEExp[c(2,5:9)], within(parmsInit, isRecover<-TRUE))
 				derivSeam2(0, xEExp[2:9], within(parmsInit, isRecover<-TRUE))
-				derivSeams2(0, xESteady, within(parmsInit, isRecover<-TRUE))
-				derivSeams2(0, xpESteady, within(parmsInit, isRecover<-TRUE))
+				derivSesam2(0, xESteady, within(parmsInit, isRecover<-TRUE))
+				derivSesam2(0, xpESteady, within(parmsInit, isRecover<-TRUE))
 			}
 			#
 			# N limitation
 			times <- seq(0,800, length.out=101)	
-			resSteady <- as.data.frame(lsoda( x0Nlim, times, derivSeams2, parms=parmsInit))
+			resSteady <- as.data.frame(lsoda( x0Nlim, times, derivSesam2, parms=parmsInit))
 			resExp <- as.data.frame(lsoda( x0NlimSeam2, times, derivSeam2, parms=parmsInit))
 			xESteady <- unlist(tail(resSteady,1))
 			xEExp <- unlist(tail(resExp,1))
@@ -184,9 +184,9 @@ test_that("same as seam with substrate feedbacks", {
 			# from C to N limitation
 			x0CNLim <- x0; x0CNLim["I"] <- 0
 			x0CNLimSeam2 <- x0Seam2; x0CNLimSeam2["I"] <- 0
-			times <- seq(0,800, length.out=101)	
+			times <- seq(0,1200, length.out=101)	
 			#times <- c(0,seq(140,220, length.out=101))	
-			resSteady <- as.data.frame(lsoda( x0CNLim, times, derivSeams2, parms=parmsInit))
+			resSteady <- as.data.frame(lsoda( x0CNLim, times, derivSesam2, parms=parmsInit))
 			resExp <- as.data.frame(lsoda( x0CNLimSeam2, times, derivSeam2, parms=parmsInit))
 			xESteady <- unlist(tail(resSteady,1))
 			xEExp <- unlist(tail(resExp,1))

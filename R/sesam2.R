@@ -3,7 +3,7 @@
 
 # gC/m2 and gN/m2, /yr
 
-derivSeams2 <- function(t,x,parms){
+derivSesam2 <- function(t,x,parms){
     x <- pmax(unlist(x),1e-16)      # no negative masses
     #
 	# compute steady state enzyme levels
