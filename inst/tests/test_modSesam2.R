@@ -103,8 +103,8 @@ test_that("same as seam for fixed substrates", {
     #parmsInit <- within(parms0, {isAlphaMatch <- TRUE})
     res <- derivSesam2(0, x0, parmsInit)
 	# TODO test
-    times <- seq(0,2100, length.out=101)
-    #times <- seq(0,10000, length.out=101)
+    times <- seq(0,2100, length.out=2)
+	#times <- seq(0,2100, length.out=101)
     resSteady <- as.data.frame(lsoda( x0, times, derivSesam2, parms=parmsFixedS))
 	resExp <- as.data.frame(lsoda( x0Seam2, times, derivSeam2, parms=parmsFixedS))
     xESteady <- unlist(tail(resSteady,1))
@@ -117,6 +117,7 @@ test_that("same as seam for fixed substrates", {
 	}
 	#
 	# N limitation
+	#times <- seq(0,2100, length.out=101)
 	resSteady <- as.data.frame(lsoda( x0Nlim, times, derivSesam2, parms=parmsFixedS))
 	resExp <- as.data.frame(lsoda( x0NlimSeam2, times, derivSeam2, parms=parmsFixedS))
 	xESteady <- unlist(tail(resSteady,1))
@@ -127,8 +128,8 @@ test_that("same as seam for fixed substrates", {
 		library(dplyr)
 		library(ggplot2)
 		res <- bind_rows( cbind(resSteady, scen="steady"), cbind(resExp,scen="explicit"))
-		ggplot(filter(res, time>100), aes(time, B, color=scen)) + geom_line()
-		ggplot(filter(res, time>1), aes(time, respO, color=scen)) + geom_line()
+		ggplot(filter(res, time>0), aes(time, B, color=scen)) + geom_line()
+		ggplot(filter(res, time>0), aes(time, respO, color=scen)) + geom_line()
 	}
 })
 

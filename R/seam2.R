@@ -99,12 +99,8 @@ derivSeam2 <- function(t,x,parms){
 				alpha <- (1-w)*0.5 + w*alphaMatch 
 			}
 	} else {
-		alpha <- if( isTRUE(parms$useAlphaCUntilNLimited) || immoPot < uNSubstrate/100 ){ 
-					balanceAlphaSmallImmobilization(alphaC, alphaN, CsynBN, CsynBC
+		alpha <- balanceAlphaBetweenCNLimitations(alphaC, alphaN, CsynBN, CsynBC
 							, NsynBC=parms$eps*CsynBC/cnB, NsynBN)
-				} else {
-					balanceAlphaLargeImmobilization(alphaC, alphaN, isLimN, isLimNSubstrate, immoAct=pmax(0,-PhiB), immoPot=immoPot)
-				}
 	}
 	#c(alphaC, alphaN, alpha)
    	if( isTRUE(parms$isAlphaFix) ){
@@ -185,7 +181,7 @@ derivSeam2 <- function(t,x,parms){
 ))
 }
 
-balanceAlphaSmallImmobilization <- function(
+balanceAlphaBetweenCNLimitations <- function(
         ### compute balance between alphaC and alphaN based on C and N based biomass synthesis
         alphaC, alphaN, CsynBN, CsynBC, NsynBC, NsynBN, delta=200
 ){
@@ -196,10 +192,14 @@ balanceAlphaSmallImmobilization <- function(
     alpha
 }
 
-balanceAlphaLargeImmobilization <- function(
+.depr.balanceAlphaLargeImmobilization <- function(
         ### compute balance between alphaC and alphaN based on current and potential immobilization fluxes
         alphaC, alphaN, isLimN, isLimNSubstrate, immoAct, immoPot
 ){
+	##details<<
+	## deprecated because its superceded by balanceAlphaBetweenCNLimitations 
+	## where biosynthesis already takes into account the
+	## potential immobilization
     if( isLimN ) return(alphaN)
     if( isLimNSubstrate ){
         # overall C limited, but only with acquiring N by immobilization
