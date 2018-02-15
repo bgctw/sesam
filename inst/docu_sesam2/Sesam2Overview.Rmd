@@ -147,6 +147,7 @@ runFaceSimulation <- function(scen, t1S =10, t2I = 50, t3S = 50, parms = parms0)
   res <- res1S <- as.data.frame(lsoda( xE[1:length(.$x0) + 1], 1:t1S, .$mod, parms = parms))
   #
   # t2I years of increased input
+  fInputInc = 1.2
   parmsC2 <- within(parms, {# more C in litter, but not more N 
     iL <- iL*fInputInc
     cnIL <- cnIL*fInputInc
