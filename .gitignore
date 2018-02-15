@@ -1,10 +1,10 @@
 /.project
 /.RData
-
 ^inst/doc/.*\.md$
 ^\.pydevproject$
 \.Rout$
 ^Rplots\.pdf$
 ^\.settings$
-
 /.pydevproject
+man
+.Rproj.user

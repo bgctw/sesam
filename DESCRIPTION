@@ -9,3 +9,4 @@ Depends: R (>= 1.14.0), twModMeta
 Suggests: testthat
 License: GPL-2
 LazyLoad: yes
+RoxygenNote: 6.0.1
