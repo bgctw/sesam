@@ -7,7 +7,7 @@
 # Remove debugging code that is encapsulated in .tmp.f function blocks (to prevent R check complaints)
 .tmp.f <- NULL
 .tmp.f.depr <- NULL
-parms <- parms0 <- x0 <- x0Orig <- NULL
+#parms <- parms0 <- x0 <- x0Orig <- NULL
 
 # Prevent R CMD check on complaining of unused bindings
 if (getRversion() >= "2.15.1") {

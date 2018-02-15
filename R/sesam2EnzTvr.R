@@ -1,14 +1,18 @@
 #library(deSolve)
-# model corresponding to Seam2 with enzyme levels computed by quasi steady state
 
 # gC/m2 and gN/m2, /yr
 
-derivSesam2EnzTvr <- function(t,x,parms){
+derivSesam2EnzTvr <- function(
+  ### Soil Enzyme Steady Allocation model
+  t,x,parms
+){
+  ##details<<
+  ## model corresponding to Seam2 with enzyme levels computed by quasi steady state
     x <- pmax(unlist(x),1e-16)      # no negative masses
     #
 	# compute steady state enzyme levels for N and for C limitation
 	decRp <- parms$kR * x["R"]
-	decLp <- parms$kL * x["L"] 
+	decLp <- parms$kL * x["L"]
 	cnR <- x["R"]/x["RN"]
 	cnL <- x["L"]/x["LN"]
 	cnE <- parms$cnE #alphaC*parms$cnER + (1-alphaC)*parms$cnEL
@@ -27,15 +31,15 @@ derivSesam2EnzTvr <- function(t,x,parms){
 	#
 	# declare variables that will be computed/overidden in computeAlphaDependingFluxes
 	# else operator '<<-' will override bindings in global environment
-	tvrER <- tvrEL  <- decR <- decL <- tvrERecycling <- uC <-   
+	tvrER <- tvrEL  <- decR <- decL <- tvrERecycling <- uC <-
 			CsynBC <- decN <- plantNUp <- PhiU <- immoPot <- uNSubstrate <- uNPot <-
-			NsynBN <- CsynBN <- isLimN <- 
+			NsynBN <- CsynBN <- isLimN <-
 			CsynB <- PhiB <- synB <- rG <- NA_real_
 	computeAlphaDependingFluxes <- function(alpha){
 		# compute fluxes that depend on alpha
 		tvrER <<- alpha * synE
 		tvrEL <<- (1-alpha) * synE
-		#    
+		#
 		decR <<- decRp * alpha*synE/(parms$km*parms$kN + alpha*synE)
 		decL <<- decLp * (1-alpha)*synE/(parms$km*parms$kN + (1-alpha)*synE)
 		#
@@ -46,7 +50,7 @@ derivSesam2EnzTvr <- function(t,x,parms){
 		# Nitrogen balance
 		decN <<- decR/cnR + decL/cnL + tvrERecycling/parms$cnE
 		plantNUp <<- pmin(parms$plantNUp, decN/2)	# plants get at maximum half of the decomposed organic N
-		PhiU <<- (1-parms$nu) * (decN-plantNUp)		# mineralization due to soil heterogeneity (Manzoni 08) 
+		PhiU <<- (1-parms$nu) * (decN-plantNUp)		# mineralization due to soil heterogeneity (Manzoni 08)
 		# immobilization flux
 		immoPot <<- parms$iB * x["I"]
 		uNSubstrate <<- (decN -plantNUp -PhiU)	# plant uptake also of organic N
@@ -61,7 +65,7 @@ derivSesam2EnzTvr <- function(t,x,parms){
 			rG <<- (1-parms$eps)*CsynB
 		}else{
 			# with negative  biomass change, do not assign growth respiration
-			synB <<- CsynB    
+			synB <<- CsynB
 			rG <<- 0
 		}
 		PhiB <<- uNSubstrate - (synE/parms$cnE + synB/parms$cnB) # imbalance mineralization/immobilization flux
@@ -73,7 +77,7 @@ derivSesam2EnzTvr <- function(t,x,parms){
 		# if it turns out, that we are in N-limitation comptute again using alphaN
 		CsynBN_Clim <- CsynBN; CsynBC_Clim = CsynBC # remember values for weights of C-limitation below
 		alpha <- computeAlphaDependingFluxes(alphaN)
-		if( !isLimN ){ 
+		if( !isLimN ){
 			# co-limitation case:
 			# when optimizing for C, system is in N-limitation
 			# when optimizing for N, system is not in N-limitation
@@ -87,21 +91,21 @@ derivSesam2EnzTvr <- function(t,x,parms){
     #
     # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
     respO <- uC - (synE+respSynE+synB+rG+rM)
-    respTvr <- (1-parms$epsTvr) * tvrB 
+    respTvr <- (1-parms$epsTvr) * tvrB
     PhiTvr <- respTvr/parms$cnB		# assuming same cn-Ratio of predators to equal cn ratio of microbes
     #
     # tvr that feeds back to R pool, assume that N in SOM for resp (by epsTvr) is mineralized
-    tvrC <- +parms$epsTvr*tvrB  +(1-parms$kNB)*(tvrER +tvrEL) 
-    tvrN <- +parms$epsTvr*tvrB/parms$cnB  +(1-parms$kNB)*(tvrER +tvrEL)/parms$cnE 
+    tvrC <- +parms$epsTvr*tvrB  +(1-parms$kNB)*(tvrER +tvrEL)
+    tvrN <- +parms$epsTvr*tvrB/parms$cnB  +(1-parms$kNB)*(tvrER +tvrEL)/parms$cnE
     tvrExC <- tvrExN <- 0     # fluxes leaving the system (will be set in scenario where turnover does not feed back)
-    # 
+    #
     leach <- parms$l*x["I"]
     #
     dB <- synB - tvrB
-    dL <- -decL +parms$iL 
-    dLN <- -decL/cnL  +parms$iL/parms$cnIL 
-    dR <- -decR +parms$iR +tvrC 
-    dRN <- -decR/cnR +parms$iR/parms$cnIR +tvrN 
+    dL <- -decL +parms$iL
+    dLN <- -decL/cnL  +parms$iL/parms$cnIL
+    dR <- -decR +parms$iR +tvrC
+    dRN <- -decR/cnR +parms$iR/parms$cnIR +tvrN
     dI <- +parms$iI -parms$kIP -leach +PhiU +PhiB +PhiTvr    # here plant uptake as absolute parameter
     #
     if( isTRUE(parms$isFixedS) ){
@@ -122,12 +126,12 @@ derivSesam2EnzTvr <- function(t,x,parms){
     # parms$iR + +tvrC -(decR + dR)
     #
 	# checking the mass balance of fluxes
-	respB <- respSynE + rG + rM + respO 
+	respB <- respSynE + rG + rM + respO
 	resp <- respB + respTvr
 	if( diff( unlist(c(uC=uC, usage=respB+synB+synE )))^2 > sqrEps )  stop("biomass mass balance C error")
     #if( diff( unlist(c(uN=uNPot, usage=synE/parms$cnE + synB/parms$cnB + MmImb )))^2 > .Machine$double.eps)  stop("biomass mass balance N error")
     if( diff( unlist(c(uN=uNSubstrate, usage=synE/parms$cnE + synB/parms$cnB + PhiB )))^2 > .Machine$double.eps)  stop("biomass mass balance N error")
-    if( !isTRUE(parms$isFixedS) ){    
+    if( !isTRUE(parms$isFixedS) ){
         if( diff(unlist(c(dB+dR+dL+tvrExC+resp,    parms$iR+parms$iL )))^2 > sqrEps )  stop("mass balance C error")
         #if( diff(unlist(c( (dB)/parms$cnB+(dER+dEL)/parms$cnE+dRN+dLN+dI+tvrExN,    parms$iR/parms$cnIR +parms$iL/parms$cnIL -plantNUp +parms$iI -(parms$kIP+parms$l)*x["I"])))^2 > .Machine$double.eps )  stop("mass balance N error")
         if( diff(unlist(c( dB/parms$cnB +dRN+dLN+dI+tvrExN,    parms$iR/parms$cnIR +parms$iL/parms$cnIL -plantNUp +parms$iI -parms$kIP -parms$l*x["I"])))^2 > .Machine$double.eps )  stop("mass balance dN error")
@@ -155,12 +159,12 @@ derivSesam2EnzTvr <- function(t,x,parms){
 	CsynBNSubstrate <- (NsynBNSubstrate*cnB)/parms$eps
 	isLimNSubstrate <-  CsynBNSubstrate < CsynBC    # N limited based on substrate uptake (without accounting for immobilization)
     #
-    if( isTRUE(parms$isRecover) ) recover()    
+    if( isTRUE(parms$isRecover) ) recover()
     list( resDeriv, c(respO=as.numeric(respO)
 		, ER=as.numeric(ER), EL=as.numeric(EL)
         , PhiB=as.numeric(PhiB), PhiU=as.numeric(PhiU), PhiTvr=as.numeric(PhiTvr) #, MmB=as.numeric(MmB)
         , PhiBU=as.numeric(PhiBU), PhiTotal=as.numeric(PhiTotal)
-        , immoPot=as.numeric(immoPot)  
+        , immoPot=as.numeric(immoPot)
         , alpha=as.numeric(alpha)
         , alphaC=as.numeric(alphaC), alphaN=as.numeric(alphaN)
         , cnR=as.numeric(cnR), cnL=as.numeric(cnL)
