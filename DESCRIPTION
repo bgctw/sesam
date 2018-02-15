@@ -1,11 +1,12 @@
 Package: eezy
-Title: trying the Moorhead 2012 Eezy model 
+Title: Eezy model developments
 Version: 0.5.229
 Date: 2012-06-22
 Author: Thomas Wutzler
 Maintainer: Thomas Wutzler <twutz@bgc-jena.mpg.de>
-Description: longer description
-Depends: R (>= 1.14.0), twModMeta
+Description: Devloping the Moorhead 2012 Eezy model further to SEAM2 and SESAM2.
+Depends: R (>= 1.14.0), deSolve
+Imports: twModMeta
 Suggests: testthat
 License: GPL-2
 LazyLoad: yes

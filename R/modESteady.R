@@ -2,7 +2,7 @@
 # what is the steady state of E? E -> decomp -> uptake -> E prod -> E
 # ran into cubic equation when tried to calculate steady state for given allocation to enzymes
 
-modMeta.ModESteady <- function(
+modMeta_ModESteady <- function(
 ### Creating Meta-information for Basic Colimitation submodel.
 ){
     ##seealso<< \code{\link{twCreateModMeta}}, \code{\link{twSetModMetaAuxGroups}}
@@ -28,15 +28,15 @@ modMeta.ModESteady <- function(
             ,tmp = paste("tmp",1:8,sep="")		#for debugging and getting information out of c-code
     )
     modMeta <- twSetModMetaAuxGroups(modMeta,auxGroups)
-    #copy2clip(paste("enum AUX_OUTPUT_NAMES {",paste(c(modMeta.ModESteady()$auxOutputNames,"N_AUX"),collapse=","),"}; //generated in ModESteady.R",sep=""))	#to adjust soilmod_fs.c 
+    #copy2clip(paste("enum AUX_OUTPUT_NAMES {",paste(c(modMeta_ModESteady()$auxOutputNames,"N_AUX"),collapse=","),"}; //generated in_ModESteady.R",sep=""))	#to adjust soilmod_fs.c 
 }
 
 
-.depr.initState.ModESteady <- function(
+.depr.initState_ModESteady <- function(
         ### Creating initial state variables for Basic Colimitation submodel.
         xc12,	cn, 	iR 
         ,amend=0		##<< additional amendment of labelled carbon
-        ,modMeta=modMeta.ModESteady()	##<< may pass pre-calulated modMeta for efficiency.
+        ,modMeta=modMeta_ModESteady()	##<< may pass pre-calulated modMeta for efficiency.
         ,usePrefSubst=TRUE	
         ### Wheter to use preferrential substrate utilization. 
         ### If false then amend goes to F instead of G pool. 
@@ -49,13 +49,13 @@ modMeta.ModESteady <- function(
     x
     ### Numeric matrix (nPool, nIsotopes) of state variable mass.
 }
-#twUtestF("ModESteady",test="init")
+#twUtestF(_ModESteady",test="init")
 
-initState.ModESteady <- function(
+initState_ModESteady <- function(
         ### Creating initial state variables for Basic Colimitation submodel.
         xc12,	cn 	 
         ,amend=0, cnAmend=cn["F"]		##<< additional amendment of labelled carbon
-        ,modMeta=modMeta.ModESteady()	##<< may pass pre-calulated modMeta for efficiency.
+        ,modMeta=modMeta_ModESteady()	##<< may pass pre-calulated modMeta for efficiency.
         ### Wheter to use preferrential substrate utilization. 
         ### If false then amend goes to F instead of G pool. 
         ,... 
@@ -69,15 +69,15 @@ initState.ModESteady <- function(
     x
     ### Numeric matrix (nPool, nIsotopes) of state variable mass.
 }
-#twUtestF("ModESteady",test="init")
+#twUtestF(_ModESteady",test="init")
 
 
-solve.ModESteady <- function(
-        ### solve the ODE of \code{\link{deriv.ModESteady}}
+solve_ModESteady <- function(
+        ### solve the ODE of \code{\link{deriv_ModESteady}}
         x0		##<< numeric vector or matrix at t=0
         ,times	##<< times at which explicit estimates for y are desired. The first value in times must be the initial time.
         ,parms	##<< list of model parameters
-        ,modMeta=modMeta.ModESteady()	##<< metaInformation from model. Pass for efficiency or when using different units. 
+        ,modMeta=modMeta_ModESteady()	##<< metaInformation from model. Pass for efficiency or when using different units. 
         ,useRImpl=FALSE	##<< flag indicating to use the R implementation instead of C implementation.
         ,useRk4=FALSE	##<< using the less precise but faster Runge-Kutta forth order function
         , useRImplMicCPart=FALSE
@@ -88,11 +88,11 @@ solve.ModESteady <- function(
     # small values, and derivative functions produces NaNs. But still gets 0
     parms$modMeta <- modMeta	#a way to pass it to the derivative function
     if( TRUE ){ #useRImpl ){ 
-        #lsoda( x0, times, deriv.ModESteady, parms, atol = 0 )
+        #lsoda( x0, times, deriv_ModESteady, parms, atol = 0 )
         if( useRk4)
-            rk4( x0, times, deriv.ModESteady, parms,  useRImplMicCPart=useRImplMicCPart)
+            rk4( x0, times, deriv_ModESteady, parms,  useRImplMicCPart=useRImplMicCPart)
         else
-            lsoda( x0, times, deriv.ModESteady, parms,  useRImplMicCPart=useRImplMicCPart) 
+            lsoda( x0, times, deriv_ModESteady, parms,  useRImplMicCPart=useRImplMicCPart) 
     }else {
         #lsoda( x0, times, dllname = "twMDIHamer", func = "deriv_soilmod_fgsd3",	initfunc = "init_soilmod_fs", parms = parms, nout = modMeta$nAux, outnames = modMeta$auxOutputNames, atol = 0);
         if( useRk4)
@@ -103,7 +103,7 @@ solve.ModESteady <- function(
     ### \code{\link[deSolve]{lsoda}  
 }
 
-deriv.ModESteady <- function(
+deriv_ModESteady <- function(
         ### Derivative function of Basic Colimitation model.
         t, x, p, useRImplMicCPart=FALSE
 ){

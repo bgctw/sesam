@@ -2,7 +2,7 @@
 context("modESteady")
 
 test_that("modMeta setup correctly",{
-            mm <- modMeta.ModESteady()
+            mm <- modMeta_ModESteady()
             expect_true( mm$nAux > 0)
             expect_equivalent(c("cf", "cs", "nf", "ns"), mm$colNames )
             expect_true(all(c("F", "S","B") %in% mm$rowNames) )
@@ -18,18 +18,18 @@ test_that("modMeta setup correctly",{
 
 .setUp <- function(){
     .setUpDf <- within( list(),{
-                modMeta <- modMeta.ModESteady();
+                modMeta <- modMeta_ModESteady();
                 xc12=c(F=4,G=2,A=0.2,D=0.5,S=4)
                 iR=c(s=1,a=2)
                 modMeta$iRUnits["a"] = 0.1;
-                (x0 <- initState.ModESteady(xc12=xc12, cn=0, iR=iR, modMeta=modMeta))
+                (x0 <- initState_ModESteady(xc12=xc12, cn=0, iR=iR, modMeta=modMeta))
                 #x0 <- modMeta$matrixTemplate; x0[] = 1:9
                 
                 xc12_noG=c(F=4,G=0,A=0.2,D=0.5,S=4)
-                (x0_noG <- initState.ModESteady(xc12=xc12_noG, cn=0, iR=iR, modMeta=modMeta))
+                (x0_noG <- initState_ModESteady(xc12=xc12_noG, cn=0, iR=iR, modMeta=modMeta))
                 
                 xc12_noGDecay=c(F=0.004,G=0,A=2,D=0.5,S=4)
-                (x0_noGDecay <- initState.ModESteady(xc12=xc12_noGDecay, cn=0, iR=iR, modMeta=modMeta))
+                (x0_noGDecay <- initState_ModESteady(xc12=xc12_noGDecay, cn=0, iR=iR, modMeta=modMeta))
                 
                 times <- seq(0,60)
                 x0v <- structure(as.vector(x0), names=modMeta$elementNames)
@@ -37,7 +37,7 @@ test_that("modMeta setup correctly",{
     attach(.setUpDf)
 }
 
-modMeta <- modMeta.ModESteady();
+modMeta <- modMeta_ModESteady();
 xc12=c(F=4,B=0.2,S=40)
 parms <- within( list(),{
             a1=0.2
@@ -56,13 +56,13 @@ parms <- within( list(),{
 p <- parms; p$modMeta <- modMeta;
 cn = c(F=40,S=p$betaB, B=p$betaB)
 amend = 3    
-(x0 <- initState.ModESteady(xc12=xc12, cn=cn, modMeta=modMeta, amend=amend))
+(x0 <- initState_ModESteady(xc12=xc12, cn=cn, modMeta=modMeta, amend=amend))
 
 
 test_that("initialized correctly",{
     cn = c(F=40,S=p$betaB, B=p$betaB)
     amend = 3    
-    (x1 <- initState.ModESteady(xc12=xc12, cn=cn, modMeta=modMeta, amend=amend))
+    (x1 <- initState_ModESteady(xc12=xc12, cn=cn, modMeta=modMeta, amend=amend))
     checkEquals( dimnames(modMeta$matrixTemplate), dimnames(x1) )
     expect_true(all(names(xc12) %in% modMeta$rowNames) )
     xc12 <- xc12[  modMeta$rowNames ]
@@ -114,9 +114,9 @@ checkMassBalance <- function(
 
 
 test_that("derivative is evaluated",{
-    (x0 <- initState.ModESteady(xc12=xc12, cn=cn, modMeta=modMeta, amend=0))
-    #trace(deriv.ModESteady, recover)
-    res <- deriv.ModESteady(0,x0,p)
+    (x0 <- initState_ModESteady(xc12=xc12, cn=cn, modMeta=modMeta, amend=0))
+    #trace(deriv_ModESteady, recover)
+    res <- deriv_ModESteady(0,x0,p)
     checkEquals( dim(modMeta$matrixTemplate), dim(res[[1]]) )
     checkEquals( modMeta$auxOutputNames, names(res[[2]]) )
     #mtrace(checkOutputConsistency)
@@ -134,8 +134,8 @@ test.ode_noG <- function(){
 }
 
 internal_test.ode <- function(x0){
-    #mtrace(deriv.ModESteady)
-    out <-  lsoda(x0, times, deriv.ModESteady, p )	
+    #mtrace(deriv_ModESteady)
+    out <-  lsoda(x0, times, deriv_ModESteady, p )	
     
     colnames(out)
     y <- paste("csums",modMeta$rowNames,sep="_")
@@ -158,8 +158,8 @@ internal_test.ode <- function(x0){
 }
 
 test.derivC_decay <- function(){
-    #mtrace(deriv.ModESteady)
-    outR1 <- deriv.ModESteady(0,x0_noGDecay,p)	
+    #mtrace(deriv_ModESteady)
+    outR1 <- deriv_ModESteady(0,x0_noGDecay,p)	
     checkOutputConsistency(modMeta, outR1[[2]])
     expect_true( outR1[[2]]["actAT"] < 0)
     #outR1[[2]][ modMeta$auxGroups$tmp ]
@@ -173,11 +173,11 @@ test.derivC_decay <- function(){
 }
 
 checkDerivCParms <- function(p,x0){
-    outR1 <- deriv.ModESteady(0,x0,p)	
+    outR1 <- deriv_ModESteady(0,x0,p)	
     checkOutputConsistency(modMeta, outR1[[2]])
     #outR1[[2]][ modMeta$auxGroups$tmp ]
     
-    #dynFilename <- file.path("src",paste("ModESteady", .Platform$dynlib.ext, sep = ""))
+    #dynFilename <- file.path("src",paste(_ModESteady", .Platform$dynlib.ext, sep = ""))
     #dynFilename <- file.path("src",paste("twMDIHamer", .Platform$dynlib.ext, sep = ""))
     #dyn.load(dynFilename); (out <- DLLfuncTest( x0v, dllname = "twMDIHamer", func = "deriv_ModESteady",	initfunc = "init_ModESteady", parms = p, times = 1,	nout = modMeta$nAux, outnames = modMeta$auxOutputNames)); dyn.unload(dynFilename);
     (out1 <- DLLfuncTest( x0, dllname = "twMDIHamer", func = "deriv_ModESteady",	initfunc = "init_ModESteady", parms = p, times = 1,	nout = modMeta$nAux, outnames = modMeta$auxOutputNames)); 
@@ -189,8 +189,8 @@ checkDerivCParms <- function(p,x0){
     #with( as.list(outR1[[2]]),c(kAppF_, (mFF_ + csums_F) ,csums_A / (mFF_ + csums_F), csums_A ))
     
     
-    #outR <-  lsoda(x0v, times, deriv.ModESteady, p )	
-    outR <-  lsoda(x0, times, deriv.ModESteady, p )	
+    #outR <-  lsoda(x0v, times, deriv_ModESteady, p )	
+    outR <-  lsoda(x0, times, deriv_ModESteady, p )	
     auxArr <- (outR[,-(1:(length(x0)+1))])
     checkEquals( outR1[[2]], auxArr[1,])
     checkOutputConsistency(modMeta, auxArr[1,])
@@ -198,14 +198,14 @@ checkDerivCParms <- function(p,x0){
     checkOutputConsistency(modMeta, auxArr[40,])
     checkOutputConsistency(modMeta, auxArr[61,])
     
-    #checkEquals( modMeta.ModESteady(), modMeta ) FALSE adjusted modMeta$iRUnits["a"]
-    #outR2 <- solve.ModESteady( x0, times, parms = p, modMeta=modMeta, useRImpl=TRUE);
+    #checkEquals( modMeta_ModESteady(), modMeta ) FALSE adjusted modMeta$iRUnits["a"]
+    #outR2 <- solve_ModESteady( x0, times, parms = p, modMeta=modMeta, useRImpl=TRUE);
     #checkEquals(outR, outR2)
     
-    #dyn.load(dynFilename); out <- lsoda( x0v, times, dllname = "ModESteady", func = "deriv_ModESteady",	initfunc = "init_ModESteady", parms = p, nout = modMeta$nAux, outnames = modMeta$auxOutputNames); dyn.unload(dynFilename);
+    #dyn.load(dynFilename); out <- lsoda( x0v, times, dllname = _ModESteady", func = "deriv_ModESteady",	initfunc = "init_ModESteady", parms = p, nout = modMeta$nAux, outnames = modMeta$auxOutputNames); dyn.unload(dynFilename);
     #out <- lsoda( x0v, times, dllname = "twMDIHamer", func = "deriv_ModESteady",	initfunc = "init_ModESteady", parms = p, nout = modMeta$nAux, outnames = modMeta$auxOutputNames);
-    #out <- solve.ModESteady( x0v, times, parms = p, useRImpl=FALSE);
-    out <- solve.ModESteady( x0, times, parms = p, modMeta=modMeta, useRImpl=FALSE);
+    #out <- solve_ModESteady( x0v, times, parms = p, useRImpl=FALSE);
+    out <- solve_ModESteady( x0, times, parms = p, modMeta=modMeta, useRImpl=FALSE);
     # gives deviations in attributes checkEquals(outR, out)
     tmp <- outR-out
     .tmp.f <- function(){
@@ -241,13 +241,13 @@ test.fSDec <- function(){
     }
 }
 
-profile.ModESteady <- function(){
+profile_ModESteady <- function(){
     #.setUp()
     runRmodN <- function (nRepeat,...){
-        for( i in 1:nRepeat ){ outR <-  lsoda(x0v, times, deriv.ModESteady, p ) }
+        for( i in 1:nRepeat ){ outR <-  lsoda(x0v, times, deriv_ModESteady, p ) }
     }
     runCmodN <- function (nRepeat,...){
-        #for( i in 1:nRepeat ){ out <- lsoda( x0v, times, dllname = "ModESteady", func = "deriv_ModESteady",	initfunc = "init_ModESteady", parms = p, nout = modMeta$nAux, outnames = modMeta$auxOutputNames); }
+        #for( i in 1:nRepeat ){ out <- lsoda( x0v, times, dllname = _ModESteady", func = "deriv_ModESteady",	initfunc = "init_ModESteady", parms = p, nout = modMeta$nAux, outnames = modMeta$auxOutputNames); }
         for( i in 1:nRepeat ){ out <- lsoda( x0v, times, dllname = "twMDIHamer", func = "deriv_ModESteady",	initfunc = "init_ModESteady", parms = p, nout = modMeta$nAux, outnames = modMeta$auxOutputNames); }
     }
     n=10
@@ -272,7 +272,7 @@ profile.ModESteady <- function(){
 
 test.modVariantFS <- function(){
     # testing if the derivative with constrained parameters reprocudes FS model
-    modMeta <- modMeta.ModESteady()
+    modMeta <- modMeta_ModESteady()
     #trace(parmsModelVariant.hamer, recover)
     if( 0==length(HamerParameterPriors$parms0$mmTvr) ) recover()
     #HamerParameterPriors$parms0$mmTvr
@@ -280,11 +280,11 @@ test.modVariantFS <- function(){
     xc12FS=c(F=4,G=0,A=0.2,D=0.5,S=4)
     iRFS=c(s=1,a=0)
     .amend=2.0
-    (x0FS <- initState.ModESteady(xc12=xc12FS, cn=0, iR=iRFS, amend=.amend, usePrefSubst=FALSE))
+    (x0FS <- initState_ModESteady(xc12=xc12FS, cn=0, iR=iRFS, amend=.amend, usePrefSubst=FALSE))
     checkEqualsNumeric( xc12FS[modMeta$rowNames], x0FS[,"s"] )
     checkEqualsNumeric( .amend, x0FS["F","a"] )
-    #mtrace(deriv.ModESteady)
-    outR1<-NULL; outR1 <- deriv.ModESteady(0,x0FS,parmsFS$parms0)	
+    #mtrace(deriv_ModESteady)
+    outR1<-NULL; outR1 <- deriv_ModESteady(0,x0FS,parmsFS$parms0)	
     #mtrace(checkOutputConsistency)
     checkOutputConsistency(modMeta, outR1[[2]])
     #outR1[[2]][ modMeta$auxGroups$tmp ]
@@ -294,7 +294,7 @@ test.modVariantFS <- function(){
     checkEqualsNumeric( outR1[[1]], out1[[1]] );
     checkEqualsNumeric( outR1[[2]], out1[[2]] );
     
-    outR <-  lsoda(x0FS, times, deriv.ModESteady, parmsFS$parms0 )	
+    outR <-  lsoda(x0FS, times, deriv_ModESteady, parmsFS$parms0 )	
     auxArr <- (outR[,-(1:(length(x0)+1))])
     checkEquals( outR1[[2]], auxArr[1,])
     checkOutputConsistency(modMeta, auxArr[1,])
@@ -302,7 +302,7 @@ test.modVariantFS <- function(){
     checkOutputConsistency(modMeta, auxArr[40,])
     checkOutputConsistency(modMeta, auxArr[61,])
     
-    out <- solve.ModESteady( x0FS, times, parms = parmsFS$parms0, modMeta=modMeta, useRImpl=FALSE);
+    out <- solve_ModESteady( x0FS, times, parms = parmsFS$parms0, modMeta=modMeta, useRImpl=FALSE);
     # gives deviations in attributes checkEquals(outR, out)
     bo <- outR[,"csums_A"] > 1e-5
     tmp <- (outR-out)

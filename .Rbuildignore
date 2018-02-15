@@ -1,0 +1,6 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^.pydevproject$
+^soilPaper14$
+^egu14$
+^.*\.nb\.html$
