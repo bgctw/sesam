@@ -2,7 +2,7 @@
 
 # gC/m2 and gN/m2, /yr
 
-derivSesam2EnzTvr <- function(
+derivSesam3EnzTvr <- function(
   ### Soil Enzyme Steady Allocation model
   t,x,parms
 ){
@@ -82,25 +82,12 @@ derivSesam2EnzTvr <- function(
     alpha	##value<< return the given argument
   }
   #
-  # first compute assuming C-limitation
-  alpha <- computeAlphaDependingFluxes(alphaC)
-  if (isLimN) {
-    # if it turns out, that we are in N-limitation comptute again using alphaN
-    # remember values for weights of C-limitation below
-    CsynBN_Clim <- CsynBN; CsynBC_Clim = CsynBC
-    alpha <- computeAlphaDependingFluxes(alphaN)
-    if (!isLimN) {
-      # co-limitation case:
-      # when optimizing for C, system is in N-limitation
-      # when optimizing for N, system is not in N-limitation
-      # then comptute a balanced alpha
-      alpha <- balanceAlphaBetweenCNLimitations(
-        alphaC, alphaN, CsynBN_Clim, CsynBC_Clim
-        , NsynBC = parms$eps*CsynBC/cnB, NsynBN)
-      #c(alphaC = alphaC, alphaN = alphaN, alpha)
-      #c(CsynBN_Clim/CsynBC_Clim, CsynBN/CsynBC)
-    }
-  }
+  alpha <- computeAlphaDependingFluxes(x["alpha"])
+  alphaTarget <- balanceAlphaBetweenCNLimitations(
+    alphaC, alphaN, CsynBN, CsynBC
+    , NsynBC = parms$eps*CsynBC/cnB, NsynBN)
+  # microbial community change as fast as microbial turnover
+  dAlpha <- (alphaTarget - alpha) * parms$tau
   #
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
   respO <- uC - (synE + respSynE + synB + rG + rM)
@@ -136,7 +123,8 @@ derivSesam2EnzTvr <- function(
   }
   #
   resDeriv <- structure(as.numeric(
-    c( dB, dR, dRN, dL, dLN, dI)),names = c("dB","dR","dRN","dL","dLN","dI"))
+    c( dB, dR, dRN, dL, dLN, dI, dAlpha))
+    ,names = c("dB","dR","dRN","dL","dLN","dI","dAlpha"))
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   sqrEps <- sqrt(.Machine$double.eps)
   # parms$iL - (decL + dL)
@@ -196,7 +184,7 @@ derivSesam2EnzTvr <- function(
     , PhiTvr = as.numeric(PhiTvr)
     , PhiBU = as.numeric(PhiBU), PhiTotal = as.numeric(PhiTotal)
     , immoPot = as.numeric(immoPot)
-    , alpha = as.numeric(alpha)
+    , alphaTarget = as.numeric(alphaTarget)
     , alphaC = as.numeric(alphaC), alphaN = as.numeric(alphaN)
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
     , limER = as.numeric(limER), limEL = as.numeric(limEL)
