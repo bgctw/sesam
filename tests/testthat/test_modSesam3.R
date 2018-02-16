@@ -1,4 +1,5 @@
 #require(testthat)
+#test_file("tests/testthat/test_modSesam3.R")
 context("modSesam2EnzTvr")
 
 parms0 <- list(
@@ -39,6 +40,7 @@ parms0 <- list(
   ,iI = 0         ##<< input of mineral N
   ,l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I
   ,nu = 0.9       ##<< microbial N use efficiency
+  , isEnzymeMassFlux = TRUE  ##<< set to FALSE to neglect C and N mass fluxes by enzymes
 )
 parms0 <- within(parms0,{
   kmR <- kmL <- km
@@ -101,28 +103,39 @@ test_that("same as seam for fixed substrates", {
   #parmsInit <- within(parms0, {isFixedS <- TRUE})
   #parmsInit <- within(parms0, {isAlphaFix <- TRUE})
   #parmsInit <- within(parms0, {isAlphaMatch <- TRUE})
-  res <- derivSesam3EnzTvr(0, x0, parmsInit)
+  res <- derivSesam3(0, x0, parmsInit)
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
-  resTest <- as.data.frame(lsoda( x0, times, derivSesam3EnzTvr, parms = parmsFixedS))
+  resTest <- as.data.frame(lsoda( x0, times, derivSesam3, parms = parmsFixedS))
+  resTestNoEnz <- as.data.frame(lsoda(
+    x0, times, derivSesam3
+    , parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
   resExp <- as.data.frame(lsoda( x0Seam3, times, derivSeam3a, parms = parmsFixedS))
   xETest <- unlist(tail(resTest,1))
+  xETestNoEnz <- unlist(tail(resTestNoEnz,1))
   xEExp <- unlist(tail(resExp,1)); xEExp[-(3:4)]
   expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
+  expect_equal( xETestNoEnz["alphaC"], xEExp["alphaC"], tolerance = 1e-3)
   expect_equal( xETest[2:7], xEExp[c(2,5:9)], tolerance = 1e-6)
+  expect_equal( xETestNoEnz[2:7], xEExp[c(2,5:9)], tolerance = 0.1)
   .tmp.f <- function(){
     derivSeam3a(0, xEExp[2:9], within(parmsInit, isRecover <- TRUE))
-    derivSesam3EnzTvr(0, xEExp[c(2,5:9)], within(parmsInit, isRecover <- TRUE))
+    derivSesam3(0, xEExp[c(2,5:9)], within(parmsInit, isRecover <- TRUE))
   }
   #
   # N limitation
   #times <- seq(0,2100, length.out = 101)
-  resTest <- as.data.frame(lsoda( x0Nlim, times, derivSesam3EnzTvr, parms = parmsFixedS))
+  resTest <- as.data.frame(lsoda( x0Nlim, times, derivSesam3, parms = parmsFixedS))
+  resTestNoEnz <- as.data.frame(lsoda(
+    x0Nlim, times, derivSesam3
+    , parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
   resExp <- as.data.frame(lsoda( x0NlimSeam3, times, derivSeam3a, parms = parmsFixedS))
   xETest <- unlist(tail(resTest,1))
+  xETestNoEnz <- unlist(tail(resTestNoEnz,1))
   xEExp <- unlist(tail(resExp,1))
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
   expect_equal( xETest[2:7], xEExp[c(2,5:9)], tolerance = 1e-6)
+  expect_equal( xETestNoEnz[2:7], xEExp[c(2,5:9)], tolerance = 0.1)
 })
 
 test_that("same as seam with substrate feedbacks", {
@@ -132,33 +145,46 @@ test_that("same as seam with substrate feedbacks", {
   #times <- c(0,148:151)
   #times <- seq(0,2100, by = 2)
   #times <- seq(0,10000, length.out = 101)
-  resTest <- as.data.frame(lsoda( x0, times, derivSesam3EnzTvr, parms = parmsInit))
+  resTest <- as.data.frame(lsoda( x0, times, derivSesam3, parms = parmsInit))
+  resTestNoEnz <- as.data.frame(lsoda(
+    x0, times, derivSesam3
+    , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   resExp <- as.data.frame(lsoda( x0Seam3, times, derivSeam3a, parms = parmsInit))
   xETest <- unlist(tail(resTest,1))
   xEExp <- unlist(tail(resExp,1));
+  xETestNoEnz <- unlist(tail(resTestNoEnz,1))
   xpESteady <- unlist(head(tail(resTest,2),1))	# the previous before end
-  rbind(xETest, xEExp[names(xETest)])
   expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-4)
+  expect_equal( xETestNoEnz["alphaC"], xEExp["alphaC"], tolerance = 1e-2)
   expect_equal( xETest[2:7], xEExp[c(2,5:9)], tolerance = 1e-6)
+  expect_equal( xETestNoEnz[2:7], xEExp[c(2,5:9)], tolerance = 0.1)
+  rbind(xEExp[names(xETest)], xETest, xETestNoEnz)
   .tmp.f <- function(){
-    derivSesam3EnzTvr(0, xETest[2:8], within(parmsInit, isRecover <- TRUE))
+    derivSesam3(0, xETest[2:8], within(parmsInit, isRecover <- TRUE))
     derivSeam3a(0, xEExp[2:10], within(parmsInit, isRecover <- TRUE))
-    derivSesam3EnzTvr(0, xETest, within(parmsInit, isRecover <- TRUE))
-    derivSesam3EnzTvr(0, xpESteady, within(parmsInit, isRecover <- TRUE))
+    derivSesam3(0, xETest, within(parmsInit, isRecover <- TRUE))
+    derivSesam3(0, xpESteady, within(parmsInit, isRecover <- TRUE))
   }
   #
   # N limitation
-  resTest <- as.data.frame(lsoda( x0Nlim, times, derivSesam3EnzTvr, parms = parmsInit))
+  resTest <- as.data.frame(lsoda( x0Nlim, times, derivSesam3, parms = parmsInit))
+  resTestNoEnz <- as.data.frame(lsoda(
+    x0Nlim, times, derivSesam3
+    , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   resExp <- as.data.frame(lsoda( x0NlimSeam3, times, derivSeam3a, parms = parmsInit))
   xETest <- unlist(tail(resTest,1))
+  xETestNoEnz <- unlist(tail(resTestNoEnz,1))
   xEExp <- unlist(tail(resExp,1))
   expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-6)
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
-  rbind(xETest[2:7], xEExp[c(2,5:9)])
-  rbind(xETest, xEExp[names(xETest)])
+  expect_equal( xETestNoEnz["B"], xEExp["B"], tolerance = 0.1)
+  expect_equal( xETestNoEnz["alphaN"], xEExp["alphaN"], tolerance = 1e-2)
   # here alphaC will be different, because Crevenue is computed
   # with alphaC in sesam but with current alpha in seam
-  expect_equal( xETest[2:7], xEExp[c(2,5:9)], tolerance = 1e-6)
+  expect_equal( xETest[2:7], xEExp[c(2,5:9)], tolerance = 1e-5)
+  expect_equal( xETestNoEnz[2:7], xEExp[c(2,5:9)], tolerance = 0.1)
+  rbind(xEExp[c(2,5:9)], xETest[2:7], xETestNoEnz[2:7])
+  rbind(xEExp[names(xETest)], xETest, xETestNoEnz)
   #
   # from C to N limitation
   x0CNLim <- x0; x0CNLim["I"] <- 0
@@ -166,22 +192,30 @@ test_that("same as seam with substrate feedbacks", {
   times <- seq(0,1200, length.out = 2)
   #times <- seq(0,1200, length.out = 101)
   #times <- c(0,seq(140,220, length.out = 101))
-  resTest <- as.data.frame(lsoda( x0CNLim, times, derivSesam3EnzTvr, parms = parmsInit))
+  resTest <- as.data.frame(lsoda( x0CNLim, times, derivSesam3, parms = parmsInit))
+  resTestNoEnz <- as.data.frame(lsoda(
+    x0CNLim, times, derivSesam3
+    , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   resExp <- as.data.frame(lsoda( x0CNLimSeam3, times, derivSeam3a, parms = parmsInit))
   xETest <- unlist(tail(resTest,1))
+  xETestNoEnz <- unlist(tail(resTestNoEnz,1))
   xEExp <- unlist(tail(resExp,1))
   expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-5)
-  expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
-  rbind(xETest[2:7], xEExp[c(2,5:9)])
-  rbind(xETest, xEExp[names(xETest)])
+  expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-5)
+  expect_equal( xETestNoEnz["B"], xEExp["B"], tolerance = 0.1)
+  expect_equal( xETestNoEnz["alphaN"], xEExp["alphaN"], tolerance = 0.1)
   expect_equal( xETest[2:7], xEExp[c(2,5:9)], tolerance = 1e-3)
+  expect_equal( xETestNoEnz[2:7], xEExp[c(2,5:9)], tolerance = 0.1)
+  rbind(xEExp[c(2,5:9)], xETest[2:7], xETestNoEnz[2:7])
+  rbind(xEExp[names(xETest)], xETest, xETestNoEnz)
 })
 
 .tmp.f <- function(){
+  # plots of results
   library(dplyr)
   library(ggplot2)
   res <- suppressWarnings(bind_rows(
-    cbind(resTest, scen = "Test"), cbind(resExp, scen = "Exp")))
+    cbind(resTest, scen = "Test"), cbind(resTestNoEnz, scen = "TestNoEnz"), cbind(resExp, scen = "Exp")))
   ggplot(filter(res, time > 1), aes(time, B, color = scen)) + geom_line()
   ggplot(filter(res, time < 500 & time > 0), aes(time, alpha, color = scen)) + geom_point()
   ggplot(filter(res, time < 500), aes(time, B, color = scen)) + geom_line()

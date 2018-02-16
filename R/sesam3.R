@@ -2,7 +2,7 @@
 
 # gC/m2 and gN/m2, /yr
 
-derivSesam3EnzTvr <- function(
+derivSesam3 <- function(
   ### Soil Enzyme Steady Allocation model
   t,x,parms
 ){
@@ -27,10 +27,17 @@ derivSesam3EnzTvr <- function(
   #ETot <- parms$aE * x["B"] / parms$kN
   rM <- parms$m * x["B"]          # maintenance respiration
   tvrB <- parms$tau*x["B"]        # microbial turnover
-  synE <- parms$aE * x["B"]       # total enzyme production per microbial biomass
-  # growth respiration associated with enzyme production
-  respSynE <- (1 - parms$eps)/parms$eps * synE
-  #
+  if (isTRUE(parms$isEnzymeMassFlux)) {
+    synE <- parms$aE * x["B"]       # total enzyme production per microbial biomass
+    # growth respiration associated with enzyme production
+    respSynE <- (1 - parms$eps)/parms$eps * synE
+  } else {
+    # neglect mass fluxes via enzymes
+    synE <- 0
+    respSynE <- 0
+  }
+  # for revenue, account for enzyme investments also if negleting mass fluxes
+  synERev <- parms$aE * x["B"]
   # declare variables that will be computed/overidden in computeAlphaDependingFluxes
   # else operator '<<-' will override bindings in global environment
   tvrER <- tvrEL  <- decR <- decL <- tvrERecycling <- uC <-
@@ -42,8 +49,8 @@ derivSesam3EnzTvr <- function(
     tvrER <<- alpha * synE
     tvrEL <<- (1 - alpha) * synE
     #
-    decR <<- decRp * alpha*synE/(parms$km*parms$kN + alpha*synE)
-    decL <<- decLp * (1 - alpha)*synE/(parms$km*parms$kN + (1 - alpha)*synE)
+    decR <<- decRp * alpha*synERev/(parms$km*parms$kN + alpha*synERev)
+    decL <<- decLp * (1 - alpha)*synERev/(parms$km*parms$kN + (1 - alpha)*synERev)
     #
     tvrERecycling <<- parms$kNB*(tvrER + tvrEL)
     uC <<- decR + decL + tvrERecycling
@@ -159,10 +166,10 @@ derivSesam3EnzTvr <- function(
   EL <- (1 - alpha) * parms$aE * x["B"] / parms$kN
   limER <- ER / (parms$kmR + ER)
   limEL <- EL / (parms$kmL + EL)
-  revRC <- decRp / (parms$km*parms$kN + alphaC*synE)
-  revLC <- decLp / (parms$km*parms$kN + (1 - alphaC)*synE)
-  revRN <- decRp/cnR / (parms$km*parms$kN + alphaN*synE)
-  revLN <- decLp/cnL / (parms$km*parms$kN + alphaN*synE)
+  revRC <- decRp / (parms$km*parms$kN + alphaC*synERev)
+  revLC <- decLp / (parms$km*parms$kN + (1 - alphaC)*synERev)
+  revRN <- decRp/cnR / (parms$km*parms$kN + alphaN*synERev)
+  revLN <- decLp/cnL / (parms$km*parms$kN + alphaN*synERev)
   # net mic mineralization/immobilization when accounting uptake mineralization
   PhiBU <- PhiB + PhiU
   # total mineralization flux including microbial turnover
