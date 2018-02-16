@@ -62,14 +62,18 @@ Just redefine $d_R = k_R R \beta_R^{-1}$ and $d_L = k_L L \beta_L^{-1}$, the sol
 
 Enzyme turnover
 $$
-\operatorname{tvr}_{ES} = \operatorname{syn}_{ES} \\
-\operatorname{tvr}_{ER} = k_N E_R^* = \alpha a_e B \\
-\operatorname{tvr}_{EL} = k_N E_L^* = (1-\alpha) a_e B
+\begin{align}
+\operatorname{tvr}_{ES} &= \operatorname{syn}_{ES} \\
+\operatorname{tvr}_{ER} &= k_N E_R^* = \alpha a_e B \\
+\operatorname{tvr}_{EL} &= k_N E_L^* = (1-\alpha) a_e B
+\end{align}
 $$
 Substrate decomposition
 $$
-\operatorname{dec}_S = \operatorname{dec}_{S,Pot} \frac{E^*_S}{k_{m}+E^*_S} \\
-\operatorname{dec}_R = k_R R \frac{\alpha a_e B/k_N}{k_{m}+\alpha a_e B/k_N} = k_R R \frac{\alpha a_e B}{k_{m} k_N+\alpha a_e B} \\
-\operatorname{dec}_L = k_L L \frac{(1-\alpha) a_e B}{k_{m} k_N +(1-\alpha) a_e B}
+\begin{align}
+\operatorname{dec}_S &= \operatorname{dec}_{S,Pot} \frac{E^*_S}{k_{m}+E^*_S} \\
+\operatorname{dec}_R &= k_R R \frac{\alpha a_e B/k_N}{k_{m}+\alpha a_e B/k_N} = k_R R \frac{\alpha a_e B}{k_{m} k_N+\alpha a_e B} \\
+\operatorname{dec}_L &= k_L L \frac{(1-\alpha) a_e B}{k_{m} k_N +(1-\alpha) a_e B}
+\end{align}
 $$
 
