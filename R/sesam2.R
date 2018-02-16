@@ -238,10 +238,11 @@ computeSesam2AllocationPartitioning <- function(
   } else #if (dLR > 0 ){
     (-2*aEB*dR - kmkN*dL - kmkN*dR + sqrt(D))/(2*aEB*(dLR))
   #	} else {
-  #		 -(2*aEB*dR + c1*dL + c1*dR + sqrt(D))/(2*aEB*(dLR))
+  #		 -(2*aEB*dR + kmkN*dL + kmkN*dR + sqrt(D))/(2*aEB*(dLR))
   #	}
   # check if really is a solution
-  # ans - dR/(dR + dL*(kE*kM+ans*aE*B)/(kE*kM+(1-ans)*aE*B))
+  # ans - dR/(dR + dL*(kmkN+ans*aE*B)/(kmkN+(1-ans)*aE*B))
+  # ans - dR/(dR + dL*(kmkN+ans*aE*B)/(kmkN+(1-ans)*aE*B))
   ans
 }
 attr(computeSesam2AllocationPartitioning,"ex") <- function(){

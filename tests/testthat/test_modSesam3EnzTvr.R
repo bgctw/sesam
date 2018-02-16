@@ -141,8 +141,8 @@ test_that("same as seam with substrate feedbacks", {
   expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-4)
   expect_equal( xETest[2:7], xEExp[c(2,5:9)], tolerance = 1e-6)
   .tmp.f <- function(){
-    derivSesam3EnzTvr(0, xEExp[c(2,5:9)], within(parmsInit, isRecover <- TRUE))
-    derivSeam3a(0, xEExp[2:9], within(parmsInit, isRecover <- TRUE))
+    derivSesam3EnzTvr(0, xETest[2:8], within(parmsInit, isRecover <- TRUE))
+    derivSeam3a(0, xEExp[2:10], within(parmsInit, isRecover <- TRUE))
     derivSesam3EnzTvr(0, xETest, within(parmsInit, isRecover <- TRUE))
     derivSesam3EnzTvr(0, xpESteady, within(parmsInit, isRecover <- TRUE))
   }
@@ -156,6 +156,8 @@ test_that("same as seam with substrate feedbacks", {
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
   rbind(xETest[2:7], xEExp[c(2,5:9)])
   rbind(xETest, xEExp[names(xETest)])
+  # here alphaC will be different, because Crevenue is computed
+  # with alphaC in sesam but with current alpha in seam
   expect_equal( xETest[2:7], xEExp[c(2,5:9)], tolerance = 1e-6)
   #
   # from C to N limitation
@@ -191,7 +193,6 @@ test_that("same as seam with substrate feedbacks", {
   ggplot(filter(res, time < 500), aes(time, alphaC, color = scen)) + geom_line()
   ggplot(filter(res, time < 5000), aes(time, alphaN, color = scen)) + geom_line()
   ggplot(filter(res, time > 01), aes(time, PhiB, color = scen, linetype = scen)) + geom_line()
-
 }
 
 
