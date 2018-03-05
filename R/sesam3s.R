@@ -2,13 +2,14 @@
 
 # gC/m2 and gN/m2, /yr
 
-derivSesam3 <- function(
+derivSesam3s <- function(
   ### Soil Enzyme Steady Allocation model
   t,x,parms
 ){
   ##details<<
   ## model corresponding to Seam3 with enzyme levels computed by quasi steady state
   ## Alpha as an explicit state variable that changes with turnover
+  ## Simplified computation of target based on current revenue based on current alpha
   x <- pmax(unlist(x),1e-16)      # no negative masses
   # compute steady state enzyme levels for N and for C limitation
   decRp <- parms$kR * x["R"]
@@ -17,14 +18,6 @@ derivSesam3 <- function(
   cnL <- x["L"]/x["LN"]
   cnE <- parms$cnE #alphaC*parms$cnER + (1-alphaC)*parms$cnEL
   cnB <- parms$cnB
-  alphaC <- computeSesam2AllocationPartitioning(
-    dR = decRp, dL = decLp, B = x["B"]
-    ,kmkN = parms$km*parms$kN, aE = parms$aE
-  )
-  alphaN <- computeSesam2AllocationPartitioning(
-    dR = decRp/cnR, dL = decLp/cnL, B = x["B"]
-    ,kmkN = parms$km*parms$kN, aE = parms$aE
-  )
   #ETot <- parms$aE * x["B"] / parms$kN
   rM <- parms$m * x["B"]          # maintenance respiration
   tvrB <- parms$tau*x["B"]        # microbial turnover
@@ -91,6 +84,16 @@ derivSesam3 <- function(
   }
   #
   alpha <- computeAlphaDependingFluxes(x["alpha"])
+  alphaC <- computeSesam3sAllocationPartitioning(
+    dR = decRp, dL = decLp, B = x["B"]
+    , kmkN = parms$km*parms$kN, aE = parms$aE
+    , alpha = alpha
+  )
+  alphaN <- computeSesam3sAllocationPartitioning(
+    dR = decRp/cnR, dL = decLp/cnL, B = x["B"]
+    , kmkN = parms$km*parms$kN, aE = parms$aE
+    , alpha = alpha
+  )
   alphaTarget <- balanceAlphaBetweenCNLimitations(
     alphaC, alphaN, CsynBN, CsynBC
     , NsynBC = parms$eps*CsynBC/cnB, NsynBN)
@@ -213,4 +216,83 @@ derivSesam3 <- function(
     , decN = as.numeric(decN)
   ))
 }
+
+computeSesam3sAllocationPartitioning <- function(
+  ###  allocation partitioning alpha assuming enzymes to be in quasi steady state
+  dR		##<< potential decomposition flux from residue pool (gC or gN/time)
+  ,dL		##<< potential decomposition flux from labile pool
+  ,B		##<< microbial biomass carbon
+  ,kmkN	##<< product of (half-saturation constant in decomposition equation) x
+  ## (enzyme turnover rate)
+  ,aE		##<< proportion of microbial biomass allocated to enzyme production per time
+  ,alpha  ##<< current allocation
+){
+  revL = dL/(kmkN + (1 - alpha)*aE*B)
+  revR = dR/(kmkN + alpha*aE*B)
+  alphaTarget = revR/(revL + revR)
+  structure(alphaTarget, names = "alpha")
+}
+attr(computeSesam3sAllocationPartitioning,"ex") <- function(){
+  parms <- list(
+    cnB = 11
+    ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
+    #,cnIR = 4.5   ##<< between micr and enzyme signal
+    ,cnIR = 7      ##<< between micr and enzyme signal
+    ,cnIL = 30     ##<< N poor substrate, here no inorganic N supply,
+    # need to have low C/N for CO2 increase scenario
+    ,kN = 60       ##<< /yr enzyme turnover 60 times a year, each 6 days ->
+    # fast priming pulses
+    ,km = 0.05     ##<< enzyme half-saturation constant, in magnitude of enzymes,
+    # determined by kN
+    ,kR = 1/(10)   ##<< 1/(x years) # to demonstrate changes on short time scale
+    ,kL = 5        ##<< 1/(x years) # formerly 1 year
+    ,aE = 0.001*365   ##<< C biomass allocated to enzymes 1/day /microbial biomass
+  )
+  x <- c( #aE = 0.001*365
+    B = 17                     ##<< microbial biomass
+    ,ER  = 2*parms$km                  ##<< total enzyme pool
+    ,EL  = 4*parms$km                   ##<< total enzyme pool
+    ,R = 1000                ##<< N rich substrate
+    ,RN = 1000/parms$cnIR   ##<< N rich substrate N pool
+    ,L = 100                 ##<< N poor substrate
+    ,LN = 100/parms$cnIL    ##<< N poor substrate N pool
+    ,I =  0.4                ##<< inorganic pool gN/m2
+  )
+  computeSesam3sAllocationPartitioning(
+    dR = parms$kR*x["R"], dL = parms$kL*x["L"], B = x["B"]
+    ,kmkN = parms$km*parms$kN, aE =  parms$aE
+    , alpha = 0.5
+  )
+  computeSesam3sAllocationPartitioning(
+    dR = parms$kR*x["R"], dL = parms$kL*x["L"]/500, B = x["B"]
+    ,kmkN = parms$km*parms$kN, aE =  parms$aE
+    , alpha = 0.5
+  )
+  computeSesam3sAllocationPartitioning(
+    dR = 1, dL = 1, B = x["B"]
+    ,kmkN = parms$km*parms$kN, aE =  parms$aE
+    , alpha = 0.5
+  )
+  computeSesam3sAllocationPartitioning(
+    dR = 2, dL = 1, B = x["B"]
+    ,kmkN = parms$km*parms$kN, aE =  parms$aE
+    , alpha = 0.5
+  )
+  computeSesam3sAllocationPartitioning(
+    dR = 2, dL = 0, B = x["B"]
+    ,kmkN = parms$km*parms$kN, aE =  parms$aE
+    , alpha = 0.5
+  )
+  computeSesam3sAllocationPartitioning(
+    dR = 0, dL = 1, B = x["B"]
+    ,kmkN = parms$km*parms$kN, aE =  parms$aE
+    , alpha = 0.5
+  )
+  computeSesam3sAllocationPartitioning(
+    dR = 0, dL = 0, B = x["B"]
+    ,kmkN = parms$km*parms$kN, aE =  parms$aE
+    , alpha = 0.5
+  )
+}
+
 
