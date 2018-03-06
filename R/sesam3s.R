@@ -67,7 +67,7 @@ derivSesam3s <- function(
     # C required for biomass growth and associated growth resp under N limitation
     CsynBN <<- (NsynBN*cnB)/parms$eps
     #
-    # wheter is microbial N limited (with taking immobilization into account)
+    # whether is microbial N limited (with taking immobilization into account)
     isLimN <<- CsynBN <  CsynBC
     CsynB  <<- if (isLimN ) CsynBN else CsynBC
     if (CsynB > 0) {

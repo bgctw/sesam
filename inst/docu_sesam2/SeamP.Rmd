@@ -1,0 +1,86 @@
+---
+title: "SEAM phosphorous equations"
+output: html_notebook
+---
+
+The SEAM2 model only considered C and N limitation. 
+Here we report equations for phosphorous (P) analogous to the N equations
+and extend the other equations.
+
+We need to assume in a first approximation, that depolymerization of SOM delivers
+P in a stoichiometric ratio equal to that of the SOM. Further we neglect storage of
+P inside microbial biomass. Assimilated P is incorporated into biomass or mineralized.
+
+# Phosphorous fluxes
+P fluxes and pools are derived by dividing the respective fluxes with the
+C/P ratio, $\gamma$, of their source.
+
+It follows the derivation of N fluxes with replacing the C/N ratio, $\beta$, by
+C/P ratios, $\gamma$, and N mineralization/immobilization flux $\Phi$ by 
+P mineralization/immobilization flux $\Phi_P$.
+
+The C/P ratios $\gamma_B$ and $\gamma_E$ of the microbial biomass and 
+enzymes are assumed to be fixed. However, the C/P ratio of the substrate pools
+may change over time and thus the substrate P pools are modelled explicitly.
+$$
+\begin{align}
+\frac{dL_P}{dt} &=  - \operatorname{dec}_L /\gamma_{L} +
+\operatorname{input}_L/\gamma_{\operatorname{i}} 
+\\
+\frac{dR_P}{dt} &=  - \operatorname{dec}_R /\gamma_{R} +
+\epsilon_{\operatorname{tvr}} \operatorname{tvr}_B /\gamma_{B} + \notag 
+\\
+& \qquad (1 -\kappa_E) (\operatorname{tvr}_{ER} +
+\operatorname{tvr}_{EL})/\gamma_{E} 
+\\
+\frac{dI_P}{dt} &= +i_{IP} -k_{IP} -l I_P +\Phi_P
+\\
+\Phi_P &= \Phi_{Pu} +\Phi_{PB} + \Phi_{P\operatorname{tvr}}
+\\
+\Phi_{Pu} &= (1 -\nu_P) u_{P,OM}
+\text{,} 
+\end{align}
+$$
+
+\noindent where the balance of the inorganic dissolved P pool $I_P$ sums
+inorganic inputs $i_I$,e.g. by weathering, plant uptake $k_{IP}$, leaching $l I$, 
+and the exchange flux with soil microbial biomass, $\Phi_P$. The latter is
+the sum of the P mineralization outside microbial cells, $\Phi_{Pu}$, mineralisation-immobilisation imbalance flux,
+$\Phi_ {PB}$ (\ref{eq:PhiPB}), and mineralisation of a part of microbial
+turnover ,$\Phi_{P\operatorname{tvr}}$ (\ref{eq:PhiTvr}, section \ref{sec:Tvr}).
+
+Organic P uptake, $u_{P,OM}$, was modelled as a parallel scheme (PAR),
+where a part of the depolimerized organic P that is assimilated by microbial biomass, and the other part is mineralised.
+Potential P uptake is the sum of organic P uptake and the potential
+immobilisation flux ($u_{\operatorname{imm,Pot}}$). Uptake from DOM is assumed
+equal to influxes to DOM times the apparent P use efficiency $nu_P$.
+
+%\label{eq:uP}
+$$
+\begin{align}
+u_P &= nu_P u_{P,OM} + u_{P\operatorname{imm,Pot}}
+\\
+u_{P,OM} &= \operatorname{dec}_L/\gamma_L + \operatorname{dec}_R/\gamma_R +
+\kappa_E (\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})/\gamma_E
+\\
+u_{P \operatorname{imm,Pot}} &= i_{PB} I_P 
+\text{,}
+\end{align}
+$$
+where C/P ratios $\gamma_L$ and $\gamma_R$ are calculated based on current C
+and P substrate pools: $\gamma_L = L/L_P$.  
+
+The P available for biomass synthesis is the difference of microbial P
+uptake and expenses for enzyme synthesis. This translates to a P
+constraint for the C used for biomass synthesis and its associated
+catabolic growth respiration: $C_{\operatorname{synB}} \le
+C_{\operatorname{synBP}}$.
+
+\label{eq:synBN}
+$$
+\begin{align}
+P_{\operatorname{synBP}} &= u_P - \operatorname{syn}_E/\gamma_E \text{,} \\
+C_{\operatorname{synBP}} &= \gamma_B \, P_{\operatorname{synBP}}  / \epsilon
+\end{align}
+$$
+

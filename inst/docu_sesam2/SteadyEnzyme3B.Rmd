@@ -1,0 +1,98 @@
+---
+title: "SESAM with microbial biomass in quasi steady state"
+output: html_notebook
+---
+
+The SEAM model explicitely tracks enzyme levels. In order to use the model at plot scale or in COMISSION, derive a simpler version, where enzyme levels are assumed to be in fast steady state with production and turnover. 
+
+SESAM3s implements quasi-steady state for enzyme levels, but tracks microbial 
+community composition $\alpha$ as state variable.
+
+Here we derive equations for microbial biomass in quasi steady state.
+
+For simplicity, we neglect mass fluxes form biomass to DOM and R by enzyme production and turnover. However, investments into enzyme production are still part of the compution
+of revenu of enzyme investments.
+
+Start with setting $dB=0$: 
+
+- $\operatorname{syn}_{B} = \operatorname{tvr}_{B}$
+
+Carbon available for biomass synthesis, $\operatorname{syn}_{B}$, however, 
+is the minimum for each elementat limitation, either by 
+C or by N. Here, we compute the steady state biomass for all limitations and then take 
+the minimum.
+
+## C limitation
+For C limitation, all terms involve microbial biomass, so that it cancels once.,A 
+quadratic equation results, whose one solution is 0 and the other is the required
+steady state biomass.
+
+$$
+\begin{align}
+\epsilon C_{\operatorname{syn}BC} &= \tau B \\
+u_C -r_M &= \tau / \epsilon \, B \\
+\frac{d_{L} (1-\alpha) a_E B}{k_{mN} + (1-\alpha) a_E B} + 
+ \frac{d_{R} \alpha a_E B}{k_{mN} + \alpha a_E B} 
+ - m B  &=  \tau / \epsilon \, B \\
+  d_{L} (1-\alpha) a_E (k_{mN} + \alpha a_E B) + d_{R} \alpha a_E (k_{mN} + (1-\alpha) a_E B) 
+  &= (\tau / \epsilon \, -m) c_1 \\
+\end{align}
+$$
+with abbreviations 
+$$
+\begin{align}
+d_{L} &= dec_{L,Pot} = k_L L \\
+d_{R} &= dec_{R,Pot} = k_R R \\
+c_1 &= (k_{mN} + (1-\alpha) a_E B)(k_{mN} + \alpha a_E B) \\
+\tau_{\epsilon m} &= \tau / \epsilon \, -m
+\end{align}
+$$
+
+This results in square equation. If there is no real positive solution, biomass cannot be sustained,
+otherwise the maximum of the two roots gives the required steady state biomass. 
+$$
+\begin{align}
+0 &= a B^2 + b B + c   \\
+a &= -\tau_{\epsilon m} \alpha (1-\alpha) a_E^2 \\
+b &= a_E^2 \alpha (1-\alpha)(d_L + d_R) -\tau_{\epsilon m} k_{mN} a_E\\
+c &= k_{mN} a_E \left[ (1-\alpha) d_L + \alpha d_R \right] - \tau_{\epsilon m} k_{mN}^2
+\end{align}
+$$
+## N limitation
+For N limitation, the potential immobilization flux does not cancel, and a complex
+cubed polinomial equations results, that cannot be solved by sympy in reasonable time.
+
+$$
+\begin{align}
+\epsilon C_{\operatorname{syn}BN} &= \tau B \\
+N_{\operatorname{syn}BN} &= \tau B/\beta_B \\
+\nu (dec_{L}/\beta_L + dec_{R}/\beta_R ) + u_{imm,Pot} &= \tau B/\beta_B \\
+\frac{d_{LN} (1-\alpha) a_E B}{k_{mN} + (1-\alpha) a_E B} + 
+ \frac{d_{RN} \alpha a_E B}{k_{mN} + \alpha a_E B} +
+ u_\nu  &=  \tau_N B \\
+ d_{LN} (1-\alpha) a_E B (k_{mN} + \alpha a_E B) + d_{RN} \alpha a_E B (k_{mN} + (1-\alpha) a_E B)+ u_\nu c_1 &= \tau_N B c_1  \\
+\end{align}
+$$
+
+with abbreviations 
+$$
+\begin{align}
+\tau_N &= \tau / (\nu \beta_B) \\
+u_\nu &= u_{imm,Pot}/\nu \\
+d_{LN} &= dec_{L,Pot}/\beta_L \\
+d_{RN} &= dec_{R,Pot}/\beta_R \\
+c_1 &= (k_{mN} + (1-\alpha) a_E B)(k_{mN} + \alpha a_E B)
+\end{align}
+$$
+
+This results in cubic equation. Its second root is real and  gives the steady state biomass.
+$$
+\begin{align}
+0 &= a B^3 + b B^2 + c B + d  \\
+a &= -\tau_N \alpha (1-\alpha) a_E^2 \\
+b &= a_E^2 \alpha (1-\alpha) \left( d_{LN} + d_{RN} + u_\nu \right) - \tau_N k_{mN} a_E\\
+c &= a_E k_{mN} \left( (\alpha-1) d_{LN} + \alpha d_{RN} + u_\nu \right) - \tau_N k_{mN}^2\\
+d &= k_{mN}^2  u_\nu \\
+\end{align}
+$$
+
