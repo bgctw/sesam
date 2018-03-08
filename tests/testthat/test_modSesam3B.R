@@ -88,40 +88,6 @@ x0NlimSeam3 <- c(x0Nlim
                  # make sure to have same order as derivative of Seam3
 )[c("B","ER","EL","R","RN","L","LN","I","alpha")]
 
-test_that("sesam3BSteadyNlim",{
-  parms <- parms0
-  dLN <- 5 / parms$cnIL
-  dRN <- 2 / parms$cnIR
-  alpha <- 0.7
-  immNPot <- 0.3
-  ans <- sesam3BSteadyNlim(dLN, dRN, alpha, parms = parms, immNPot = immNPot)
-  B <- ans #Re(ans[2])
-  aE = parms[["aE"]]
-  kmkN = parms[["km"]] * parms[["kN"]]
-  tau = parms[["tau"]]
-  betaB <- parms[["cnB"]]
-  betaE <- parms[["cnE"]]
-  kappaE = parms[["kNB"]]
-  nu = parms[["nu"]]  # N efficiency during DON uptake
-  decLN <- dLN*(1 - alpha)*aE*B/(kmkN + (1 - alpha)*aE*B)
-  decRN <- dRN*(alpha)*aE*B/(kmkN + (alpha)*aE*B)
-  decEN <- kappaE*aE*B/betaE
-  tvrBN <- tau*B/betaB
-  #c(decLN, decRN, immNPot, nu*(decLN + decRN) + immNPot, tvrBN)
-  expect_equal(nu*(decLN + decRN + decEN) + immNPot - tvrBN, 0.0, tolerance = 1e-6)
-  .tmp.f <- function(){
-    nPots <- seq(0,10,length.out = 11)
-    #nPots <- seq(0,.1,length.out = 11)
-    ans <- sapply(nPots, function(immNPot){
-      ansi <- sesam3BSteadyNlim(dLN, dRN, alpha, parms = parms, immNPot = immNPot)
-    })
-    #matplot(nPots, t(Re(ans)), type = "l"); abline(h = 0)
-    # only second root seesm reasonably increase with immNPot
-    plot(ans ~ nPots, type = "l"); abline(h = 0)
-  }
-
-})
-
 test_that("sesam3BSteadyClim",{
   parms <- parms0
   dL <- 500
@@ -140,9 +106,10 @@ test_that("sesam3BSteadyClim",{
   decR <- dR*(alpha)*aE*B/(kmkN + (alpha)*aE*B)
   decE <- kappaE*aE*B
   maint <- m*B
+  synE <- aE*B/eps
   tvr <- tau*B
   #c(decLN, decRN, immNPot, decLN + decRN + immNPot, tvrBN)
-  expect_equal(eps*(decL + decR + decE - maint) - tvr, 0.0, tolerance = 1e-6)
+  expect_equal(eps*(decL + decR + decE - synE - maint) - tvr, 0.0, tolerance = 1e-6)
   .tmp.f <- function(){
     Bs <- seq(0,50,length.out = 11)
     ans <- sapply(Bs, function(B){
@@ -175,6 +142,42 @@ test_that("sesam3BSteadyClim0",{
   alpha <- 0.7
   ans <- sesam3BSteadyClim(dL, dR, alpha, parms = parms)
   expect_equal(ans, 0)
+})
+
+
+
+test_that("sesam3BSteadyNlim",{
+  parms <- parms0
+  dLN <- 5 / parms$cnIL
+  dRN <- 2 / parms$cnIR
+  alpha <- 0.7
+  immNPot <- 0.3
+  ans <- sesam3BSteadyNlim(dLN, dRN, alpha, parms = parms, immNPot = immNPot)
+  B <- ans #Re(ans[2])
+  aE = parms[["aE"]]
+  kmkN = parms[["km"]] * parms[["kN"]]
+  tau = parms[["tau"]]
+  betaB <- parms[["cnB"]]
+  betaE <- parms[["cnE"]]
+  kappaE = parms[["kNB"]]
+  nu = parms[["nu"]]  # N efficiency during DON uptake
+  decLN <- dLN*(1 - alpha)*aE*B/(kmkN + (1 - alpha)*aE*B)
+  decRN <- dRN*(alpha)*aE*B/(kmkN + (alpha)*aE*B)
+  synEN <- aE*B/betaE
+  decEN <- kappaE*synEN
+  tvrBN <- tau*B/betaB
+  #c(decLN, decRN, immNPot, nu*(decLN + decRN) + immNPot, tvrBN)
+  expect_equal(nu*(decLN + decRN + decEN) + immNPot - synEN - tvrBN, 0.0, tolerance = 1e-6)
+  .tmp.f <- function(){
+    nPots <- seq(0,10,length.out = 11)
+    #nPots <- seq(0,.1,length.out = 11)
+    ans <- sapply(nPots, function(immNPot){
+      ansi <- sesam3BSteadyNlim(dLN, dRN, alpha, parms = parms, immNPot = immNPot)
+    })
+    #matplot(nPots, t(Re(ans)), type = "l"); abline(h = 0)
+    # only second root seesm reasonably increase with immNPot
+    plot(ans ~ nPots, type = "l"); abline(h = 0)
+  }
 })
 
 
@@ -218,8 +221,6 @@ test_that("same as seam for fixed substrates", {
   expect_equal( xETest[2:7], xEExp[3:8], tolerance = 1e-6)
 })
 
-
-
 test_that("same as sesam2 with substrate feedbacks", {
   parmsInit <- within(parms0, {isFixedI <- TRUE})
   times <- seq(0,800, length.out = 2)
@@ -227,13 +228,15 @@ test_that("same as sesam2 with substrate feedbacks", {
   #times <- c(0,148:151)
   #times <- seq(0,2100, by = 2)
   #times <- seq(0,10000, length.out = 101)
+  #ans1 <- derivSesam3B(0, x0[-1], within(parmsInit, isRecover <- TRUE) )
   ans1 <- derivSesam3B(0, x0[-1], parmsInit)
   expect_equal(ans1[[2]]["dB"], c(dB = 0), tolerance = 1e-6)
   #
   resTest <- as.data.frame(lsoda( x0[-1], times, derivSesam3B, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
     x0, times, derivSesam3s
-    , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
+    , parms = parmsInit))
+  #    , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
   xEExp <- unlist(tail(resExp,1));
   xpESteady <- unlist(head(tail(resTest,2),1))	# the previous before end
@@ -248,7 +251,8 @@ test_that("same as sesam2 with substrate feedbacks", {
   resTest <- as.data.frame(lsoda( x0Nlim[-1], times, derivSesam3B, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
     x0Nlim, times, derivSesam3s
-    , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
+    , parms = parmsInit))
+    #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
   xEExp <- unlist(tail(resExp,1))
   expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 1e-6)
@@ -265,7 +269,8 @@ test_that("same as sesam2 with substrate feedbacks", {
   resTest <- as.data.frame(lsoda( x0CNLim[-1], times, derivSesam3B, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
     x0CNLim, times, derivSesam3s
-    , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
+    , parms = parmsInit))
+    #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
   xEExp <- unlist(tail(resExp,1))
   expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-4)

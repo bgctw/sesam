@@ -28,19 +28,19 @@ quadratic equation results, whose one solution is 0 and the other is the require
 steady state biomass.
 
 With enzymes in quasi-steady-state, the uptake from enzyme turnover equals 
-enzyme production, $a_E B$.
-
+enzyme production, $a_E B$. While enzyme investments are subtracted from uptake for
+computing biomass synthesis, a part $\kappa$ occurs in uptake.
 
 $$
 \begin{align}
 \epsilon C_{\operatorname{syn}BC} &= \tau B \\
-u_C -r_M &= \tau / \epsilon \, B \\
+u_C -\operatorname{syn}_E/\epsilon -r_M &= \tau / \epsilon \, B \\
 \frac{d_{L} (1-\alpha) a_E B}{k_{mN} + (1-\alpha) a_E B} + 
  \frac{d_{R} \alpha a_E B}{k_{mN} + \alpha a_E B} 
- + \kappa_E a_E B
+ + \kappa_E a_E B - \frac{a_E B}{\epsilon}
  - m B  &=  \tau / \epsilon \, B \\
   d_{L} (1-\alpha) a_E (k_{mN} + \alpha a_E B) + d_{R} \alpha a_E (k_{mN} + (1-\alpha) a_E B) 
-  &= (\tau / \epsilon \, +m \, -\kappa_E a_E) c_1 \\
+  &= \left[ \tau / \epsilon \, +m \, +(1/\epsilon-\kappa_E) a_E \right] c_1 \\
 \end{align}
 $$
 with abbreviations 
@@ -49,7 +49,7 @@ $$
 d_{L} &= dec_{L,Pot} = k_L L \\
 d_{R} &= dec_{R,Pot} = k_R R \\
 c_1 &= (k_{mN} + (1-\alpha) a_E B)(k_{mN} + \alpha a_E B) \\
-\tau_{\epsilon m} &= \tau / \epsilon \, -m \, -\kappa_E a_E
+\tau_{\epsilon m} &= \tau / \epsilon \, +m \, +(1/\epsilon-\kappa_E) a_E
 \end{align}
 $$
 
@@ -71,11 +71,14 @@ $$
 \begin{align}
 \epsilon C_{\operatorname{syn}BN} &= \tau B \\
 N_{\operatorname{syn}BN} &= \tau B/\beta_B \\
-\nu (dec_{L}/\beta_L + dec_{R}/\beta_R + \kappa_E \operatorname{tvr}_E/\beta_E) + u_{imm,Pot} &= \tau B/\beta_B \\
+\nu (dec_{L}/\beta_L + dec_{R}/\beta_R + \kappa_E \operatorname{tvr}_E/\beta_E) + u_{imm,Pot} 
+ - \operatorname{syn}_E/\beta_E
+  &= \tau B/\beta_B \\
 \frac{d_{LN} (1-\alpha) a_E B}{k_{mN} + (1-\alpha) a_E B} + 
  \frac{d_{RN} \alpha a_E B}{k_{mN} + \alpha a_E B} +
  \frac{\kappa_E a_E B}{\beta_E} +
- u_\nu  &=  \frac{\tau }{\nu \beta_B} B \\
+ \frac{u_{imm,Pot}}{\nu}  - \frac{a_E B}{ \nu \beta_E}
+ &=  \frac{\tau }{\nu \beta_B} B \\
  d_{LN} (1-\alpha) a_E B (k_{mN} + \alpha a_E B) + d_{RN} \alpha a_E B (k_{mN} + (1-\alpha) a_E B)+ u_\nu c_1 &= \tau_N  B c_1  \\
 \end{align}
 $$
@@ -83,7 +86,7 @@ $$
 with abbreviations 
 $$
 \begin{align}
-\tau_N &= \tau / (\nu \beta_B) - \kappa_E a_E/\beta_E \\
+\tau_N &= \frac{\tau}{\nu \beta_B} + \left(\frac{1}{\nu}- \kappa_E \right) \frac{a_E}{\beta_E} \\
 u_\nu &= u_{imm,Pot}/\nu \\
 d_{LN} &= dec_{L,Pot}/\beta_L \\
 d_{RN} &= dec_{R,Pot}/\beta_R \\

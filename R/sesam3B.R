@@ -3,108 +3,85 @@
 # gC/m2 and gN/m2, /yr
 
 derivSesam3B <- function(
-  ### Soil Enzyme Steady Allocation model with biomass in QSS
+  ### Soil Enzyme Steady Allocation model with biomass in quasi steady state
   t,x,parms
 ){
   ##details<<
+  ## Simplified version of sesam3s
   ## model corresponding to Seam3 with enzyme levels computed by quasi steady state
   ## Alpha as an explicit state variable that changes with turnover
   ## Simplified computation of target based on current revenue based on current alpha
   x <- pmax(unlist(x),1e-16)      # no negative masses
   # compute steady state enzyme levels for N and for C limitation
-  decRp <- parms$kR * x["R"]
-  decLp <- parms$kL * x["L"]
+  dRPot <- parms$kR * x["R"]
+  dLPot <- parms$kL * x["L"]
+  immoPot <- parms$iB * x["I"]
   cnR <- x["R"]/x["RN"]
   cnL <- x["L"]/x["LN"]
-  cnE <- parms$cnE #alphaC*parms$cnER + (1-alphaC)*parms$cnEL
+  cnE <- parms$cnE
   cnB <- parms$cnB
-  #ETot <- parms$aE * B / parms$kN
-  # potential immobilization flux
-  immoPot <- parms$iB * x["I"]
-  # steady state biomass
-  B <- sesam3BSteady(dLC = decLp, dRC = decRp
-                     , dLN = decLp/cnL, dRN = decRp/cnR
-                     , alpha = x["alpha"], parms = parms
-                     , immNPot = immoPot
-                     )
-  rM <- parms$m * B          # maintenance respiration
-  tvrB <- parms$tau*B        # microbial turnover
-  # neglect mass fluxes via enzymes
-  synE <- 0
-  respSynE <- 0
-  # for revenue, account for enzyme investments also if negleting mass fluxes
-  synERev <- parms$aE * B
-  # compute fluxes that depend on alpha
   alpha <- x["alpha"]
-  tvrER <- alpha * synE
-  tvrEL <- (1 - alpha) * synE
+  # steady state biomass
+  B <- sesam3BSteady(dLC = dLPot, dRC = dRPot
+                     , dLN = dLPot/cnL, dRN = dRPot/cnR
+                     , alpha = alpha, parms = parms
+                     , immNPot = immoPot
+  )
+  aeB <- parms$aE*B        # aeB without associanted growth respiration
+  kmN <- parms$km*parms$kN
+  rM <- parms$m*B          # maintenance respiration
+  tvrB <- parms$tau*B      # microbial turnover
+  synE <- if (isTRUE(parms$isEnzymeMassFlux)) aeB else 0
   #
-  decR <- decRp * alpha*synERev/(parms$km*parms$kN + alpha*synERev)
-  decL <- decLp * (1 - alpha)*synERev/(parms$km*parms$kN + (1 - alpha)*synERev)
+  # enzyme limitations of decomposition
+  decL <- dLPot * (1 - alpha)*aeB/(kmN + (1 - alpha)*aeB)
+  decR <- dRPot * alpha*aeB/(kmN + alpha*aeB)
   #
-  tvrERecycling <- parms$kNB*(tvrER + tvrEL)
-  uC <- decR + decL + tvrERecycling
-  # C required for biomass and growth respiration under C limitation
-  CsynBC <- uC - synE/parms$eps - rM
-  #
-  # Nitrogen balance
-  decN <- decR/cnR + decL/cnL + tvrERecycling/parms$cnE
-  # plants get at maximum half of the decomposed organic N
-  plantNUp <- pmin(parms$plantNUp, decN/2)
-  # mineralization due to soil heterogeneity (Manzoni 08)
-  PhiU <- (1 - parms$nu) * (decN - plantNUp)
-  uNSubstrate <- (decN - plantNUp - PhiU)	# plant uptake also of organic N
-  # potential N uptake from both inorganic and organic
-  uNPot <-  immoPot + uNSubstrate
-  # N required for biomass growth (after invest into enzymes)
-  NsynBN <- uNPot - synE/cnE
-  # c(NsynBN, parms$tau/parms$cnB*B)
-  # C required for biomass growth and associated growth resp under N limitation
-  CsynBN <- (NsynBN*cnB)/parms$eps
-  #
-  # whether is microbial N limited (with taking immobilization into account)
-  isLimN <- CsynBN <  CsynBC
-  CsynB  <- if (isLimN ) CsynBN else CsynBC
+  tvrERecycling <- parms$kNB*synE
+  uNOrg <- parms$nu*(decL/cnL + decR/cnR + tvrERecycling/cnE)
+  uC <- decL + decR + tvrERecycling
+  CsynBC <- uC - rM - synE/parms$eps
+  CsynBN <- cnB/parms$eps*(uNOrg + immoPot - synE/cnE)
+  CsynB <- min(CsynBC, CsynBN)
   if (CsynB > 0) {
     synB <- parms$eps*CsynB
     rG <- (1 - parms$eps)*CsynB
   } else {
-    # with negative  biomass change, do not assign growth respiration
-    synB <- CsynB
+    synB <- CsynB # with negative biomass change, do growth respiration
     rG <- 0
   }
-  # imbalance mineralization/immobilization flux
-  PhiB <- uNSubstrate - (synE/parms$cnE + synB/parms$cnB)
-  #
+  PhiB <- uNOrg - synB/cnB - synE/cnE
   alphaC <- computeSesam3sAllocationPartitioning(
-    dR = decRp, dL = decLp, B = B
-    , kmkN = parms$km*parms$kN, aE = parms$aE
+    dR = dRPot, dL = dLPot, B = B
+    , kmkN = kmN, aE = parms$aE
     , alpha = alpha
   )
   alphaN <- computeSesam3sAllocationPartitioning(
-    dR = decRp/cnR, dL = decLp/cnL, B = B
-    , kmkN = parms$km*parms$kN, aE = parms$aE
+    dR = dRPot/cnR, dL = dLPot/cnL, B = B
+    , kmkN = kmN, aE = parms$aE
     , alpha = alpha
   )
   alphaTarget <- balanceAlphaBetweenCNLimitations(
     alphaC, alphaN, CsynBN, CsynBC
-    , NsynBC = parms$eps*CsynBC/cnB, NsynBN)
+    , NsynBC = parms$eps*CsynBC/cnB
+    , NsynBN = parms$eps*CsynBN/cnB)
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) * parms$tau
   #
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
-  respO <- uC - (synE + respSynE + synB + rG + rM)
+  respO <- uC - (synE/parms$eps + synB/parms$eps + rM)
   respTvr <- (1 - parms$epsTvr) * tvrB
   # assuming same cnRatio of predators to equal cn ratio of microbes
   PhiTvr <- respTvr/parms$cnB
   #
   # tvr that feeds R pool, assume that N in SOM for resp (by epsTvr) is mineralized
-  tvrC <-  +parms$epsTvr*tvrB   + (1 - parms$kNB)*(tvrER  + tvrEL)
-  tvrN <-  +parms$epsTvr*tvrB/parms$cnB   + (1 - parms$kNB)*(tvrER  + tvrEL)/parms$cnE
+  tvrC <-  +parms$epsTvr*tvrB   + (1 - parms$kNB)*synE
+  tvrN <-  +parms$epsTvr*tvrB/parms$cnB   + (1 - parms$kNB)*synE/parms$cnE
   # fluxes leaving the system (will be set in scen where trv does not feed back)
   tvrExC <- tvrExN <- 0
   #
   leach <- parms$l*x["I"]
+  PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE)
   #
   dB <- synB - tvrB
   dL <- -decL  + parms$iL
@@ -134,12 +111,13 @@ derivSesam3B <- function(
   # parms$iR + tvrC -(decR + dR)
   #
   # checking the mass balance of fluxes
-  respB <- respSynE + rG + rM + respO
+  plantNUp <- 0 # checked in mass balance but is not (any more) in model
+  respB <- (synE)/parms$eps*(1 - parms$eps)  + rG + rM + respO
   resp <- respB + respTvr
   if (diff( unlist(c(uC = uC, usage = respB + synB + synE )))^2 > sqrEps )  stop(
     "biomass mass balance C error")
   if (diff( unlist(
-    c(uN = uNSubstrate, usage = synE/parms$cnE + synB/parms$cnB + PhiB )))^2 >
+    c(uN = uNOrg, usage = synE/parms$cnE + synB/parms$cnB + PhiB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   if (!isTRUE(parms$isFixedS)) {
     if (diff(unlist(
@@ -162,10 +140,10 @@ derivSesam3B <- function(
   EL <- (1 - alpha) * parms$aE * B / parms$kN
   limER <- ER / (parms$kmR + ER)
   limEL <- EL / (parms$kmL + EL)
-  revRC <- decRp / (parms$km*parms$kN + alphaC*synERev)
-  revLC <- decLp / (parms$km*parms$kN + (1 - alphaC)*synERev)
-  revRN <- decRp/cnR / (parms$km*parms$kN + alphaN*synERev)
-  revLN <- decLp/cnL / (parms$km*parms$kN + alphaN*synERev)
+  revRC <- dRPot / (parms$km*parms$kN + alphaC*aeB)
+  revLC <- dLPot / (parms$km*parms$kN + (1 - alphaC)*aeB)
+  revRN <- dRPot/cnR / (parms$km*parms$kN + alphaN*aeB)
+  revLN <- dLPot/cnL / (parms$km*parms$kN + alphaN*aeB)
   # net mic mineralization/immobilization when accounting uptake mineralization
   PhiBU <- PhiB + PhiU
   # total mineralization flux including microbial turnover
@@ -173,40 +151,43 @@ derivSesam3B <- function(
   # do not match in other limitation
   # c(alphaC, revRC/(revRC + revLC)); c(alphaN, revRN/(revRN + revLN))
   # compute C available for biomass, this time without accounting immobilization flux
-  NsynBNSubstrate <- uNSubstrate - synE/cnE
+  NsynBNSubstrate <- uNOrg - synE/cnE
   CsynBNSubstrate <- (NsynBNSubstrate*cnB)/parms$eps
   # N limited based on substrate uptake (without accounting for immobilization)
   isLimNSubstrate <-  CsynBNSubstrate < CsynBC
   #
   if (isTRUE(parms$isRecover) ) recover()
   list( resDeriv, c(
-    respO = as.numeric(respO)
-    , B = as.numeric(B), dB = as.numeric(dB)
-    , ER = as.numeric(ER), EL = as.numeric(EL)
+     B = as.numeric(B), dB = as.numeric(dB)
+     , resp = as.numeric(resp)
+     , respO = as.numeric(respO)
+     , respB = as.numeric(respB)
+     , respTvr = as.numeric(respTvr)
+     #, ER = as.numeric(ER), EL = as.numeric(EL)
     #, MmB = as.numeric(MmB)
+    , PhiTotal = as.numeric(PhiTotal)
     , PhiB = as.numeric(PhiB), PhiU = as.numeric(PhiU)
     , PhiTvr = as.numeric(PhiTvr)
-    , PhiBU = as.numeric(PhiBU), PhiTotal = as.numeric(PhiTotal)
+    , PhiBU = as.numeric(PhiBU)
     , immoPot = as.numeric(immoPot)
     , alphaTarget = as.numeric(alphaTarget)
     , alphaC = as.numeric(alphaC), alphaN = as.numeric(alphaN)
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
     , limER = as.numeric(limER), limEL = as.numeric(limEL)
     , decR = as.numeric(decR), decL = as.numeric(decL)
-    , resp = as.numeric(resp), respB = as.numeric(respB)
-    , respTvr = as.numeric(respTvr)
     , tvrB = as.numeric(tvrB)
     , revRC = as.numeric(revRC), revLC = as.numeric(revLC)
     , revRN = as.numeric(revRN)
     , revLN = as.numeric(revLN)
-    , pCsyn = as.numeric(CsynBC / CsynBN), CsynReq = as.numeric(CsynBN)
-    , Csyn = as.numeric(CsynBC)
-    , pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) )
-    , NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
-    , dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)
-    , dI = as.numeric(dI)
-    , uC = as.numeric(uC), synB = as.numeric(synB)
-    , decN = as.numeric(decN)
+    , CsynB = as.numeric(CsynB)
+    , CsynBC = as.numeric(CsynBC)
+    , CsynBN = as.numeric(CsynBN)
+    #, pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) )
+    #, NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
+    #, dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)
+    #, dI = as.numeric(dI)
+    #, uC = as.numeric(uC), synB = as.numeric(synB)
+    #, decN = as.numeric(decN)
   ))
 }
 
@@ -237,14 +218,34 @@ sesam3BSteadyClim <- function(
   kmkN = parms[["km"]] * parms[["kN"]]
   m = parms[["m"]]
   tau = parms[["tau"]]
-  #tem <- (tau/eps + m  # for disregarding enzyme mass fluxes
-  tem <- (tau/eps + m - parms[["kNB"]]*aE)
+  kappaE = parms[["kNB"]]
+  #tem <- tau/eps + m  # for disregarding enzyme mass fluxes
+  tem <- tau/eps + m + (1/eps - kappaE)*aE
   a <- -tem*alpha*(1 - alpha)*aE*aE
   b <- aE*aE*alpha*(1 - alpha)*(dL + dR) - tem*kmkN*aE
   c <- kmkN*aE*((1 - alpha)*dL + alpha*dR) - tem*kmkN*kmkN
   B <- max(c(0,solveSquare(a,b,c)))
   #solveSquare(a,b,c)
 }
+.tmp.f <- function(){
+  #B <- Re(B[2])
+  #breakpoint after computing B root
+  decL <- dL*(1 - alpha)*aE*B/(kmkN + (1 - alpha)*aE*B)
+  decR <- dR*(alpha)*aE*B/(kmkN + (alpha)*aE*B)
+  decE <- kappaE*aE*B
+  tvrB <- tau*B
+  maint <- m*B
+  synE <- aE*B/eps
+  c1 <- (kmkN + alpha*aE*B)*(kmkN + (1 - alpha)*aE*B)
+  .tmp.f <- function(){
+    c1b <- B^2*alpha*(1 - alpha)*aE*aE + B*kmkN*aE + kmkN*kmkN
+    c(c1,c1b) # correct
+  }
+  c(decL, decR, decE = decE, maint = maint
+    , synB = eps*(decL + decR + decE - synE - maint), tvrB = tvrB)
+  c(B^3*a + B^2*b + B*c + d, (decLN + decRN + immNPot - tvrBN)*c1)
+}
+
 
 sesam3BSteadyNlim <- function(
   ### compute quasi steady sate of microbial biomass given
@@ -260,8 +261,10 @@ sesam3BSteadyNlim <- function(
   kmkN = parms[["km"]] * parms[["kN"]]
   tau = parms[["tau"]]
   nu = parms[["nu"]]  # N efficiency during DON uptake
+  kappaE = parms[["kNB"]]
+  betaE = parms[["cnE"]]
   #tauN = tau/betaB/nu # for neglecting enzyme mass fluxes
-  tauN = tau/betaB/nu -  parms[["kNB"]]*aE/parms[["cnE"]]
+  tauN = tau/betaB/nu + (1/nu -  kappaE)*aE/betaE
   immoNu = immNPot/nu
   kmkN2 = kmkN*kmkN
   a <- -tauN * alpha*(1 - alpha)*aE2
@@ -279,18 +282,17 @@ sesam3BSteadyNlim <- function(
   #breakpoint after computing B root
   decLN <- dLN*(1 - alpha)*aE*B/(kmkN + (1 - alpha)*aE*B)
   decRN <- dRN*(alpha)*aE*B/(kmkN + (alpha)*aE*B)
-  tvrBN <- tauN*B
-  decLN + decRN + immNPot - tvrBN
-  c1 <- (kmkN+alpha*aE*B)*(kmkN+(1-alpha)*aE*B)
-  immNPot*c1
-  decLN/c1 + decRN/c1
+  synEN <- aE*B/betaB
+  decEN <- kappaE*synE
+  tvrBN <- tau*B/betaB
+  c1 <- (kmkN + alpha*aE*B)*(kmkN + (1 - alpha)*aE*B)
   .tmp.f <- function(){
-    c1b <- B^2*alpha*(1-alpha)*aE2 + B*kmkN*aE + kmkN2
+    c1b <- B^2*alpha*(1 - alpha)*aE2 + B*kmkN*aE + kmkN2
     c(c1,c1b) # correct
   }
-  c(decLN, decRN, immNPot, decLN + decRN + immNPot, tvrBN)
+  c(decLN, decRN, decEN, immNPot,
+    nu*(decLN + decRN + decEN) + immNPot - synEN, tvrBN)
   c(B^3*a + B^2*b + B*c + d, (decLN + decRN + immNPot - tvrBN)*c1)
-
 }
 
 solveSquare <- function(
@@ -299,8 +301,8 @@ solveSquare <- function(
 ){
   p2 <- b/a/2
   q <- c/a
-  D <- sqrt(p2*p2 -q)
-  x0 <- -p2 +c(+1,-1)*D
+  D <- sqrt(p2*p2 - q)
+  x0 <- -p2 + c(+1,-1)*D
   ### complex vector of length 2: roots
   x0
 }
@@ -308,7 +310,7 @@ attr(solveSquare,"ex") <- function(){
   x1 <- -1
   x2 <- 2
   a <- 2
-  b <- -(x1+x2)*a
+  b <- -(x1 + x2)*a
   c <- x1*x2*a
   #c(a,b,c)
   x <- seq(x1 - 0.2, x2 + 0.2, length.out = 31)
