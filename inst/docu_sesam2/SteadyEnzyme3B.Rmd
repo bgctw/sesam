@@ -63,7 +63,9 @@ b &= a_E^2 \alpha (1-\alpha)(d_L + d_R) -\tau_{\epsilon m} k_{mN} a_E\\
 c &= k_{mN} a_E \left[ (1-\alpha) d_L + \alpha d_R \right] - \tau_{\epsilon m} k_{mN}^2
 \end{align}
 $$
+
 ## N limitation
+
 For N limitation, the potential immobilization flux does not cancel, and a complex
 cubed polinomial equations results, that cannot be solved by sympy in reasonable time.
 

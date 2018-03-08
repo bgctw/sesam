@@ -3,6 +3,9 @@ title: "SESAM with microbial biomass in quasi steady state"
 output: html_notebook
 ---
 
+This is a prev-version of SteadyEnzyme3B, that neglects enzyme mass fluxes.
+
+
 The SEAM model explicitely tracks enzyme levels. In order to use the model at plot scale or in COMISSION, derive a simpler version, where enzyme levels are assumed to be in fast steady state with production and turnover. 
 
 SESAM3s implements quasi-steady state for enzyme levels, but tracks microbial 

@@ -1,0 +1,48 @@
+---
+title: "SESAM with enzymes in steady state but community state variable"
+output: html_notebook
+---
+
+The SEAM model explicitely tracks enzyme levels. In order to use the model at
+plot scale or in COMISSION, derive a simpler version, where enzyme levels are
+assumed to be in fast steady state with production and turnover.
+
+SESAM3s implements quasi-steady state for enzyme levels, but tracks microbial
+community composition $\alpha$ as state variable. SESAM3a is a the same, where
+some equations have been simplified and computaiton of some intermediate
+variables have been skipped.
+
+That element limits microbial growth for which least C equivalent is available
+for biomass synthesis and associated catabolic respriation after accumlating the
+inputs and subtracting the other expenditures.
+$$
+C_{\operatorname{syn}B} = min(
+  C_{\operatorname{syn}BC}, C_{\operatorname{syn}BN}, C_{\operatorname{syn}BP}
+  , \dots)
+$$
+$$
+\begin{align}
+C_{\operatorname{syn}BC} &= u_C - \operatorname{syn}_E/\epsilon - r_M \\
+&= \operatorname{dec}_L + \operatorname{dec}_R + \kappa_E a_E B - a_E B/\epsilon - mB \\
+&= \operatorname{dec}_L + \operatorname{dec}_R - (1/\epsilon - \kappa_E) - mB \\
+\\
+C_{\operatorname{syn}BN} &=  \beta_B N_{\operatorname{syn}BN} /\epsilon \\
+&= \beta_B /\epsilon (u_N - \operatorname{syn}_E/\beta_E)   \\
+&= \beta_B /\epsilon \left[ \nu (\operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R + \kappa_E a_E B/\beta_E) + u_{\operatorname{imm,Pot}}- a_E B/\beta_E  \right] \\
+&= \beta_B /\epsilon \left[ \nu (\operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R) + u_{\operatorname{imm,Pot}} - (1 - \nu \kappa_E) a_E B/\beta_E  \right] \\
+\\
+C_{\operatorname{syn}BP} &=  \gamma_B P_{\operatorname{syn}BP} /\epsilon \\
+&= \gamma_B /\epsilon (u_P - \operatorname{syn}_E/\gamma_E)   \\
+&= \gamma_B /\epsilon \left[ \nu_p (\operatorname{dec}_L/\gamma_L + \operatorname{dec}_R/\gamma_R + \kappa_E a_E B/\gamma_E) + u_{\operatorname{immP,Pot}}- a_E B/\gamma_E  \right] \\
+&= \gamma_B /\epsilon \left[ \nu_p (\operatorname{dec}_L/\gamma_L + \operatorname{dec}_R/\gamma_R) + u_{\operatorname{immP,Pot}} - (1 - \nu_p \kappa_E) a_E B/\gamma_E  \right] \\
+\\
+\end{align}
+$$
+with abbreviations 
+$$
+\begin{align}
+\operatorname{dec}_L &= dec_{L,Pot} \frac{(1-\alpha)a_E B}{k_{mN} + (1-\alpha)a_E B} \\
+\operatorname{dec}_R &= dec_{R,Pot} \frac{\alpha a_E B}{k_{mN} + \alpha a_E B} \\
+\end{align}
+$$
+

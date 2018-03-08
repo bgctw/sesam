@@ -124,7 +124,7 @@ scenarios <- tibble::tibble(
   scenario = c("Explicit","Sesam3s","NeglectEnzFlux","Sesam3B")
   ,mod = c(derivSeam2, derivSesam3s, derivSesam3s, derivSesam3B)
   ,x0  = list(x0Explicit, x0SteadyA, x0SteadyA, x0B)
-  ,parms = list(parms0, parms0, parms0Noenz, parms0Noenz)
+  ,parms = list(parms0, parms0, parms0Noenz, parms0)
 )
 tmp <- structure(myColors[1:nrow(scenarios)], names = scenarios$scenario)
 colScale <- scale_colour_manual(name = "Model variant",values = tmp )
@@ -193,7 +193,6 @@ Model Sesam3s matches the dynamics of the explicit SEAM model at this time scale
 When neglecting enzyme mass fluxes, the dynamcis is similar, but the steady state 
 , expecially for R, is slightly lower.
 
-The model with steady state microbial biomass, Sesam3B, captures the same dynamics
-as the model that neglects enzyme mass fluxes.
+The model with steady state microbial biomass, Sesam3B, captures the same dynamics.
 
 
