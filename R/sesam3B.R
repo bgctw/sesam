@@ -225,38 +225,6 @@ sesam3BSteady <- function(
   min(BC, BN)
 }
 
-.depr.sesam3BSteadyClim <- function(
-  ### compute quasi steady sate of microbial biomass given
-  dL
-  , dR
-  , alpha
-  , parms
-){
-  aE = parms[["aE"]]
-  eps = parms[["eps"]]
-  kmkN = parms[["km"]] * parms[["kN"]]
-  m = parms[["m"]]
-  tau = parms[["tau"]]
-  kmkN2 = kmkN*kmkN
-  Bsteady <-  aE*alpha^2*dL*eps + aE*alpha^2*dR*eps - aE*alpha*dL*eps -
-    (aE*alpha*dR*eps + eps*kmkN*m + kmkN*tau -
-    sqrt(aE^2*alpha^4*dL^2*eps^2 + 2*aE^2*alpha^4*dL*dR*eps^2 +
-           aE^2*alpha^4*dR^2*eps^2 - 2*aE^2*alpha^3*dL^2*eps^2 -
-           4*aE^2*alpha^3*dL*dR*eps^2 - 2*aE^2*alpha^3*dR^2*eps^2 +
-           aE^2*alpha^2*dL^2*eps^2 + 2*aE^2*alpha^2*dL*dR*eps^2 +
-           aE^2*alpha^2*dR^2*eps^2 + 4*aE*alpha^3*dL*eps^2*kmkN*m +
-           4*aE*alpha^3*dL*eps*kmkN*tau - 4*aE*alpha^3*dR*eps^2*kmkN*m -
-           4*aE*alpha^3*dR*eps*kmkN*tau - 6*aE*alpha^2*dL*eps^2*kmkN*m -
-           6*aE*alpha^2*dL*eps*kmkN*tau + 6*aE*alpha^2*dR*eps^2*kmkN*m +
-           6*aE*alpha^2*dR*eps*kmkN*tau + 2*aE*alpha*dL*eps^2*kmkN*m +
-           2*aE*alpha*dL*eps*kmkN*tau - 2*aE*alpha*dR*eps^2*kmkN*m -
-           2*aE*alpha*dR*eps*kmkN*tau + 4*alpha^2*eps^2*kmkN2*m^2 +
-           8*alpha^2*eps*kmkN2*m*tau + 4*alpha^2*kmkN2*tau^2 -
-           4*alpha*eps^2*kmkN2*m^2 - 8*alpha*eps*kmkN2*m*tau -
-           4*alpha*kmkN2*tau^2 + eps^2*kmkN2*m^2 +
-           2*eps*kmkN2*m*tau + kmkN2*tau^2)) /
-  (2*aE*alpha*(alpha*eps*m + alpha*tau - eps*m - tau))
-}
 sesam3BSteadyClim <- function(
   ### compute quasi steady sate of microbial biomass given
   dL
@@ -269,29 +237,13 @@ sesam3BSteadyClim <- function(
   kmkN = parms[["km"]] * parms[["kN"]]
   m = parms[["m"]]
   tau = parms[["tau"]]
-  tem <- (tau/eps+m)
+  #tem <- (tau/eps + m  # for disregarding enzyme mass fluxes
+  tem <- (tau/eps + m - parms[["kNB"]]*aE)
   a <- -tem*alpha*(1 - alpha)*aE*aE
   b <- aE*aE*alpha*(1 - alpha)*(dL + dR) - tem*kmkN*aE
-  c <- kmkN*aE*((1-alpha)*dL + alpha*dR) - tem*kmkN*kmkN
+  c <- kmkN*aE*((1 - alpha)*dL + alpha*dR) - tem*kmkN*kmkN
   B <- max(c(0,solveSquare(a,b,c)))
   #solveSquare(a,b,c)
-}
-.tmp.f <- function(){
-  #breakpoint after computing B root
-  decLN <- dLN*(1 - alpha)*aE*B/(kmkN + (1 - alpha)*aE*B)
-  decRN <- dRN*(alpha)*aE*B/(kmkN + (alpha)*aE*B)
-  tvrBN <- tauN*B
-  decLN + decRN + immNPot - tvrBN
-  c1 <- (kmkN+alpha*aE*B)*(kmkN+(1-alpha)*aE*B)
-  immNPot*c1
-  decLN/c1 + decRN/c1
-  .tmp.f <- function(){
-    c1b <- B^2*alpha*(1-alpha)*aE2 + B*kmkN*aE + kmkN2
-    c(c1,c1b) # correct
-  }
-  c(decLN, decRN, immNPot, decLN + decRN + immNPot, tvrBN)
-  c(B^3*a + B^2*b + B*c + d, (decLN + decRN + immNPot - tvrBN)*c1)
-
 }
 
 sesam3BSteadyNlim <- function(
@@ -308,7 +260,8 @@ sesam3BSteadyNlim <- function(
   kmkN = parms[["km"]] * parms[["kN"]]
   tau = parms[["tau"]]
   nu = parms[["nu"]]  # N efficiency during DON uptake
-  tauN = tau/betaB/nu
+  #tauN = tau/betaB/nu # for neglecting enzyme mass fluxes
+  tauN = tau/betaB/nu -  parms[["kNB"]]*aE/parms[["cnE"]]
   immoNu = immNPot/nu
   kmkN2 = kmkN*kmkN
   a <- -tauN * alpha*(1 - alpha)*aE2

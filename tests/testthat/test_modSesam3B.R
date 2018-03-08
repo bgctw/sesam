@@ -40,7 +40,8 @@ parms0 <- list(
   ,iI = 0         ##<< input of mineral N
   ,l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I
   ,nu = 0.9       ##<< microbial N use efficiency
-  , isEnzymeMassFlux = FALSE  ##<< steady state B solution neglects enyzme mass fluxes
+  #, isEnzymeMassFlux = FALSE  ##<< steady state B solution neglects enyzme mass fluxes
+  , isEnzymeMassFlux = TRUE  ##<< steady state B solution accounts for enyzme mass fluxes
 )
 parms0 <- within(parms0,{
   kmR <- kmL <- km
@@ -99,12 +100,15 @@ test_that("sesam3BSteadyNlim",{
   kmkN = parms[["km"]] * parms[["kN"]]
   tau = parms[["tau"]]
   betaB <- parms[["cnB"]]
+  betaE <- parms[["cnE"]]
+  kappaE = parms[["kNB"]]
   nu = parms[["nu"]]  # N efficiency during DON uptake
   decLN <- dLN*(1 - alpha)*aE*B/(kmkN + (1 - alpha)*aE*B)
   decRN <- dRN*(alpha)*aE*B/(kmkN + (alpha)*aE*B)
+  decEN <- kappaE*aE*B/betaE
   tvrBN <- tau*B/betaB
   #c(decLN, decRN, immNPot, nu*(decLN + decRN) + immNPot, tvrBN)
-  expect_equal(nu*(decLN + decRN) + immNPot - tvrBN, 0.0, tolerance = 1e-6)
+  expect_equal(nu*(decLN + decRN + decEN) + immNPot - tvrBN, 0.0, tolerance = 1e-6)
   .tmp.f <- function(){
     nPots <- seq(0,10,length.out = 11)
     #nPots <- seq(0,.1,length.out = 11)
@@ -130,13 +134,15 @@ test_that("sesam3BSteadyClim",{
   kmkN = parms[["km"]] * parms[["kN"]]
   tau = parms[["tau"]]
   m = parms[["m"]]
+  kappaE = parms[["kNB"]]
   eps = parms[["eps"]]
   decL <- dL*(1 - alpha)*aE*B/(kmkN + (1 - alpha)*aE*B)
   decR <- dR*(alpha)*aE*B/(kmkN + (alpha)*aE*B)
+  decE <- kappaE*aE*B
   maint <- m*B
   tvr <- tau*B
   #c(decLN, decRN, immNPot, decLN + decRN + immNPot, tvrBN)
-  expect_equal(eps*(decL + decR - maint) - tvr, 0.0, tolerance = 1e-6)
+  expect_equal(eps*(decL + decR + decE - maint) - tvr, 0.0, tolerance = 1e-6)
   .tmp.f <- function(){
     Bs <- seq(0,50,length.out = 11)
     ans <- sapply(Bs, function(B){
@@ -144,7 +150,7 @@ test_that("sesam3BSteadyClim",{
       decR <- dR*(alpha)*aE*B/(kmkN + (alpha)*aE*B)
       maint <- m*B
       tvr <- tau*B
-      c(eps*(decL + decR - maint), tvr)
+      c(eps*(decL + decR + decE - maint), tvr)
       #ansi <- sesam3BSteadyNlim(dLN, dRN, alpha, parms = parms, immNPot = immNPot)
     })
     matplot(Bs, t(ans), type = "l")
@@ -185,7 +191,8 @@ test_that("same as seam for fixed substrates", {
   resTest <- as.data.frame(lsoda( x0[-1], times, derivSesam3B, parms = parmsFixedS))
   resExp <- as.data.frame(lsoda(
     x0, times, derivSesam3s
-    , parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
+    , parms = parmsFixedS))
+    #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
   xEExp <- unlist(tail(resExp,1))
   expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
@@ -201,7 +208,8 @@ test_that("same as seam for fixed substrates", {
   resTest <- as.data.frame(lsoda( x0Nlim[-1], times, derivSesam3B, parms = parmsFixedS))
   resExp <- as.data.frame(lsoda(
     x0Nlim, times, derivSesam3s
-    , parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
+    , parms = parmsFixedS))
+    #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
   xEExp <- unlist(tail(resExp,1))
   expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-6)
@@ -209,7 +217,6 @@ test_that("same as seam for fixed substrates", {
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
   expect_equal( xETest[2:7], xEExp[3:8], tolerance = 1e-6)
 })
-
 
 
 
