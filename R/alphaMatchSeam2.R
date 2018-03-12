@@ -113,7 +113,7 @@ attr(calcMatchAlphaSeam2, "ex") <- function(){
       ,iB = 25       #0.0110068*365   ##<< immobilization flux iB I
       ,iI = 0        ##<< input of mineral N
       ,l = 0.96      #0.00262647*365       ##<< leaching rate of mineralN l I
-      ,kIP = 10.57  #0.0289652*365          ##<< plant uptake iP I
+      ,kIPlant = 10.57  #0.0289652*365          ##<< plant uptake iP I
       ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
       ,iI = 0        ##<< input of mineral N
       ,l = 0   #0.00262647*365       ##<< leaching rate of mineralN l I

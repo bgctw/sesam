@@ -134,9 +134,9 @@ derivSeam2 <- function(
   dLN <- -decL/cnL  + parms$iL/parms$cnIL
   dR <- -decR + parms$iR + tvrC
   dRN <- -decR/cnR + parms$iR/parms$cnIR + tvrN
-  #dI <- +parms$iI +MmB +PhiTvr -(parms$kIP+parms$l)*x["I"]
+  #dI <- +parms$iI +MmB +PhiTvr -(parms$kIPlant+parms$l)*x["I"]
   # plant uptake as absolute parameter
-  dI <- +parms$iI - parms$kIP - leach + PhiB + PhiU + PhiTvr
+  dI <- +parms$iI - parms$kIPlant - leach + PhiB + PhiU + PhiTvr
   #if (dI > 0.01 ) recover()
   #
   if (isTRUE(parms$isFixedS)) {
@@ -172,7 +172,7 @@ derivSeam2 <- function(
     if (diff(unlist(
       c( dB/parms$cnB  + (dER + dEL)/parms$cnE  + dRN + dLN + dI + tvrExN
          , parms$iR/parms$cnIR  + parms$iL/parms$cnIL - plantNUp  + parms$iI -
-         parms$kIP - parms$l*x["I"])))^2 >
+         parms$kIPlant - parms$l*x["I"])))^2 >
       .Machine$double.eps )  stop("mass balance dN error")
   }
   # keeping R,L, or I constant

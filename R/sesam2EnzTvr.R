@@ -122,7 +122,7 @@ derivSesam2EnzTvr <- function(
   dR <- -decR  + parms$iR  + tvrC
   dRN <- -decR/cnR  + parms$iR/parms$cnIR  + tvrN
   # here plant uptake as absolute parameter
-  dI <-  +parms$iI  - parms$kIP  - leach  + PhiU  + PhiB  + PhiTvr
+  dI <-  +parms$iI  - parms$kIPlant  - leach  + PhiU  + PhiB  + PhiTvr
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
@@ -157,7 +157,7 @@ derivSesam2EnzTvr <- function(
     if (diff(unlist(
       c( dB/parms$cnB  + dRN + dLN + dI + tvrExN
          , parms$iR/parms$cnIR  + parms$iL/parms$cnIL - plantNUp  + parms$iI -
-         parms$kIP - parms$l*x["I"])))^2 >
+         parms$kIPlant - parms$l*x["I"])))^2 >
       .Machine$double.eps )  stop("mass balance dN error")
   }
   #

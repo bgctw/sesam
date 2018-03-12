@@ -35,7 +35,7 @@ parms0 <- list(
   #,plantNUp = 300/70*1/4  ##<< plant N uptake balancing N inputs
   ,plantNUp = 0   ##<< plant N uptake balancing N inputs
   ,useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
-  ,kIP = 10.57 #0.0289652*365         ##<< plant uptake iP I
+  ,kIPlant = 10.57 #0.0289652*365         ##<< plant uptake iP I
   ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
   ,iI = 0         ##<< input of mineral N
   ,l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I
@@ -43,18 +43,23 @@ parms0 <- list(
   #, isEnzymeMassFlux = FALSE  ##<< steady state B solution neglects enyzme mass fluxes
   , isEnzymeMassFlux = TRUE  ##<< steady state B solution accounts for enyzme mass fluxes
   , nuP = 0.3      ##<< microbial uptake of depolymerized P, (1-nuP) is mineralized
-  , cpB = 40
   , cpE = 50
+  , cpB = 40
+  , cpIR = 40
+  , cpIL = 40*3
   , iBP = 0.38 * 10.57 # start with same as N
-
 )
 parms0 <- within(parms0,{
   kmR <- kmL <- km
   eps1 <- eps2 <- eps
   cnER <- cnEL <- cnE
   kNR <- kNL <- kN
-  kIP <- iL / cnIL	# same litter input as plant uptake
-  kIP <- 0			# no plant uptake
+  kIPlant <- iL / cnIL	# same litter input as plant uptake
+  kIPlant <- 0			# no plant uptake
+  lP <- l       # leaching rate of inorganic P equals that of N
+  nuP <- nu     # mineralization of P during decomposiition equals that of N
+  kIPlant <- kIPlant  # plant uptake rate of P equals that of N
+  iIP <- 0      # assume no P inputs (and neglect weathering)
 })
 
 parms <- parms0
@@ -63,35 +68,28 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   B = 20                     ##<< microbial biomass
   , R = 7000                 ##<< N rich substrate
   , RN = 7000/parms0$cnIR    ##<< N rich substrate N pool
+  , RP = 7000/parms0$cpIR
   , L = 200                  ##<< N poor substrate
   , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
-  , I =  1                   ##<< inorganic pool
+  , LP = 200/parms0$cpIL     ##<< N poor substrate P pool
+  , I =  1                   ##<< inorganic N pool
+  , IP =  1                  ##<< inorganic P pool
   , alpha = 0.5              ##<< initial community composition
 )
 x <- x0
-
-# for SEAM model add enzyme state variables
-x0Seam3 <- c(x0
-             , ER  = 1.5*parms0$km                  ##<< total enzyme pool
-             , EL  = 1.5*parms0$km                   ##<< total enzyme pool
-             # make sure to have same order as derivative of Seam3
-)[c("B","ER","EL","R","RN","L","LN","I","alpha")]
-#x0Seam3
 
 x0Nlim <- c( #aE = 0.001*365
   B = 20                     ##<< microbial biomass
   , R = 1000                 ##<< N rich substrate
   , RN = 1000/parms0$cnIR    ##<< N rich substrate N pool
+  , RP = 1000/parms0$cpIR
   , L = 200                  ##<< N poor substrate
   , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
-  , I =  0                   ##<< inorganic pool
+  , LP = 200/parms0$cpIL     ##<< N poor substrate P pool
+  , I =  0                   ##<< inorganic N pool
+  , IP =  1                  ##<< inorganic P pool
   , alpha = 0.5              ##<< initial community composition
 )
-x0NlimSeam3 <- c(x0Nlim
-                 , ER  = 1.5*parms0$km                  ##<< total enzyme pool
-                 , EL  = 1.5*parms0$km                   ##<< total enzyme pool
-                 # make sure to have same order as derivative of Seam3
-)[c("B","ER","EL","R","RN","L","LN","I","alpha")]
 
 test_that("balanceAlphaBetweenElementLimitations",{
   #balanceAlphaBetweenCNLimitations()
@@ -152,11 +150,16 @@ test_that("balanceAlphaBetweenElementLimitations",{
      alphaBs <- sapply(epsNs, function(epsN){
        CsynBE <- c(CsynBC = 40, CsynBN = 40 - epsN, CSynBP = 6000)
        alphaBalanced <- balanceAlphaBetweenElementLimitations(
-         #alpha, CsynBE, tauB = 1, delta = 10)#, ce, eps  )
-         alpha, CsynBE, tauB = 1, delta = 5)#, ce, eps  )
+         alpha, CsynBE, tauB = 1, delta = 10)#, ce, eps  )
          #alpha, CsynBE, tauB = 1)#, ce, eps  )
      })
      plot(alphaBs ~ epsNs, type = "l")
+     alphaBs10 <- sapply(epsNs, function(epsN){
+       CsynBE <- c(CsynBC = 40, CsynBN = 40 - epsN, CSynBP = 6000)
+       alphaBalanced <- balanceAlphaBetweenElementLimitations(
+         alpha, CsynBE, tauB = 1, delta = 5)#, ce, eps  )
+     })
+     lines(alphaBs10 ~ epsNs, lty = "dashed")
   }
   #
   scen <- "strongly C - limited (negative synthesis)"
@@ -182,7 +185,7 @@ test_that("same as sesam3s for fixed substrates", {
   })
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
-  resTest <- as.data.frame(lsoda( x0[-1], times, derivSesam3P, parms = parmsFixedS))
+  resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsFixedS))
   resExp <- as.data.frame(lsoda(
     x0, times, derivSesam3s
     , parms = parmsFixedS))

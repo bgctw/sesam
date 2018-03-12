@@ -82,23 +82,30 @@ derivSesam3P <- function(
   respTvr <- (1 - parms$epsTvr) * tvrB
   # assuming same cnRatio of predators to equal cn ratio of microbes
   PhiTvr <- respTvr/parms$cnB
+  PhiPTvr <- respTvr/parms$cpB
   #
   # tvr that feeds R pool, assume that N in SOM for resp (by epsTvr) is mineralized
   tvrC <-  +parms$epsTvr*tvrB   + (1 - parms$kNB)*synE
   tvrN <-  +parms$epsTvr*tvrB/parms$cnB   + (1 - parms$kNB)*synE/parms$cnE
+  tvrP <-  +parms$epsTvr*tvrB/parms$cpB   + (1 - parms$kNB)*synE/parms$cpE
   # fluxes leaving the system (will be set in scen where trv does not feed back)
   tvrExC <- tvrExN <- 0
   #
   leach <- parms$l*x["I"]
   PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE)
+  leachP<- parms$lP*x["IP"]
+  PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE)
   #
   dB <- synB - tvrB
   dL <- -decL  + parms$iL
   dLN <- -decL/cnL   + parms$iL/parms$cnIL
+  dLP <- -decL/cpL   + parms$iL/parms$cpIL
   dR <- -decR  + parms$iR  + tvrC
   dRN <- -decR/cnR  + parms$iR/parms$cnIR  + tvrN
+  dRP <- -decR/cpR  + parms$iR/parms$cpIR  + tvrP
   # here plant uptake as absolute parameter
   dI <-  +parms$iI  - parms$kIP  - leach  + PhiU  + PhiB  + PhiTvr
+  dIP <-  +parms$iIP  - parms$kIPP  - leach  + PhiU  + PhiB  + PhiTvr
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate

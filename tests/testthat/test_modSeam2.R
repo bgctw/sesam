@@ -33,7 +33,7 @@ parms0 <- list(
   ,iL = 300         # g/m2 input per year (half NPP)
   #,plantNUp = 300/70*1/4  # plant N uptake balancing N inputs
   ,plantNUp = 0	# organic N takeup by plants
-  ,kIP = 10.57 #0.0289652*365          ##<< plant uptake iP I
+  ,kIPlant = 10.57 #0.0289652*365          ##<< plant uptake iP I
   ,useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
   ,iP = 10.57 #0.0289652*365          ##<< plant uptake iP I
   ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I

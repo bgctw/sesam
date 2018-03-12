@@ -93,7 +93,7 @@ drivers <- list(
         ,plantNUp = 0   ##<< pland uptake of organic N
         ,iP = 10.57 #0.0289652*365          ##<< plant uptake of inorganic N (I), currently as absolute flux
         ,iI = 0         ##<< input of mineral N
-        ,kIP = 10.57 #0.0289652*365          ##<< plant uptake iP I
+        ,kIPlant = 10.57 #0.0289652*365          ##<< plant uptake iP I
         ,iI = 0         ##<< input of mineral N
 )
 parms0 <- c(parmsModel, drivers)

@@ -121,7 +121,7 @@ derivSesam3s <- function(
   dR <- -decR  + parms$iR  + tvrC
   dRN <- -decR/cnR  + parms$iR/parms$cnIR  + tvrN
   # here plant uptake as absolute parameter
-  dI <-  +parms$iI  - parms$kIP  - leach  + PhiU  + PhiB  + PhiTvr
+  dI <-  +parms$iI  - parms$kIPlant  - leach  + PhiU  + PhiB  + PhiTvr
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
@@ -157,7 +157,7 @@ derivSesam3s <- function(
     if (diff(unlist(
       c( dB/parms$cnB  + dRN + dLN + dI + tvrExN
          , parms$iR/parms$cnIR  + parms$iL/parms$cnIL - plantNUp  + parms$iI -
-         parms$kIP - parms$l*x["I"])))^2 >
+         parms$kIPlant - parms$l*x["I"])))^2 >
       .Machine$double.eps )  stop("mass balance dN error")
   }
   #
@@ -259,36 +259,44 @@ attr(computeSesam3sAllocationPartitioning,"ex") <- function(){
     ,LN = 100/parms$cnIL    ##<< N poor substrate N pool
     ,I =  0.4                ##<< inorganic pool gN/m2
   )
+  B <- x["B"]
+  # allocate only few to R (and most to L)
   computeSesam3sAllocationPartitioning(
     dR = parms$kR*x["R"], dL = parms$kL*x["L"], B = B
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     , alpha = 0.5
   )
+  # if decL is small, allocate much to R
   computeSesam3sAllocationPartitioning(
     dR = parms$kR*x["R"], dL = parms$kL*x["L"]/500, B = B
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     , alpha = 0.5
   )
+  # equal partitioning
   computeSesam3sAllocationPartitioning(
     dR = 1, dL = 1, B = B
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     , alpha = 0.5
   )
+  # allocate 2/3 to R
   computeSesam3sAllocationPartitioning(
     dR = 2, dL = 1, B = B
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     , alpha = 0.5
   )
+  # with missing dL, allocate all enzymes to R
   computeSesam3sAllocationPartitioning(
     dR = 2, dL = 0, B = B
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     , alpha = 0.5
   )
+  # with missing dR, allocate zero enzymes to R
   computeSesam3sAllocationPartitioning(
     dR = 0, dL = 1, B = B
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     , alpha = 0.5
   )
+  # with no decomposition, return NaN
   computeSesam3sAllocationPartitioning(
     dR = 0, dL = 0, B = B
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
