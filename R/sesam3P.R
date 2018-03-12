@@ -16,7 +16,7 @@ derivSesam3P <- function(
   dRPot <- parms$kR * x["R"]
   dLPot <- parms$kL * x["L"]
   immoPot <- parms$iB * x["I"]
-  immoPPot <- parms$iBP * x["I"]
+  immoPPot <- parms$iBP * x["IP"]
   cnR <- x["R"]/x["RN"]
   cnL <- x["L"]/x["LN"]
   cnE <- parms$cnE
@@ -53,7 +53,7 @@ derivSesam3P <- function(
     rG <- 0
   }
   PhiB <- uNOrg - synB/cnB - synE/cnE
-  PhiBP <- uPOrg - synB/cpB - synE/cpE
+  PhiPB <- uPOrg - synB/cpB - synE/cpE
   alphaC <- computeSesam3sAllocationPartitioning(
     dR = dRPot, dL = dLPot, B = B
     , kmkN = kmN, aE = parms$aE
@@ -69,11 +69,12 @@ derivSesam3P <- function(
     , kmkN = kmN, aE = parms$aE
     , alpha = alpha
   )
-  alphaTarget <- balanceAlphaBetweenElementLimitations(
-    c(alphaC, alphaN, alphaP)
+  resBalance <- balanceAlphaBetweenElementLimitations(
+    structure(c(alphaC, alphaN, alphaP), names = c("C","N","P"))
     , c(CsynBC, CsynBN, CsynBP)
     , tauB = parms$tau*B
   )
+  alphaTarget <- resBalance$alpha
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) * parms$tau
   #
@@ -89,7 +90,7 @@ derivSesam3P <- function(
   tvrN <-  +parms$epsTvr*tvrB/parms$cnB   + (1 - parms$kNB)*synE/parms$cnE
   tvrP <-  +parms$epsTvr*tvrB/parms$cpB   + (1 - parms$kNB)*synE/parms$cpE
   # fluxes leaving the system (will be set in scen where trv does not feed back)
-  tvrExC <- tvrExN <- 0
+  tvrExC <- tvrExN <- tvrExP <- 0
   #
   leach <- parms$l*x["I"]
   PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE)
@@ -104,36 +105,41 @@ derivSesam3P <- function(
   dRN <- -decR/cnR  + parms$iR/parms$cnIR  + tvrN
   dRP <- -decR/cpR  + parms$iR/parms$cpIR  + tvrP
   # here plant uptake as absolute parameter
-  dI <-  +parms$iI  - parms$kIP  - leach  + PhiU  + PhiB  + PhiTvr
-  dIP <-  +parms$iIP  - parms$kIPP  - leach  + PhiU  + PhiB  + PhiTvr
+  dI <-  +parms$iI  - parms$kIPlant  - leach  + PhiU  + PhiB  + PhiTvr
+  dIP <-  +parms$iIP  - parms$kIPPlant  - leachP  + PhiPU  + PhiPB  + PhiPTvr
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
-    dR <- dL <- dRN <- dLN <- dI <- 0
+    dR <- dL <- dRN <- dLN <- dRP <- dLP <- dI <- dIP <- 0
   } else if (isTRUE(parms$isTvrNil)) {
     # scenario of enzymes and biomass not feeding back to R
     dR <- +parms$iR - decR
     dRN <- +parms$iR/parms$cnIR - decR/cnR
+    dRP <- +parms$iR/parms$cpIR - decR/cpR
     tvrExC <- tvrC
     tvrExN <- tvrN
+    tvrExP <- tvrP
   }
   #
   resDeriv <- structure(as.numeric(
-    c( dB, dR, dRN, dL, dLN, dI, dAlpha))
-    ,names = c("dB","dR","dRN","dL","dLN","dI","dAlpha"))
+    c( dB, dR, dRN, dRP, dL, dLN, dLP, dI, dIP, dAlpha))
+    ,names = c("dB","dR","dRN","dRP","dL","dLN","dLP","dI","dIP","dAlpha"))
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   sqrEps <- sqrt(.Machine$double.eps)
   # parms$iL - (decL + dL)
   # parms$iR + tvrC -(decR + dR)
   #
   # checking the mass balance of fluxes
-  plantNUp <- 0 # checked in mass balance but is not (any more) in model
+  plantNUp <- plantPUp <- 0 # checked in mass balance but is not (any more) in model
   respB <- (synE)/parms$eps*(1 - parms$eps)  + rG + rM + respO
   resp <- respB + respTvr
   if (diff( unlist(c(uC = uC, usage = respB + synB + synE )))^2 > sqrEps )  stop(
     "biomass mass balance C error")
   if (diff( unlist(
     c(uN = uNOrg, usage = synE/parms$cnE + synB/parms$cnB + PhiB )))^2 >
+    .Machine$double.eps)  stop("biomass mass balance N error")
+  if (diff( unlist(
+    c(uP = uPOrg, usage = synE/parms$cpE + synB/parms$cpB + PhiPB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   if (!isTRUE(parms$isFixedS)) {
     if (diff(unlist(
@@ -142,14 +148,19 @@ derivSesam3P <- function(
     if (diff(unlist(
       c( dB/parms$cnB  + dRN + dLN + dI + tvrExN
          , parms$iR/parms$cnIR  + parms$iL/parms$cnIL - plantNUp  + parms$iI -
-         parms$kIP - parms$l*x["I"])))^2 >
+         parms$kIPlant - parms$l*x["I"])))^2 >
+      .Machine$double.eps )  stop("mass balance dN error")
+    if (diff(unlist(
+      c( dB/parms$cpB  + dRP + dLP + dIP + tvrExP
+         , parms$iR/parms$cpIR  + parms$iL/parms$cpIL - plantPUp  + parms$iIP -
+         parms$kIPPlant - parms$lP*x["IP"])))^2 >
       .Machine$double.eps )  stop("mass balance dN error")
   }
   #
   # allowing scenarios with holding some pools fixed
-  if (isTRUE(parms$isFixedR)) { resDeriv["dR"] <- resDeriv["dRN"] <-  0   }
-  if (isTRUE(parms$isFixedL)) { resDeriv["dL"] <- resDeriv["dLN"] <-  0   }
-  if (isTRUE(parms$isFixedI)) { resDeriv["dI"] <-  0   }
+  if (isTRUE(parms$isFixedR)) { resDeriv["dR"] <- resDeriv["dRN"] <- resDeriv["dRP"] <- 0 }
+  if (isTRUE(parms$isFixedL)) { resDeriv["dL"] <- resDeriv["dLN"] <- resDeriv["dLP"] <- 0 }
+  if (isTRUE(parms$isFixedI)) { resDeriv["dI"] <-  resDeriv["dIP"] <- 0   }
   #
   # further computations just for output for tacking the system
   ER <- alpha * parms$aE * x["B"] / parms$kN
@@ -173,7 +184,7 @@ derivSesam3P <- function(
   isLimNSubstrate <-  CsynBNSubstrate < CsynBC
   #
   if (isTRUE(parms$isRecover) ) recover()
-  list( resDeriv, c(
+  list( resDeriv,  c(
      resp = as.numeric(resp)
      , respO = as.numeric(respO)
      , respB = as.numeric(respB)
@@ -185,9 +196,16 @@ derivSesam3P <- function(
     , PhiTvr = as.numeric(PhiTvr)
     , PhiBU = as.numeric(PhiBU)
     , immoPot = as.numeric(immoPot)
+    , PhiPTotal = as.numeric(PhiPB + PhiPU + PhiTvr)
+    , PhiPB = as.numeric(PhiPB), PhiPU = as.numeric(PhiPU)
+    , PhiPTvr = as.numeric(PhiPTvr)
+    , PhiPBU = as.numeric(PhiPB + PhiPU)
+    , immoPPot = as.numeric(immoPPot)
+    , resBalance$wELim
     , alphaTarget = as.numeric(alphaTarget)
-    , alphaC = as.numeric(alphaC), alphaN = as.numeric(alphaN)
+    , alphaC = as.numeric(alphaC), alphaN = as.numeric(alphaN), alphaP = as.numeric(alphaP)
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
+    , cpR = as.numeric(cpR), cpL = as.numeric(cpL)
     , limER = as.numeric(limER), limEL = as.numeric(limEL)
     , decR = as.numeric(decR), decL = as.numeric(decL)
     , tvrB = as.numeric(tvrB)
@@ -265,7 +283,13 @@ balanceAlphaBetweenElementLimitations <- function(
     wELimi <- min( .Machine$double.xmax
                    , exp( delta/tauB*(min(CsynBE[-iE]) - CsynBE[iE])))
   })
-  alphaBalanced <- sum(wELim * alpha)/sum(wELim)
-  alphaBalanced
+  names(wELim) <- names(alpha)
+  wELimNorm <- wELim/sum(wELim)
+  alphaBalanced <- sum(wELimNorm * alpha)
+  ##value<< a list with entries
+  list(
+    alpha = alphaBalanced  ##<< numeric scalar: balanced alpha
+    , wELim = wELimNorm    ##<< numeric vector: fractional element limitations
+  )
 }
 

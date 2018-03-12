@@ -58,8 +58,8 @@ parms0 <- within(parms0,{
   kIPlant <- 0			# no plant uptake
   lP <- l       # leaching rate of inorganic P equals that of N
   nuP <- nu     # mineralization of P during decomposiition equals that of N
-  kIPlant <- kIPlant  # plant uptake rate of P equals that of N
-  iIP <- 0      # assume no P inputs (and neglect weathering)
+  kIPPlant <- kIPlant  # plant uptake rate of P equals that of N
+  iIP <- l      # assume no P inputs compensate for leaching
 })
 
 parms <- parms0
@@ -77,6 +77,8 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   , alpha = 0.5              ##<< initial community composition
 )
 x <- x0
+getX0NoP <- function(x0){x0[setdiff(names(x0),c("RP","LP","IP"))]}
+getX0NoP(x0)
 
 x0Nlim <- c( #aE = 0.001*365
   B = 20                     ##<< microbial biomass
@@ -87,7 +89,7 @@ x0Nlim <- c( #aE = 0.001*365
   , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
   , LP = 200/parms0$cpIL     ##<< N poor substrate P pool
   , I =  0                   ##<< inorganic N pool
-  , IP =  1                  ##<< inorganic P pool
+  , IP =  10                  ##<< inorganic P pool
   , alpha = 0.5              ##<< initial community composition
 )
 
@@ -100,64 +102,64 @@ test_that("balanceAlphaBetweenElementLimitations",{
   eps <- 0.5
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
     alpha, CsynBE, tauB = 1)#, ce, eps  )
-  expect_equal(alphaBalanced, as.numeric(alpha[1]), tolerance = 1e-2)
+  expect_equal(alphaBalanced$alpha, as.numeric(alpha[1]), tolerance = 1e-2)
   #
   scen <- "N - limited"
   CsynBE <- c(CsynBC = 6000, CsynBN = 40, CSynBP = 6000)
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
     alpha, CsynBE, tauB = 1)#, ce, eps  )
-  expect_equal(alphaBalanced, as.numeric(alpha[2]), tolerance = 1e-2)
+  expect_equal(alphaBalanced$alpha, as.numeric(alpha[2]), tolerance = 1e-2)
   #
   scen <- "P - limited"
   CsynBE <- c(CsynBC = 6000, CsynBN = 6000, CSynBP = 40)
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
     alpha, CsynBE, tauB = 1)#, ce, eps  )
-  expect_equal(alphaBalanced, as.numeric(alpha[3]), tolerance = 1e-2)
+  expect_equal(alphaBalanced$alpha, as.numeric(alpha[3]), tolerance = 1e-2)
   #
   scen <- "CN - limited"
   CsynBE <- c(CsynBC = 40, CsynBN = 40, CSynBP = 6000)
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
     alpha, CsynBE, tauB = 1)#, ce, eps  )
-  expect_equal(alphaBalanced, as.numeric(mean(alpha[1:2])), tolerance = 1e-2)
+  expect_equal(alphaBalanced$alpha, as.numeric(mean(alpha[1:2])), tolerance = 1e-2)
   #
   scen <- "CN - limited, slightly more N limted"
   CsynBE <- c(CsynBC = 40, CsynBN = 40 - 1e-1, CSynBP = 6000)
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
     alpha, CsynBE, tauB = 1)#, ce, eps  )
   alphaBalanced
-  expect_true(alphaBalanced > alpha[1] & alphaBalanced < alpha[2])
+  expect_true(alphaBalanced$alpha > alpha[1] & alphaBalanced$alpha < alpha[2])
   #
   scen <- "NP - limited"
   CsynBE <- c(CsynBC = 6000, CsynBN = 40, CSynBP = 40)
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
     alpha, CsynBE, tauB = 1)#, ce, eps  )
-  expect_equal(alphaBalanced, as.numeric(mean(alpha[2:3])), tolerance = 1e-2)
+  expect_equal(alphaBalanced$alpha, as.numeric(mean(alpha[2:3])), tolerance = 1e-2)
   #
   scen <- "NP - limited"
   CsynBE <- c(CsynBC = 6000, CsynBN = 40, CSynBP = 40)
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
     alpha, CsynBE, tauB = 1)#, ce, eps  )
-  expect_equal(alphaBalanced, as.numeric(mean(alpha[2:3])), tolerance = 1e-2)
+  expect_equal(alphaBalanced$alpha, as.numeric(mean(alpha[2:3])), tolerance = 1e-2)
   #
   scen <- "equal co-limitation"
   CsynBE <- c(CsynBC = 40, CsynBN = 40, CSynBP = 40)
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
     alpha, CsynBE, tauB = 1)#, ce, eps  )
-  expect_equal(alphaBalanced, as.numeric(mean(alpha)), tolerance = 1e-2)
+  expect_equal(alphaBalanced$alpha, as.numeric(mean(alpha)), tolerance = 1e-2)
   #
   .tmp.f <- function(){
      epsNs <- seq(-0.4,+0.4, length.out = 51)
      alphaBs <- sapply(epsNs, function(epsN){
        CsynBE <- c(CsynBC = 40, CsynBN = 40 - epsN, CSynBP = 6000)
        alphaBalanced <- balanceAlphaBetweenElementLimitations(
-         alpha, CsynBE, tauB = 1, delta = 10)#, ce, eps  )
+         alpha, CsynBE, tauB = 1, delta = 10)$alpha
          #alpha, CsynBE, tauB = 1)#, ce, eps  )
      })
      plot(alphaBs ~ epsNs, type = "l")
      alphaBs10 <- sapply(epsNs, function(epsN){
        CsynBE <- c(CsynBC = 40, CsynBN = 40 - epsN, CSynBP = 6000)
        alphaBalanced <- balanceAlphaBetweenElementLimitations(
-         alpha, CsynBE, tauB = 1, delta = 5)#, ce, eps  )
+         alpha, CsynBE, tauB = 1, delta = 5)$alpha
      })
      lines(alphaBs10 ~ epsNs, lty = "dashed")
   }
@@ -172,7 +174,7 @@ test_that("balanceAlphaBetweenElementLimitations",{
     alpha, CsynBE, tauB = 1)#, ce, eps  )
   alphaBalanced
   # think of accounting for negative biomass balance
-  expect_equal(alphaBalanced, as.numeric(alpha[1]), tolerance = 1e-2)
+  expect_equal(alphaBalanced$alpha, as.numeric(alpha[1]), tolerance = 1e-2)
 })
 
 test_that("same as sesam3s for fixed substrates", {
@@ -183,17 +185,18 @@ test_that("same as sesam3s for fixed substrates", {
     isTvrNil <- TRUE
     iR <- 160
   })
+  ans0 <- derivSesam3P(0, x0, parms = parmsFixedS)
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
   resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsFixedS))
   resExp <- as.data.frame(lsoda(
-    x0, times, derivSesam3s
+    getX0NoP(x0), times, derivSesam3s
     , parms = parmsFixedS))
     #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
   xEExp <- unlist(tail(resExp,1))
   expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
-  expect_equal( xETest[2:7], xEExp[3:8], tolerance = 1e-6)
+  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
   .tmp.f <- function(){
     derivSesam3P(0, xETest[c(2:7)], within(parmsFixedS, isRecover <- TRUE))
     derivSesam3P(0, xEExp[c(3:8)], within(parmsFixedS, isRecover <- TRUE))
@@ -202,9 +205,9 @@ test_that("same as sesam3s for fixed substrates", {
   #
   # N limitation
   #times <- seq(0,2100, length.out = 101)
-  resTest <- as.data.frame(lsoda( x0Nlim[-1], times, derivSesam3P, parms = parmsFixedS))
+  resTest <- as.data.frame(lsoda( x0Nlim, times, derivSesam3P, parms = parmsFixedS))
   resExp <- as.data.frame(lsoda(
-    x0Nlim, times, derivSesam3s
+    getX0NoP(x0Nlim), times, derivSesam3s
     , parms = parmsFixedS))
     #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
@@ -212,64 +215,78 @@ test_that("same as sesam3s for fixed substrates", {
   expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-6)
   expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 1e-6)
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
-  expect_equal( xETest[2:7], xEExp[3:8], tolerance = 1e-6)
+  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  #
+  # NP col-limitation
+  x0Plim <- x0Nlim; x0Plim["IP"] <- 0
+  #times <- seq(0,2100, length.out = 101)
+  resTest <- as.data.frame(lsoda( x0Plim, times, derivSesam3P, parms = parmsFixedS))
+  resExp <- as.data.frame(lsoda(
+    getX0NoP(x0Plim), times, derivSesam3s
+    , parms = parmsFixedS))
+  #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
+  xETest <- unlist(tail(resTest,1))
+  xEExp <- unlist(tail(resExp,1))
+  expect_true( xETest["alpha"] < xEExp["alpha"])
+  # interestingly this leads to slightly higher biomass under colimitation
+  # expect_true( xETest["B"] < xEExp["B"])
+  expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-2)
+  #expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
 })
 
 test_that("same as sesam2 with substrate feedbacks", {
   parmsInit <- within(parms0, {isFixedI <- TRUE})
+  ans0 <- derivSesam3P(0, x0, parms = parmsInit)
   times <- seq(0,800, length.out = 2)
   #times <- seq(0,800, length.out = 101)
   #times <- c(0,148:151)
   #times <- seq(0,2100, by = 2)
   #times <- seq(0,10000, length.out = 101)
-  #ans1 <- derivSesam3P(0, x0[-1], within(parmsInit, isRecover <- TRUE) )
-  ans1 <- derivSesam3P(0, x0[-1], parmsInit)
-  expect_equal(ans1[[2]]["dB"], c(dB = 0), tolerance = 1e-6)
+  #ans1 <- derivSesam3P(0, x0, within(parmsInit, isRecover <- TRUE) )
   #
-  resTest <- as.data.frame(lsoda( x0[-1], times, derivSesam3P, parms = parmsInit))
+  resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
-    x0, times, derivSesam3s
+    getX0NoP(x0), times, derivSesam3s
     , parms = parmsInit))
   #    , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
   xEExp <- unlist(tail(resExp,1));
   xpESteady <- unlist(head(tail(resTest,2),1))	# the previous before end
   expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-4)
-  expect_equal( xETest[2:7], xEExp[c(3:8)], tolerance = 1e-6)
+  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
   #rbind(xEExp[names(xETest)], xETest)
   .tmp.f <- function(){
-    derivSesam3P(0, x0[-1], within(parmsInit, isRecover <- TRUE))
+    derivSesam3P(0, x0, within(parmsInit, isRecover <- TRUE))
   }
   #
   # N limitation
-  resTest <- as.data.frame(lsoda( x0Nlim[-1], times, derivSesam3P, parms = parmsInit))
+  resTest <- as.data.frame(lsoda( x0Nlim, times, derivSesam3P, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
-    x0Nlim, times, derivSesam3s
+    getX0NoP(x0Nlim), times, derivSesam3s
     , parms = parmsInit))
     #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
   xEExp <- unlist(tail(resExp,1))
   expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 1e-6)
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
-  expect_equal( xETest[2:7], xEExp[c(3:8)], tolerance = 1e-6)
+  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
   #rbind(xEExp[names(xETest)], xETest)
   #
   # from C to N limitation
   x0CNLim <- x0; x0CNLim["I"] <- 0
-  x0CNLimSeam3 <- x0Seam3; x0CNLimSeam3["I"] <- 0
   times <- seq(0,1200, length.out = 2)
   #times <- seq(0,1200, length.out = 101)
   #times <- c(0,seq(140,220, length.out = 101))
-  resTest <- as.data.frame(lsoda( x0CNLim[-1], times, derivSesam3P, parms = parmsInit))
+  resTest <- as.data.frame(lsoda( x0CNLim, times, derivSesam3P, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
-    x0CNLim, times, derivSesam3s
+    getX0NoP(x0CNLim), times, derivSesam3s
     , parms = parmsInit))
     #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
   xEExp <- unlist(tail(resExp,1))
   expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-4)
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-5)
-  expect_equal( xETest[2:7], xEExp[c(3:8)], tolerance = 1e-4)
+  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
   rbind(xEExp[names(xETest)], xETest)
 })
 
