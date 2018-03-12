@@ -61,10 +61,8 @@ derivSesam3B <- function(
     , kmkN = kmN, aE = parms$aE
     , alpha = alpha
   )
-  alphaTarget <- balanceAlphaBetweenCNLimitations(
-    alphaC, alphaN, CsynBN, CsynBC
-    , NsynBC = parms$eps*CsynBC/cnB
-    , NsynBN = parms$eps*CsynBN/cnB)
+  alphaTarget <- balanceAlphaBetweenCNLimitationsExp(
+    alphaC, alphaN, CsynBN, CsynBC, tauB = parms$tau*B  )
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) * parms$tau
   #

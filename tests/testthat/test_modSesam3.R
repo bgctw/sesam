@@ -35,7 +35,7 @@ parms0 <- list(
   #,plantNUp = 300/70*1/4  ##<< plant N uptake balancing N inputs
   ,plantNUp = 0   ##<< plant N uptake balancing N inputs
   ,useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
-  ,kIP = 10.57 #0.0289652*365         ##<< plant uptake iP I
+  ,kIPlant = 10.57 #0.0289652*365         ##<< plant uptake iP I
   ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
   ,iI = 0         ##<< input of mineral N
   ,l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I
@@ -47,8 +47,8 @@ parms0 <- within(parms0,{
   eps1 <- eps2 <- eps
   cnER <- cnEL <- cnE
   kNR <- kNL <- kN
-  kIP <- iL / cnIL	# same litter input as plant uptake
-  kIP <- 0			# no plant uptake
+  kIPlant <- iL / cnIL	# same litter input as plant uptake
+  kIPlant <- 0			# no plant uptake
 })
 
 parms <- parms0
@@ -110,7 +110,9 @@ test_that("same as seam for fixed substrates", {
   resTestNoEnz <- as.data.frame(lsoda(
     x0, times, derivSesam3
     , parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
-  resExp <- as.data.frame(lsoda( x0Seam3, times, derivSeam3a, parms = parmsFixedS))
+  resExp <- as.data.frame(lsoda(
+    x0Seam3, times, derivSeam3a, parms = parmsFixedS
+    , fBalanceAlpha = balanceAlphaBetweenCNLimitations))
   xETest <- unlist(tail(resTest,1))
   xETestNoEnz <- unlist(tail(resTestNoEnz,1))
   xEExp <- unlist(tail(resExp,1)); xEExp[-(3:4)]
@@ -129,7 +131,9 @@ test_that("same as seam for fixed substrates", {
   resTestNoEnz <- as.data.frame(lsoda(
     x0Nlim, times, derivSesam3
     , parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
-  resExp <- as.data.frame(lsoda( x0NlimSeam3, times, derivSeam3a, parms = parmsFixedS))
+  resExp <- as.data.frame(lsoda(
+    x0NlimSeam3, times, derivSeam3a, parms = parmsFixedS
+    , fBalanceAlpha = balanceAlphaBetweenCNLimitations))
   xETest <- unlist(tail(resTest,1))
   xETestNoEnz <- unlist(tail(resTestNoEnz,1))
   xEExp <- unlist(tail(resExp,1))
@@ -149,7 +153,9 @@ test_that("same as seam with substrate feedbacks", {
   resTestNoEnz <- as.data.frame(lsoda(
     x0, times, derivSesam3
     , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
-  resExp <- as.data.frame(lsoda( x0Seam3, times, derivSeam3a, parms = parmsInit))
+  resExp <- as.data.frame(lsoda(
+    x0Seam3, times, derivSeam3a, parms = parmsInit
+    , fBalanceAlpha = balanceAlphaBetweenCNLimitations))
   xETest <- unlist(tail(resTest,1))
   xEExp <- unlist(tail(resExp,1));
   xETestNoEnz <- unlist(tail(resTestNoEnz,1))
@@ -171,7 +177,9 @@ test_that("same as seam with substrate feedbacks", {
   resTestNoEnz <- as.data.frame(lsoda(
     x0Nlim, times, derivSesam3
     , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
-  resExp <- as.data.frame(lsoda( x0NlimSeam3, times, derivSeam3a, parms = parmsInit))
+  resExp <- as.data.frame(lsoda(
+    x0NlimSeam3, times, derivSeam3a, parms = parmsInit
+    , fBalanceAlpha = balanceAlphaBetweenCNLimitations))
   xETest <- unlist(tail(resTest,1))
   xETestNoEnz <- unlist(tail(resTestNoEnz,1))
   xEExp <- unlist(tail(resExp,1))
@@ -196,7 +204,9 @@ test_that("same as seam with substrate feedbacks", {
   resTestNoEnz <- as.data.frame(lsoda(
     x0CNLim, times, derivSesam3
     , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
-  resExp <- as.data.frame(lsoda( x0CNLimSeam3, times, derivSeam3a, parms = parmsInit))
+  resExp <- as.data.frame(lsoda(
+    x0CNLimSeam3, times, derivSeam3a, parms = parmsInit
+    , fBalanceAlpha = balanceAlphaBetweenCNLimitations))
   xETest <- unlist(tail(resTest,1))
   xETestNoEnz <- unlist(tail(resTestNoEnz,1))
   xEExp <- unlist(tail(resExp,1))

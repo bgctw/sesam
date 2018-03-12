@@ -3,8 +3,9 @@
 # gC/m2 and gN/m2, /yr
 
 derivSeam3a <- function(
-  ### Soil Enzyme Allocation Model with state variable alpha
+  ### Soil Enzyme Allocation Model with state variable alpha and different balance
   t, x, parms
+  , fBalanceAlpha = balanceAlphaBetweenCNLimitationsExp
 ){
   x <- pmax(unlist(x), 1e-16)      # no negative masses
   #
@@ -14,9 +15,10 @@ derivSeam3a <- function(
   cnL <- x["L"]/x["LN"]
   cnE <- parms$cnE #alphaC*parms$cnER + (1-alphaC)*parms$cnEL
   cnB <- parms$cnB
+  B <- x["B"]
   #
-  rM <- parms$m * x["B"]          # maintenance respiration
-  tvrB <- parms$tau*x["B"]        # microbial turnover
+  rM <- parms$m * B          # maintenance respiration
+  tvrB <- parms$tau*B        # microbial turnover
   tvrER <- parms$kNR*ER
   tvrEL <- parms$kNL*EL
   #
@@ -30,7 +32,7 @@ derivSeam3a <- function(
   tvrERecycling <- parms$kNB*(tvrER + tvrEL)
   uC <- decC <- decR + decL + tvrERecycling
   #
-  synE <- parms$aE * x["B"]     # total enzyme production per microbial biomass
+  synE <- parms$aE * B     # total enzyme production per microbial biomass
   #synE <- parms$aEu * uC       # total enzyme production per uptake
   # C required for biomass and growth respiration under C limitation
   CsynBC <- uC - synE/parms$eps - rM
@@ -93,8 +95,9 @@ derivSeam3a <- function(
   alphaC <- revRC / (revLC + revRC)
   alphaN <- revRN / (revLN + revRN)
   #
-  alphaTarget <- balanceAlphaBetweenCNLimitations(
+  alphaTarget <- fBalanceAlpha(
     alphaC, alphaN, CsynBN, CsynBC
+    , tauB = parms$tau*B
     , NsynBC = parms$eps*CsynBC/cnB, NsynBN)
   alpha <- x["alpha"]
   # microbial community change as fast as microbial turnover
@@ -135,7 +138,7 @@ derivSeam3a <- function(
   #
   resDeriv <- structure(as.numeric(
     c( dB, dER, dEL, dR, dRN, dL, dLN, dI, dAlpha))
-    , names = c("dB","dER","dEL","dR","dRN","dL","dLN","dI"))
+    , names = c("dB","dER","dEL","dR","dRN","dL","dLN","dI","dAlpha"))
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   sqrEps <- sqrt(.Machine$double.eps)
   # parms$iL - (decL + dL)
@@ -192,79 +195,22 @@ derivSeam3a <- function(
   ))
 }
 
-balanceAlphaBetweenCNLimitations <- function(
+balanceAlphaBetweenCNLimitationsExp <- function(
   ### compute balance between alphaC and alphaN based on C and N based biomass synthesis
-  alphaC, alphaN, CsynBN, CsynBC, NsynBC, NsynBN, delta = 200
+  alphaC, alphaN, CsynBN, CsynBC, ..., delta = 10, tauB
 ){
-  # if there is only small potential of immobilizalization, do a smooth
-  # transition between alphaC and alphaN
+  ##details<< if there is only small potential of immobilizalization, do a smooth
+  ## transition between alphaC and alphaN.
+  ## The formulation based on e^difference instead of the ratio
+  ## also works for negative biomass synthesis
+  ## but requires a scaling factor, tauB.
+  ##seealso<< \code{\link{balanceAlphaBetweenCNLimitations}}
   # # min to avoid  + Inf
-  wCLim = min( .Machine$double.xmax, (CsynBN/CsynBC)^delta )
-  wNLim = min( .Machine$double.xmax, (NsynBC/NsynBN)^delta )
+  wCLim = min( .Machine$double.xmax,
+               exp( delta/tauB*(CsynBN - CsynBC)))
+  wNLim = min( .Machine$double.xmax,
+               exp( delta/tauB*(CsynBC - CsynBN)))
   alpha <- (wCLim*alphaC + wNLim*alphaN) / (wCLim + wNLim)
   alpha
-}
-
-.tmp.f <- function(
-  ###  balance alphaC and alphaN based on current and potential immobilization fluxes
-  alphaC, alphaN, isLimN, isLimNSubstrate, immoAct, immoPot
-){
-  # .depr.balanceAlphaLargeImmobilization
-  ##details<<
-  ## deprecated because its superceded by balanceAlphaBetweenCNLimitations
-  ## where biosynthesis already takes into account the
-  ## potential immobilization
-  if (isLimN ) return(alphaN)
-  if (isLimNSubstrate) {
-    # overall C limited, but only with acquiring N by immobilization
-    # increase proportion into N aquiring enzymes as the proportion of immobilization
-    # to its potential increases
-    pN <- immoAct / immoPot
-    # increase proportion into N aquiring enzymes as the proportion of biomass synthesis
-    # that is possible due to immobilization
-    # pN <- (CSynB - CsynBNSubstrate)/CsynBNSubstrate
-    alpha <- alphaC + pN*(alphaN - alphaC)
-    return(alpha)
-  }
-  alphaC
-}
-
-plotResSeam2 <- function(
-  ### plotting results of Seam2
-  res, legendPos = "topleft"
-  , cls = c("B","ER","EL","respO","PhiTotal")
-  , xlab = "time (yr)"
-  , ylab = "gC/m2 , gN/m2"
-  , subsetCondition = TRUE
-  , ...
-){
-  #res$B100 <- res$B/100
-  res$ER_10 <- res$ER*10
-  res$EL_10 <- res$EL*10
-  res$ER_1000 <- res$ER*1000
-  res$EL_1000 <- res$EL*1000
-  res$alpha100 <- res$alpha*100
-  res$B100 <- res$B * 100
-  res$B10 <- res$B * 10
-  res$Rr <- res$R / res$R[1]  * 100 #max(res$R, na.rm = TRUE)
-  res$Lr <- res$L / res$L[1]  * 100 #max(res$L, na.rm = TRUE)
-  res$I100 <- res$I  * 100
-  res$mPhiB10 <- -res$PhiB  * 10
-  res$mPhiBU10 <- -res$PhiBU  * 10
-  res$mPhiTotal10 <- -res$PhiTotal  * 10
-  #res$mMmB10 <- -res$MmB  * 10
-  #res$MmB100 <- res$MmB  * 100
-  #res$MmB1000 <- res$MmB  * 1000
-  res$cnR10 <- res$cnR  * 10
-  res$dR <- c(NA, diff(res$R)/diff(res$time))
-  res$dS <- c(NA, diff(res$R + res$L)/diff(res$time))
-  #cls <- c("B100","ER_10","EL_10","respO","PhiTotal")
-  #cls <- c("B100","ER_10","EL_10","respO","PhiTotal","eff")
-  #cls <- c("B1000","ER_10","EL_10","PhiTotal")
-  #cls <- c("B","E","respO","PhiTotal","R","L")
-  matplot( res[subsetCondition,1], res[subsetCondition,cls], type = "l", lty = 1:20
-           , col = 1:20, xlab = xlab, ylab = "", ...)
-  mtext( ylab, 2, line = 2.5, las = 0)
-  legend(legendPos, inset = c(0.01,0.01), legend = cls, lty = 1:20, col = 1:20)
 }
 

@@ -1,5 +1,5 @@
 #require(testthat)
-#test_file("tests/testthat/test_modSesam3.R")
+#test_file("tests/testthat/test_modSesam3B.R")
 context("modSesam3B")
 
 parms0 <- list(
@@ -181,7 +181,7 @@ test_that("sesam3BSteadyNlim",{
 })
 
 
-test_that("same as seam for fixed substrates", {
+test_that("same as sesam3s for fixed substrates", {
   parmsFixedS <- within(parms0,{
     isFixedS <- TRUE
   })
@@ -221,7 +221,7 @@ test_that("same as seam for fixed substrates", {
   expect_equal( xETest[2:7], xEExp[3:8], tolerance = 1e-6)
 })
 
-test_that("same as sesam2 with substrate feedbacks", {
+test_that("same as sesam3s with substrate feedbacks", {
   parmsInit <- within(parms0, {isFixedI <- TRUE})
   times <- seq(0,800, length.out = 2)
   #times <- seq(0,800, length.out = 101)

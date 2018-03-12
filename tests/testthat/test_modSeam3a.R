@@ -104,7 +104,9 @@ test_that("same as seam for fixed substrates", {
   # TODO test
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,5, length.out=101)
-  resTest <- as.data.frame(lsoda( x0, times, derivSeam3a, parms = parmsFixedS))
+  resTest <- as.data.frame(lsoda(
+    x0, times, derivSeam3a, parms = parmsFixedS
+    , fBalanceAlpha = balanceAlphaBetweenCNLimitations))
   resExp <- as.data.frame(lsoda( x0Seam2, times, derivSeam2, parms = parmsFixedS))
   resExp$alphaTarget = resExp$alpha
   xETest <- unlist(tail(resTest,1))
@@ -129,7 +131,9 @@ test_that("same as seam for fixed substrates", {
   #
   # N limitation
   #times <- seq(0,2100, length.out = 101)
-  resTest <- as.data.frame(lsoda( x0Nlim, times, derivSeam3a, parms = parmsFixedS))
+  resTest <- as.data.frame(lsoda(
+    x0Nlim, times, derivSeam3a, parms = parmsFixedS
+    , fBalanceAlpha = balanceAlphaBetweenCNLimitations))
   resExp <- as.data.frame(lsoda( x0NlimSeam2, times, derivSeam2, parms = parmsFixedS))
   resExp$alphaTarget <- resExp$alpha
   xETest <- unlist(tail(resTest,1))
@@ -147,7 +151,9 @@ test_that("same as seam with substrate feedbacks", {
   #times <- c(0,148:151)
   #times <- seq(0,2100, by = 2)
   #times <- seq(0,10000, length.out = 101)
-  resTest <- as.data.frame(lsoda( x0, times, derivSeam3a, parms = parmsInit))
+  resTest <- as.data.frame(lsoda(
+    x0, times, derivSeam3a, parms = parmsInit
+    , fBalanceAlpha = balanceAlphaBetweenCNLimitations))
   resExp <- as.data.frame(lsoda( x0Seam2, times, derivSeam2, parms = parmsInit))
   resExp$alphaTarget <- resExp$alpha
   xETest <- unlist(tail(resTest,1))
@@ -161,7 +167,9 @@ test_that("same as seam with substrate feedbacks", {
   # N limitation
   times <- seq(0,800, length.out = 8)
   #times <- seq(0,800, length.out = 101)
-  resTest <- as.data.frame(lsoda( x0Nlim, times, derivSeam3a, parms = parmsInit))
+  resTest <- as.data.frame(lsoda(
+    x0Nlim, times, derivSeam3a, parms = parmsInit
+    , fBalanceAlpha = balanceAlphaBetweenCNLimitations))
   resExp <- as.data.frame(lsoda( x0NlimSeam2, times, derivSeam2, parms = parmsInit))
   resExp$alphaTarget <- resExp$alpha
   xETest <- unlist(tail(resTest,1))

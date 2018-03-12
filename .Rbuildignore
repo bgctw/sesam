@@ -3,4 +3,5 @@
 ^.pydevproject$
 ^soilPaper14$
 ^egu14$
+^develop$
 ^.*\.nb\.html$

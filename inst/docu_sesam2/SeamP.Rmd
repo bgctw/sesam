@@ -83,4 +83,32 @@ P_{\operatorname{synBP}} &= u_P - \operatorname{syn}_E/\gamma_E \text{,} \\
 C_{\operatorname{synBP}} &= \gamma_B \, P_{\operatorname{synBP}}  / \epsilon
 \end{align}
 $$
+# Balancing between elemental limitations
+
+Microbial community develops towards the allocation that optimizes for
+the currently limiting element, i.e. the element yielding the lowest resources available for biomass syntheseis, $C_{\operatorname{synB}}$.
+
+If the elemental limitations are similar, then commnunity coefficient, $\alpha$ is chosen as a compromise between the coefficients corresponding
+to the different elements,E , as a weighted sum.
+
+$$
+\alpha_{\operatorname{Target}} = \frac{\sum_E w_E \alpha_E}{\sum_E w_E}
+$$
+
+In SEAM2, the weight of the elemental limitation for element E was based on the ratio between
+biomass synthesis constrained by other elements, and the biomass synthesis by element E:
+
+$$
+w_{E} = \left(\frac{C_{\operatorname{synB,Others}}}{C_{\operatorname{synB,E}}}\right)^\delta
+$$
+However, this formulation caused problems for starving biomass when $C_{\operatorname{synB,E}} <= 0$. Therefore, SEAM3 uses a formulation that is based on
+the difference instead of the ratio.
+
+$$
+w_{E} = e^{ \delta \left( C_{\operatorname{synB,Others}} - C_{\operatorname{synB,E}}\right)/\tau B }
+$$
+In order to keep the smoothing coefficient, $\delta$ dimensionless, the difference of
+potential minus constrained flux is scaled by a typical biomass flux, here a linear 
+turnover of microbial biomass, $B$. Lower values of $delta$ (default 10) imply smoother transitions, i.e. a compromise target on smaller differences between elemental limitations.
+
 

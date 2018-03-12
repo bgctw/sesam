@@ -1,5 +1,5 @@
 #require(testthat)
-#test_file("tests/testthat/test_modSesam3.R")
+#test_file("tests/testthat/test_modSesam3P.R")
 context("modSesam3P")
 
 parms0 <- list(
@@ -101,72 +101,78 @@ test_that("balanceAlphaBetweenElementLimitations",{
   ce <- c(ccB = NA, cnB = 8, cnP = 8*8)
   eps <- 0.5
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE)#, ce, eps  )
+    alpha, CsynBE, tauB = 1)#, ce, eps  )
   expect_equal(alphaBalanced, as.numeric(alpha[1]), tolerance = 1e-2)
   #
   scen <- "N - limited"
   CsynBE <- c(CsynBC = 6000, CsynBN = 40, CSynBP = 6000)
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE)#, ce, eps  )
+    alpha, CsynBE, tauB = 1)#, ce, eps  )
   expect_equal(alphaBalanced, as.numeric(alpha[2]), tolerance = 1e-2)
   #
   scen <- "P - limited"
   CsynBE <- c(CsynBC = 6000, CsynBN = 6000, CSynBP = 40)
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE)#, ce, eps  )
+    alpha, CsynBE, tauB = 1)#, ce, eps  )
   expect_equal(alphaBalanced, as.numeric(alpha[3]), tolerance = 1e-2)
   #
   scen <- "CN - limited"
   CsynBE <- c(CsynBC = 40, CsynBN = 40, CSynBP = 6000)
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE)#, ce, eps  )
+    alpha, CsynBE, tauB = 1)#, ce, eps  )
   expect_equal(alphaBalanced, as.numeric(mean(alpha[1:2])), tolerance = 1e-2)
   #
   scen <- "CN - limited, slightly more N limted"
   CsynBE <- c(CsynBC = 40, CsynBN = 40 - 1e-1, CSynBP = 6000)
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE)#, ce, eps  )
+    alpha, CsynBE, tauB = 1)#, ce, eps  )
   alphaBalanced
   expect_true(alphaBalanced > alpha[1] & alphaBalanced < alpha[2])
   #
   scen <- "NP - limited"
   CsynBE <- c(CsynBC = 6000, CsynBN = 40, CSynBP = 40)
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE)#, ce, eps  )
+    alpha, CsynBE, tauB = 1)#, ce, eps  )
   expect_equal(alphaBalanced, as.numeric(mean(alpha[2:3])), tolerance = 1e-2)
   #
   scen <- "NP - limited"
   CsynBE <- c(CsynBC = 6000, CsynBN = 40, CSynBP = 40)
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE)#, ce, eps  )
+    alpha, CsynBE, tauB = 1)#, ce, eps  )
   expect_equal(alphaBalanced, as.numeric(mean(alpha[2:3])), tolerance = 1e-2)
+  #
+  scen <- "equal co-limitation"
+  CsynBE <- c(CsynBC = 40, CsynBN = 40, CSynBP = 40)
+  alphaBalanced <- balanceAlphaBetweenElementLimitations(
+    alpha, CsynBE, tauB = 1)#, ce, eps  )
+  expect_equal(alphaBalanced, as.numeric(mean(alpha)), tolerance = 1e-2)
   #
   .tmp.f <- function(){
      epsNs <- seq(-0.4,+0.4, length.out = 51)
      alphaBs <- sapply(epsNs, function(epsN){
        CsynBE <- c(CsynBC = 40, CsynBN = 40 - epsN, CSynBP = 6000)
        alphaBalanced <- balanceAlphaBetweenElementLimitations(
-         alpha, CsynBE)#, ce, eps  )
+         #alpha, CsynBE, tauB = 1, delta = 10)#, ce, eps  )
+         alpha, CsynBE, tauB = 1, delta = 5)#, ce, eps  )
+         #alpha, CsynBE, tauB = 1)#, ce, eps  )
      })
      plot(alphaBs ~ epsNs, type = "l")
   }
   #
-  scen <- "strongly C - limited"
+  scen <- "strongly C - limited (negative synthesis)"
   # negative carbon balance
   alpha <- c(alphaC = 0.2, alphaN = 0.6, alphaP = 0.8)
   CsynBE <- c(CsynBC = -40, CsynBN = 4, CSynBP = 4)
   ce <- c(ccB = NA, cnB = 8, cnP = 8*8)
   eps <- 0.5
   alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE)#, ce, eps  )
+    alpha, CsynBE, tauB = 1)#, ce, eps  )
   alphaBalanced
   # think of accounting for negative biomass balance
   expect_equal(alphaBalanced, as.numeric(alpha[1]), tolerance = 1e-2)
-  #
-
 })
 
-test_that("same as seam for fixed substrates", {
+test_that("same as sesam3s for fixed substrates", {
   parmsFixedS <- within(parms0,{
     isFixedS <- TRUE
   })
@@ -176,7 +182,7 @@ test_that("same as seam for fixed substrates", {
   })
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
-  resTest <- as.data.frame(lsoda( x0[-1], times, derivSesam3B, parms = parmsFixedS))
+  resTest <- as.data.frame(lsoda( x0[-1], times, derivSesam3P, parms = parmsFixedS))
   resExp <- as.data.frame(lsoda(
     x0, times, derivSesam3s
     , parms = parmsFixedS))
@@ -186,14 +192,14 @@ test_that("same as seam for fixed substrates", {
   expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
   expect_equal( xETest[2:7], xEExp[3:8], tolerance = 1e-6)
   .tmp.f <- function(){
-    derivSesam3B(0, xETest[c(2:7)], within(parmsFixedS, isRecover <- TRUE))
-    derivSesam3B(0, xEExp[c(3:8)], within(parmsFixedS, isRecover <- TRUE))
+    derivSesam3P(0, xETest[c(2:7)], within(parmsFixedS, isRecover <- TRUE))
+    derivSesam3P(0, xEExp[c(3:8)], within(parmsFixedS, isRecover <- TRUE))
     derivSesam3s(0, xEExp[c(2:8)], within(parmsFixedS, isRecover <- TRUE))
   }
   #
   # N limitation
   #times <- seq(0,2100, length.out = 101)
-  resTest <- as.data.frame(lsoda( x0Nlim[-1], times, derivSesam3B, parms = parmsFixedS))
+  resTest <- as.data.frame(lsoda( x0Nlim[-1], times, derivSesam3P, parms = parmsFixedS))
   resExp <- as.data.frame(lsoda(
     x0Nlim, times, derivSesam3s
     , parms = parmsFixedS))
@@ -213,11 +219,11 @@ test_that("same as sesam2 with substrate feedbacks", {
   #times <- c(0,148:151)
   #times <- seq(0,2100, by = 2)
   #times <- seq(0,10000, length.out = 101)
-  #ans1 <- derivSesam3B(0, x0[-1], within(parmsInit, isRecover <- TRUE) )
-  ans1 <- derivSesam3B(0, x0[-1], parmsInit)
+  #ans1 <- derivSesam3P(0, x0[-1], within(parmsInit, isRecover <- TRUE) )
+  ans1 <- derivSesam3P(0, x0[-1], parmsInit)
   expect_equal(ans1[[2]]["dB"], c(dB = 0), tolerance = 1e-6)
   #
-  resTest <- as.data.frame(lsoda( x0[-1], times, derivSesam3B, parms = parmsInit))
+  resTest <- as.data.frame(lsoda( x0[-1], times, derivSesam3P, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
     x0, times, derivSesam3s
     , parms = parmsInit))
@@ -229,11 +235,11 @@ test_that("same as sesam2 with substrate feedbacks", {
   expect_equal( xETest[2:7], xEExp[c(3:8)], tolerance = 1e-6)
   #rbind(xEExp[names(xETest)], xETest)
   .tmp.f <- function(){
-    derivSesam3B(0, x0[-1], within(parmsInit, isRecover <- TRUE))
+    derivSesam3P(0, x0[-1], within(parmsInit, isRecover <- TRUE))
   }
   #
   # N limitation
-  resTest <- as.data.frame(lsoda( x0Nlim[-1], times, derivSesam3B, parms = parmsInit))
+  resTest <- as.data.frame(lsoda( x0Nlim[-1], times, derivSesam3P, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
     x0Nlim, times, derivSesam3s
     , parms = parmsInit))
@@ -251,7 +257,7 @@ test_that("same as sesam2 with substrate feedbacks", {
   times <- seq(0,1200, length.out = 2)
   #times <- seq(0,1200, length.out = 101)
   #times <- c(0,seq(140,220, length.out = 101))
-  resTest <- as.data.frame(lsoda( x0CNLim[-1], times, derivSesam3B, parms = parmsInit))
+  resTest <- as.data.frame(lsoda( x0CNLim[-1], times, derivSesam3P, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
     x0CNLim, times, derivSesam3s
     , parms = parmsInit))

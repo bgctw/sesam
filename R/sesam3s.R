@@ -18,11 +18,12 @@ derivSesam3s <- function(
   cnL <- x["L"]/x["LN"]
   cnE <- parms$cnE #alphaC*parms$cnER + (1-alphaC)*parms$cnEL
   cnB <- parms$cnB
-  #ETot <- parms$aE * x["B"] / parms$kN
-  rM <- parms$m * x["B"]          # maintenance respiration
-  tvrB <- parms$tau*x["B"]        # microbial turnover
+  B <- x["B"]
+  #ETot <- parms$aE * B / parms$kN
+  rM <- parms$m * B          # maintenance respiration
+  tvrB <- parms$tau*B        # microbial turnover
   if (isTRUE(parms$isEnzymeMassFlux)) {
-    synE <- parms$aE * x["B"]       # total enzyme production per microbial biomass
+    synE <- parms$aE * B       # total enzyme production per microbial biomass
     # growth respiration associated with enzyme production
     respSynE <- (1 - parms$eps)/parms$eps * synE
   } else {
@@ -31,7 +32,7 @@ derivSesam3s <- function(
     respSynE <- 0
   }
   # for revenue, account for enzyme investments also if negleting mass fluxes
-  synERev <- parms$aE * x["B"]
+  synERev <- parms$aE * B
   # declare variables that will be computed/overidden in computeAlphaDependingFluxes
   # else operator '<<-' will override bindings in global environment
   tvrER <- tvrEL  <- decR <- decL <- tvrERecycling <- uC <-
@@ -85,18 +86,18 @@ derivSesam3s <- function(
   #
   alpha <- computeAlphaDependingFluxes(x["alpha"])
   alphaC <- computeSesam3sAllocationPartitioning(
-    dR = decRp, dL = decLp, B = x["B"]
+    dR = decRp, dL = decLp, B = B
     , kmkN = parms$km*parms$kN, aE = parms$aE
     , alpha = alpha
   )
   alphaN <- computeSesam3sAllocationPartitioning(
-    dR = decRp/cnR, dL = decLp/cnL, B = x["B"]
+    dR = decRp/cnR, dL = decLp/cnL, B = B
     , kmkN = parms$km*parms$kN, aE = parms$aE
     , alpha = alpha
   )
-  alphaTarget <- balanceAlphaBetweenCNLimitations(
-    alphaC, alphaN, CsynBN, CsynBC
-    , NsynBC = parms$eps*CsynBC/cnB, NsynBN)
+  alphaTarget <- balanceAlphaBetweenCNLimitationsExp(
+    alphaC, alphaN, CsynBN, CsynBC, tauB = parms$tau*B
+    )
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) * parms$tau
   #
@@ -166,8 +167,8 @@ derivSesam3s <- function(
   if (isTRUE(parms$isFixedI)) { resDeriv["dI"] <-  0   }
   #
   # further computations just for output for tacking the system
-  ER <- alpha * parms$aE * x["B"] / parms$kN
-  EL <- (1 - alpha) * parms$aE * x["B"] / parms$kN
+  ER <- alpha * parms$aE * B / parms$kN
+  EL <- (1 - alpha) * parms$aE * B / parms$kN
   limER <- ER / (parms$kmR + ER)
   limEL <- EL / (parms$kmL + EL)
   revRC <- decRp / (parms$km*parms$kN + alphaC*synERev)
@@ -259,40 +260,39 @@ attr(computeSesam3sAllocationPartitioning,"ex") <- function(){
     ,I =  0.4                ##<< inorganic pool gN/m2
   )
   computeSesam3sAllocationPartitioning(
-    dR = parms$kR*x["R"], dL = parms$kL*x["L"], B = x["B"]
+    dR = parms$kR*x["R"], dL = parms$kL*x["L"], B = B
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     , alpha = 0.5
   )
   computeSesam3sAllocationPartitioning(
-    dR = parms$kR*x["R"], dL = parms$kL*x["L"]/500, B = x["B"]
+    dR = parms$kR*x["R"], dL = parms$kL*x["L"]/500, B = B
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     , alpha = 0.5
   )
   computeSesam3sAllocationPartitioning(
-    dR = 1, dL = 1, B = x["B"]
+    dR = 1, dL = 1, B = B
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     , alpha = 0.5
   )
   computeSesam3sAllocationPartitioning(
-    dR = 2, dL = 1, B = x["B"]
+    dR = 2, dL = 1, B = B
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     , alpha = 0.5
   )
   computeSesam3sAllocationPartitioning(
-    dR = 2, dL = 0, B = x["B"]
+    dR = 2, dL = 0, B = B
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     , alpha = 0.5
   )
   computeSesam3sAllocationPartitioning(
-    dR = 0, dL = 1, B = x["B"]
+    dR = 0, dL = 1, B = B
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     , alpha = 0.5
   )
   computeSesam3sAllocationPartitioning(
-    dR = 0, dL = 0, B = x["B"]
+    dR = 0, dL = 0, B = B
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     , alpha = 0.5
   )
 }
-
 

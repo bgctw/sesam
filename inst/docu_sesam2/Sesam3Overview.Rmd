@@ -111,6 +111,7 @@ x0 <- x0Explicit <- c( #aE = 0.001*365
         ,L = 100                 ##<< N poor substrate
         ,LN = 100/parms0$cnIL    ##<< N poor substrate N pool
         ,I =  0.4                ##<< inorganic pool gN/m2
+        , alpha = 0.5            ##<< microbial community partitioning [0,1]
 )
 x0Steady <- x0Explicit[c("B","R","RN","L","LN","I")]
 x0SteadyA <- c(x0Steady,alpha = 0.5)
@@ -122,7 +123,7 @@ We store the information that differs between scenarios in a tibble.
 #setwd("../..");loadPkg()  # reload function, may have inserted recover
 scenarios <- tibble::tibble(
   scenario = c("Explicit","Sesam3s","NeglectEnzFlux","Sesam3B")
-  ,mod = c(derivSeam2, derivSesam3s, derivSesam3s, derivSesam3B)
+  ,mod = c(derivSeam3a, derivSesam3s, derivSesam3s, derivSesam3B)
   ,x0  = list(x0Explicit, x0SteadyA, x0SteadyA, x0B)
   ,parms = list(parms0, parms0, parms0Noenz, parms0)
 )

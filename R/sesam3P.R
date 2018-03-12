@@ -2,7 +2,7 @@
 
 # gC/m2 and gN/m2, /yr
 
-derivSesam3a <- function(
+derivSesam3P <- function(
   ### Soil Enzyme Steady Allocation model
   t,x,parms
 ){
@@ -69,10 +69,11 @@ derivSesam3a <- function(
     , kmkN = kmN, aE = parms$aE
     , alpha = alpha
   )
-  alphaTarget <- balanceAlphaBetweenCNLimitations(
-    alphaC, alphaN, CsynBN, CsynBC
-    , NsynBC = parms$eps*CsynBC/cnB
-    , NsynBN = parms$eps*CsynBN/cnB)
+  alphaTarget <- balanceAlphaBetweenElementLimitations(
+    c(alphaC, alphaN, alphaP)
+    , c(CsynBC, CsynBN, CsynBP)
+    , tauB = parms$tau*B
+  )
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) * parms$tau
   #
@@ -226,7 +227,7 @@ derivSesam3a <- function(
   alphaBalanced
 }
 
-balanceAlphaBetweenElementLimitations <- function(
+.depr.balanceAlphaBetweenElementLimitations <- function(
   ### compute balance between alphas of different element limitations
   alpha    ##<< numeric vector of allocation coefficients for different elements
   , CsynBE ##<< numeric vector of carbon availale for biomass synthesis
@@ -242,3 +243,22 @@ balanceAlphaBetweenElementLimitations <- function(
   alphaBalanced <- sum(wELim * alpha)/sum(wELim)
   alphaBalanced
 }
+
+balanceAlphaBetweenElementLimitations <- function(
+  ### compute balance between alphas of different element limitations
+  alpha    ##<< numeric vector of allocation coefficients for different elements
+  , CsynBE ##<< numeric vector of carbon availale for biomass synthesis
+  , tauB   ##<< scakar typical microbial turnover flux for scaling
+  , delta = 10  ##<< scalar smoothing factor, the higher, the steeper the transition
+){
+  ##details<< Select the alpha corresponding to the smallest CsynBE.
+  ## However, if elemental limitations are close,
+  ## do a smooth transition between corresponding smallest alpha values
+  wELim <- sapply( seq_along(CsynBE), function(iE){
+    wELimi <- min( .Machine$double.xmax
+                   , exp( delta/tauB*(min(CsynBE[-iE]) - CsynBE[iE])))
+  })
+  alphaBalanced <- sum(wELim * alpha)/sum(wELim)
+  alphaBalanced
+}
+

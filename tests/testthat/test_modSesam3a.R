@@ -1,5 +1,5 @@
 #require(testthat)
-#test_file("tests/testthat/test_modSesam3.R")
+#test_file("tests/testthat/test_modSesam3a.R")
 context("modSesam3a")
 
 parms0 <- list(
