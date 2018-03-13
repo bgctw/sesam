@@ -4,6 +4,7 @@ context("modSesam3P")
 
 parms0 <- list(
   cnB = 7.16
+  , cnBW = 10    ##<< C/N ratio of cell walls (that go to R, )
   ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
   #,cnE = 7.16
   ,cnIR = 4.5     ##<< between micr and enzyme signal
@@ -45,6 +46,7 @@ parms0 <- list(
   , nuP = 0.3      ##<< microbial uptake of depolymerized P, (1-nuP) is mineralized
   , cpE = 50
   , cpB = 40
+  , cpBW = 50
   , cpIR = 40
   , cpIL = 40*3
   , iBP = 0.38 * 10.57 # start with same as N
@@ -60,6 +62,11 @@ parms0 <- within(parms0,{
   nuP <- nu     # mineralization of P during decomposiition equals that of N
   kIPPlant <- kIPlant  # plant uptake rate of P equals that of N
   iIP <- l      # assume no P inputs compensate for leaching
+})
+# for compatibility set C:N:P ratio of cell walls to that of biomass
+parms0 <- within(parms0,{
+  cnBW <- cnB
+  cpBW <- cpB
 })
 
 parms <- parms0

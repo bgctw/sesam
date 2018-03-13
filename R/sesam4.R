@@ -2,8 +2,8 @@
 
 # gC/m2 and gN/m2, /yr
 
-derivSesam3P <- function(
-  ### Soil Enzyme Steady Allocation model including phosporous dynamics
+derivSesam4a <- function(
+  ### Soil Enzyme Steady Allocation model with detailed turnover
   t,x,parms
 ){
   ##details<<
@@ -21,26 +21,37 @@ derivSesam3P <- function(
   cnL <- x["L"]/x["LN"]
   cnE <- parms$cnE
   cnB <- parms$cnB
+  cnBW <- parms$cnBW
+  cnBL <- parms$cnBL
   cpR <- x["R"]/x["RP"]
   cpL <- x["L"]/x["LP"]
   cpE <- parms$cpE
   cpB <- parms$cpB
+  cpBW <- parms$cpBW
+  cW <- parms$cW
+  cnBL <- if(cW == 1) cnB else (cnB - cW*cnBW)/(1 - cW)
+  cpBL <- if(cW == 1) cpB else (cpB - cW*cpBW)/(1 - cW)
   alpha <- x["alpha"]
   B <- x["B"]
   aeB <- parms$aE*B        # aeB without associanted growth respiration
   kmN <- parms$km*parms$kN
   rM <- parms$m*B          # maintenance respiration
-  tvrB <- parms$tau*B      # microbial turnover
   synE <- if (isTRUE(parms$isEnzymeMassFlux)) aeB else 0
   #
   # enzyme limitations of decomposition
   decL <- dLPot * (1 - alpha)*aeB/(kmN + (1 - alpha)*aeB)
   decR <- dRPot * alpha*aeB/(kmN + alpha*aeB)
   #
+  # microbial turnover , partly feeds back to uptake
+  tvrB <- parms$tau*B      # without predation/mineralization
+  tvrBPred <- if (B < parms$B0) 0 else parms$tauP*(B - parms$B0)*B
+  tvrBOrg <- tvrB + parms$epsP*tvrBPred
+  tvrBMin <- (1 - parms$epsP)*tvrBPred
+  #
   tvrERecycling <- parms$kNB*synE
-  uNOrg <- parms$nu*(decL/cnL + decR/cnR + tvrERecycling/cnE)
-  uPOrg <- parms$nuP*(decL/cpL + decR/cpR + tvrERecycling/cpE)
-  uC <- decL + decR + tvrERecycling
+  uNOrg <- parms$nu*(decL/cnL + decR/cnR + tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)
+  uPOrg <- parms$nuP*(decL/cpL + decR/cpR + tvrERecycling/cpE + tvrBOrg*(1 - cW)/cpBL)
+  uC <- decL + decR + tvrERecycling + tvrBOrg*(1 - cW)
   CsynBC <- uC - rM - synE/parms$eps
   CsynBN <- cnB/parms$eps*(uNOrg + immoPot - synE/cnE)
   CsynBP <- cpB/parms$eps*(uPOrg + immoPPot - synE/cpE)
@@ -72,32 +83,33 @@ derivSesam3P <- function(
   resBalance <- balanceAlphaBetweenElementLimitations(
     structure(c(alphaC, alphaN, alphaP), names = c("C","N","P"))
     , c(CsynBC, CsynBN, CsynBP)
-    , tauB = parms$tau*B
+    , tauB = (tvrB + tvrBPred)
   )
   alphaTarget <- resBalance$alpha
   # microbial community change as fast as microbial turnover
-  dAlpha <- (alphaTarget - alpha) * parms$tau
+  dAlpha <- (alphaTarget - alpha) * (tvrB + tvrBPred)/B
   #
+
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
   respO <- uC - (synE/parms$eps + synB/parms$eps + rM)
-  respTvr <- (1 - parms$epsTvr) * tvrB
+  respTvr <- (1 - parms$epsP) * tvrBPred
   # assuming same cnRatio of predators to equal cn ratio of microbes
   PhiTvr <- respTvr/parms$cnB
   PhiPTvr <- respTvr/parms$cpB
   #
-  # tvr that feeds R pool, assume that N in SOM for resp (by epsTvr) is mineralized
-  tvrC <-  +parms$epsTvr*tvrB   + (1 - parms$kNB)*synE
-  tvrN <-  +parms$epsTvr*tvrB/parms$cnB   + (1 - parms$kNB)*synE/parms$cnE
-  tvrP <-  +parms$epsTvr*tvrB/parms$cpB   + (1 - parms$kNB)*synE/parms$cpE
+  # tvr that feeds R pool, assume higher C:N ratios of cell walls
+  tvrC <-  +cW*tvrBOrg   + (1 - parms$kNB)*synE
+  tvrN <-  +cW*tvrBOrg/parms$cnBW   + (1 - parms$kNB)*synE/parms$cnE
+  tvrP <-  +cW*tvrBOrg/parms$cpBW   + (1 - parms$kNB)*synE/parms$cpE
   # fluxes leaving the system (will be set in scen where trv does not feed back)
   tvrExC <- tvrExN <- tvrExP <- 0
   #
   leach <- parms$l*x["I"]
-  PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE)
+  PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)
   leachP <- parms$lP*x["IP"]
-  PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE)
+  PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE + tvrBOrg*(1 - cW)/cpBL)
   #
-  dB <- synB - tvrB
+  dB <- synB - tvrB - tvrBPred
   dL <- -decL  + parms$iL
   dLN <- -decL/cnL   + parms$iL/parms$cnIL
   dLP <- -decL/cpL   + parms$iL/parms$cpIL
@@ -133,6 +145,7 @@ derivSesam3P <- function(
   plantNUp <- plantPUp <- 0 # checked in mass balance but is not (any more) in model
   respB <- (synE)/parms$eps*(1 - parms$eps)  + rG + rM + respO
   resp <- respB + respTvr
+  # biomass mass balance
   if (diff( unlist(c(uC = uC, usage = respB + synB + synE )))^2 > sqrEps )  stop(
     "biomass mass balance C error")
   if (diff( unlist(
@@ -141,20 +154,33 @@ derivSesam3P <- function(
   if (diff( unlist(
     c(uP = uPOrg, usage = synE/parms$cpE + synB/parms$cpB + PhiPB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
+  # biomass turnover mass balance
+  if (diff( unlist(c(tvrB + tvrBPred, usage = respTvr + tvrBOrg )))^2 > sqrEps )  stop(
+    "biomass turnover mass balance C error")
+  if (diff( unlist(c(
+    tvrB/cnB + tvrBPred/cnB
+    , usage = PhiTvr + cW*tvrBOrg/cnBW + (1 - cW)*tvrBOrg/cnBL
+    )))^2 > sqrEps )  stop(
+    "biomass turnover mass balance N error")
+  if (diff( unlist(c(
+    (tvrB + tvrBPred)/cpB
+    , usage = PhiPTvr + cW*tvrBOrg/cpBW + (1 - cW)*tvrBOrg/cpBL
+     )))^2 > sqrEps )  stop("biomass turnover mass balance P error")
   if (!isTRUE(parms$isFixedS)) {
     if (diff(unlist(
-      c(dB + dR + dL + tvrExC + resp,    parms$iR + parms$iL )))^2 >
-      sqrEps )  stop("mass balance C error")
+      c(dB + dR + dL + tvrExC + resp,    parms$iR + parms$iL )
+      ))^2 >
+      sqrEps )  stop("mass balance dC error")
     if (diff(unlist(
       c( dB/parms$cnB  + dRN + dLN + dI + tvrExN
          , parms$iR/parms$cnIR  + parms$iL/parms$cnIL - plantNUp  + parms$iI -
-         parms$kIPlant - parms$l*x["I"])))^2 >
-      .Machine$double.eps )  stop("mass balance dN error")
+         parms$kIPlant - parms$l*x["I"])
+      ))^2 > .Machine$double.eps )  stop("mass balance dN error")
     if (diff(unlist(
       c( dB/parms$cpB  + dRP + dLP + dIP + tvrExP
          , parms$iR/parms$cpIR  + parms$iL/parms$cpIL - plantPUp  + parms$iIP -
          parms$kIPPlant - parms$lP*x["IP"])))^2 >
-      .Machine$double.eps )  stop("mass balance dN error")
+      .Machine$double.eps )  stop("mass balance dP error")
   }
   #
   # allowing scenarios with holding some pools fixed
