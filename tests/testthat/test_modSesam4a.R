@@ -213,13 +213,14 @@ test_that("same as sesam2 with substrate feedbacks", {
   testParmsScen(parmsInit)
 })
 
-test_that("balanceAlphaBetweenElementLimitationsMin", {
+.tmp.f <- function(){ test_that("balanceAlphaBetweenElementLimitationsMin", {
   alphas <- c(0.2,0.6,0.8)
   CsynBEs <- c(40,20,20)
   ans <- balanceAlphaBetweenElementLimitationsMin(alphas, CsynBEs)
   expect_equal( ans$alpha, alphas[2L] )
   expect_equal( ans$wELim, c(0,1,0))
 })
+}
 
 .tmp.f <- function(){ test_that("compare balanceAlphaBetweenElementLimitationsMin", {
 #  Warning messages: 1: In lsoda(x0CNLim, times, derivSesam4a, parms =
@@ -251,6 +252,10 @@ test_that("balanceAlphaBetweenElementLimitationsMin", {
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
   expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
 })
+}
+
+.tmp.f <- function(){
+  ans1 <- derivSesam4a(0, x0, parms0)
 }
 
 

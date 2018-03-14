@@ -29,8 +29,8 @@ derivSesam4a <- function(
   cpB <- parms$cpB
   cpBW <- parms$cpBW
   cW <- parms$cW
-  cnBL <- if(cW == 1) cnB else (cnB - cW*cnBW)/(1 - cW)
-  cpBL <- if(cW == 1) cpB else (cpB - cW*cpBW)/(1 - cW)
+  cnBL <- if( cW == 1 ) cnB else (1 - cW)/(1/cnB - cW/cnBW)
+  cpBL <- if( cW == 1 ) cpB else (1 - cW)/(1/cpB - cW/cpBW)
   alpha <- x["alpha"]
   B <- x["B"]
   aeB <- parms$aE*B        # aeB without associanted growth respiration
@@ -81,15 +81,10 @@ derivSesam4a <- function(
     , alpha = alpha
   )
   resBalance <- resBalance0 <- balanceAlphaBetweenElementLimitations(
-    structure(c(alphaC, alphaN, alphaP), names = c("C","N","P"))
+    structure(c(alphaC, alphaN, alphaP), names = c("limC","limN","limP"))
     , c(CsynBC, CsynBN, CsynBP)
     , tauB = (tvrB + tvrBPred)
   )
-  if (isTRUE(parms$isBalanceAlphaMin)) resBalance <-
-    balanceAlphaBetweenElementLimitationsMin(
-      structure(c(alphaC, alphaN, alphaP), names = c("C","N","P"))
-      , c(CsynBC, CsynBN, CsynBP)
-    )
   alphaTarget <- resBalance$alpha
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) * (tvrB + tvrBPred)/B
@@ -164,8 +159,9 @@ derivSesam4a <- function(
     "biomass turnover mass balance C error")
   if (diff( unlist(c(
     tvrB/cnB + tvrBPred/cnB
-    , usage = PhiTvr + cW*tvrBOrg/cnBW + (1 - cW)*tvrBOrg/cnBL
-    )))^2 > sqrEps )  stop(
+    , usage = PhiTvr + tvrBOrg/cnB
+    #, usage = PhiTvr + cW*tvrBOrg/cnBW + (1 - cW)*tvrBOrg/cnBL
+  )))^2 > sqrEps )  stop(
     "biomass turnover mass balance N error")
   if (diff( unlist(c(
     (tvrB + tvrBPred)/cpB
@@ -240,6 +236,7 @@ derivSesam4a <- function(
     , limER = as.numeric(limER), limEL = as.numeric(limEL)
     , decR = as.numeric(decR), decL = as.numeric(decL)
     , tvrB = as.numeric(tvrB)
+    , tvrBPred = as.numeric(tvrBPred)
     , revRC = as.numeric(revRC), revLC = as.numeric(revLC)
     , revRN = as.numeric(revRN)
     , revLN = as.numeric(revLN)
@@ -255,50 +252,6 @@ derivSesam4a <- function(
   ))
 }
 
-.depr.balanceAlphaBetweenElementLimitations <- function(
-  ### compute balance between alphas of different element limitations
-  alpha    ##<< numeric vector of allocation coefficients for different elements
-  , CsynBE ##<< numeric vector of carbon availale for biomass synthesis
-  ## for each based on element limitaiton, first is carbon
-  , ce     ##<< numeric vector for C to E microbial biomass ratios
-  ## The first entry C to C is not considered.
-  , eps    ##<< numeric scalar: intrinsic carbon use eff. for biomass synthesis
-  , delta = 200  ##<< scalar smoothing factor
-  #, alphaC, alphaN, CsynBN, CsynBC, NsynBC, NsynBN
-){
-  ##details<< Select the alpha corresponding to the smallest CsynBE.
-  ## However, if elemental limitations are close,
-  ## do a smooth transition between corresponding alpha values
-  wCLim = min( .Machine$double.xmax, (min(CsynBE[-1]/CsynBE[1]))^delta )
-  NSynBE <- eps*CsynBE[2]/ce[2]
-  wNLim = min( .Machine$double.xmax, (min(CsynBE[-2]/CsynBE[2]))^delta )
-  ce[1] <- 1/eps  # so that EsynBE equals CSynBE for first component
-  wELim <- sapply( seq_along(CsynBE), function(iE){
-    EsynBE <- eps*CsynBE/ce[iE]  # available mass of E for biomass synthesis
-    # min to avoid  + Inf
-    wELimi <- min( .Machine$double.xmax, (min(EsynBE[-iE]/EsynBE[iE]))^delta )
-  })
-  #alpha <- (wCLim*alphaC + wNLim*alphaN) / (wCLim + wNLim)
-  alphaBalanced <- sum(wELim * alpha)/sum(wELim)
-  alphaBalanced
-}
-
-.depr.balanceAlphaBetweenElementLimitations <- function(
-  ### compute balance between alphas of different element limitations
-  alpha    ##<< numeric vector of allocation coefficients for different elements
-  , CsynBE ##<< numeric vector of carbon availale for biomass synthesis
-  , delta = 200  ##<< scalar smoothing factor
-){
-  ##details<< Select the alpha corresponding to the smallest CsynBE.
-  ## However, if elemental limitations are close,
-  ## do a smooth transition between corresponding alpha values
-  wELim <- sapply( seq_along(CsynBE), function(iE){
-    # min to avoid  + Inf
-    wELimi <- min( .Machine$double.xmax, (min(CsynBE[-iE]/CsynBE[iE]))^delta )
-  })
-  alphaBalanced <- sum(wELim * alpha)/sum(wELim)
-  alphaBalanced
-}
 
 balanceAlphaBetweenElementLimitations <- function(
   ### compute balance between alphas of different element limitations
@@ -321,27 +274,6 @@ balanceAlphaBetweenElementLimitations <- function(
   list(
     alpha = alphaBalanced  ##<< numeric scalar: balanced alpha
     , wELim = wELimNorm    ##<< numeric vector: fractional element limitations
-  )
-}
-
-balanceAlphaBetweenElementLimitationsMin <- function(
-  ### compute balance between alphas of different element limitations
-  alpha    ##<< numeric vector of allocation coefficients for different elements
-  , CsynBE ##<< numeric vector of carbon availale for biomass synthesis
-  , ...    ##<< further arguments in overloaded functions, not used here
-){
-  ##details<< Select the alpha corresponding to the smallest CsynBE.
-  ## However, if elemental limitations are close,
-  ## do a smooth transition between corresponding smallest alpha values
-  iMin <- which.min(CsynBE)
-  wELim <- rep(0.0,length(alpha))
-  wELim[iMin] <- 1.0
-  alphaBalanced <- alpha[iMin]
-  alphaBalanced
-  ##value<< a list with entries
-  list(
-    alpha = alphaBalanced  ##<< numeric scalar: balanced alpha
-    , wELim = wELim        ##<< numeric vector: fractional element limitations
   )
 }
 
