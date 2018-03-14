@@ -80,11 +80,16 @@ derivSesam4a <- function(
     , kmkN = kmN, aE = parms$aE
     , alpha = alpha
   )
-  resBalance <- balanceAlphaBetweenElementLimitations(
+  resBalance <- resBalance0 <- balanceAlphaBetweenElementLimitations(
     structure(c(alphaC, alphaN, alphaP), names = c("C","N","P"))
     , c(CsynBC, CsynBN, CsynBP)
     , tauB = (tvrB + tvrBPred)
   )
+  if (isTRUE(parms$isBalanceAlphaMin)) resBalance <-
+    balanceAlphaBetweenElementLimitationsMin(
+      structure(c(alphaC, alphaN, alphaP), names = c("C","N","P"))
+      , c(CsynBC, CsynBN, CsynBP)
+    )
   alphaTarget <- resBalance$alpha
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) * (tvrB + tvrBPred)/B
@@ -299,7 +304,7 @@ balanceAlphaBetweenElementLimitations <- function(
   ### compute balance between alphas of different element limitations
   alpha    ##<< numeric vector of allocation coefficients for different elements
   , CsynBE ##<< numeric vector of carbon availale for biomass synthesis
-  , tauB   ##<< scakar typical microbial turnover flux for scaling
+  , tauB   ##<< numeric scalar: typical microbial turnover flux for scaling
   , delta = 10  ##<< scalar smoothing factor, the higher, the steeper the transition
 ){
   ##details<< Select the alpha corresponding to the smallest CsynBE.
@@ -316,6 +321,27 @@ balanceAlphaBetweenElementLimitations <- function(
   list(
     alpha = alphaBalanced  ##<< numeric scalar: balanced alpha
     , wELim = wELimNorm    ##<< numeric vector: fractional element limitations
+  )
+}
+
+balanceAlphaBetweenElementLimitationsMin <- function(
+  ### compute balance between alphas of different element limitations
+  alpha    ##<< numeric vector of allocation coefficients for different elements
+  , CsynBE ##<< numeric vector of carbon availale for biomass synthesis
+  , ...    ##<< further arguments in overloaded functions, not used here
+){
+  ##details<< Select the alpha corresponding to the smallest CsynBE.
+  ## However, if elemental limitations are close,
+  ## do a smooth transition between corresponding smallest alpha values
+  iMin <- which.min(CsynBE)
+  wELim <- rep(0.0,length(alpha))
+  wELim[iMin] <- 1.0
+  alphaBalanced <- alpha[iMin]
+  alphaBalanced
+  ##value<< a list with entries
+  list(
+    alpha = alphaBalanced  ##<< numeric scalar: balanced alpha
+    , wELim = wELim        ##<< numeric vector: fractional element limitations
   )
 }
 

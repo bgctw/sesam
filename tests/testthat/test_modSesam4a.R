@@ -174,6 +174,8 @@ testParmsScen <- function(parmsInit){
   # plots of results
   library(dplyr)
   library(ggplot2)
+  # res <- suppressWarnings(bind_rows(
+  #   cbind(resTest, scen = "Test"), cbind(resTest2, scen = "Test2"), cbind(resExp, scen = "Exp")))
   res <- suppressWarnings(bind_rows(
     cbind(resTest, scen = "Test"), cbind(resExp, scen = "Exp")))
   ggplot(filter(res, time > 1), aes(time, B, color = scen)) + geom_line(alpha = 0.5)
@@ -211,6 +213,44 @@ test_that("same as sesam2 with substrate feedbacks", {
   testParmsScen(parmsInit)
 })
 
+test_that("balanceAlphaBetweenElementLimitationsMin", {
+  alphas <- c(0.2,0.6,0.8)
+  CsynBEs <- c(40,20,20)
+  ans <- balanceAlphaBetweenElementLimitationsMin(alphas, CsynBEs)
+  expect_equal( ans$alpha, alphas[2L] )
+  expect_equal( ans$wELim, c(0,1,0))
+})
 
+.tmp.f <- function(){ test_that("compare balanceAlphaBetweenElementLimitationsMin", {
+#  Warning messages: 1: In lsoda(x0CNLim, times, derivSesam4a, parms =
+#  within(parmsInit,  : an excessive amount of work (> maxsteps ) was done, but
+#  integration was not successful - increase maxsteps 2: In lsoda(x0CNLim,
+#  times, derivSesam4a, parms = within(parmsInit,  :
+  parmsInit <- within(parms0C, {isFixedI <- TRUE})
+  # from C to N limitation
+  x0CNLim <- x0; x0CNLim["I"] <- 0
+  #times <- seq(0,2100, length.out = 2)
+  times <- seq(0,2100, length.out = 101)
+  resExp <- as.data.frame(lsoda(
+    getX0NoP(x0CNLim), times, derivSesam3s
+    , parms = within(parmsInit, {epsTvr <- epsPred})))
+  #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
+  xEExp <- unlist(tail(resExp,1))
+  resTest <- as.data.frame(lsoda(
+    x0CNLim, times, derivSesam4a
+    , parms = within(parmsInit,{tauP <- tau/xEExp["B"]; tau <- 0})))
+  # yields timeout when going near col-limitation
+  xETest <- unlist(tail(resTest,1))
+  resTest2 <- as.data.frame(lsoda(
+    x0CNLim, times, derivSesam4a
+    , parms = within(parmsInit,{
+      tauP <- tau/xEExp["B"]; tau <- 0; isBalanceAlphaMin <- TRUE})))
+  xETest2 <- unlist(tail(resTest2,1))
+  expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-6)
+  expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 1e-6)
+  expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
+  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+})
+}
 
 
