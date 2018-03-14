@@ -256,6 +256,8 @@ test_that("same as sesam2 with substrate feedbacks", {
 
 .tmp.f <- function(){
   ans1 <- derivSesam4a(0, x0, parms0)
+  times <- seq(0,500, length.out = 101)
+  res <- res1 <- as.data.frame(lsoda( x0, times, derivSesam4a, parms = parms0))
 }
 
 

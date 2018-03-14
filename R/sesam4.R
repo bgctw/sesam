@@ -91,7 +91,7 @@ derivSesam4a <- function(
   #
 
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
-  respO <- uC - (synE/parms$eps + synB/parms$eps + rM)
+  respO <- uC - (synE/parms$eps + synB + rG + rM)
   respTvr <- (1 - parms$epsP) * tvrBPred
   # assuming same cnRatio of predators to equal cn ratio of microbes
   PhiTvr <- respTvr/parms$cnB
@@ -187,7 +187,7 @@ derivSesam4a <- function(
   # allowing scenarios with holding some pools fixed
   if (isTRUE(parms$isFixedR)) { resDeriv["dR"] <- resDeriv["dRN"] <- resDeriv["dRP"] <- 0 }
   if (isTRUE(parms$isFixedL)) { resDeriv["dL"] <- resDeriv["dLN"] <- resDeriv["dLP"] <- 0 }
-  if (isTRUE(parms$isFixedI)) { resDeriv["dI"] <-  resDeriv["dIP"] <- 0   }
+  if (isTRUE(parms$isFixedI)) { resDeriv["dI"] <- resDeriv["dIP"] <- 0   }
   #
   # further computations just for output for tacking the system
   ER <- alpha * parms$aE * x["B"] / parms$kN
@@ -243,6 +243,7 @@ derivSesam4a <- function(
     , CsynB = as.numeric(CsynB)
     , CsynBC = as.numeric(CsynBC)
     , CsynBN = as.numeric(CsynBN)
+    , CsynBP = as.numeric(CsynBP)
     #, pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) )
     #, NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
     #, dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)

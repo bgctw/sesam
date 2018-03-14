@@ -62,7 +62,7 @@ derivSesam3a <- function(
   dAlpha <- (alphaTarget - alpha) * parms$tau
   #
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
-  respO <- uC - (synE/parms$eps + synB/parms$eps + rM)
+  respO <- uC - (synE/parms$eps + synB + rG + rM)
   respTvr <- (1 - parms$epsTvr) * tvrB
   # assuming same cnRatio of predators to equal cn ratio of microbes
   PhiTvr <- respTvr/parms$cnB
