@@ -59,7 +59,7 @@ derivSesam3a <- function(
   alphaTarget <- balanceAlphaBetweenCNLimitationsExp(
     alphaC, alphaN, CsynBN, CsynBC, tauB = parms$tau*B  )
   # microbial community change as fast as microbial turnover
-  dAlpha <- (alphaTarget - alpha) * parms$tau
+  dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
   #
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
   respO <- uC - (synE/parms$eps + synB + rG + rM)

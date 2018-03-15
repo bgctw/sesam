@@ -76,7 +76,7 @@ derivSesam3P <- function(
   )
   alphaTarget <- resBalance$alpha
   # microbial community change as fast as microbial turnover
-  dAlpha <- (alphaTarget - alpha) * parms$tau
+  dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
   #
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
   respO <- uC - (synE/parms$eps + synB + rG + rM)

@@ -101,7 +101,7 @@ derivSeam3a <- function(
     , NsynBC = parms$eps*CsynBC/cnB, NsynBN)
   alpha <- x["alpha"]
   # microbial community change as fast as microbial turnover
-  dAlpha <- (alphaTarget - alpha) * parms$tau
+  dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
   #
   # tvr feeding back to R pool, assume that N in SOM for resp (by epsTvr) is mineralized
   tvrC <- +parms$epsTvr*tvrB + (1 - parms$kNB)*(tvrER + tvrEL)

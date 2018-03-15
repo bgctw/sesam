@@ -23,19 +23,20 @@ derivSesam3 <- function(
   cnL <- x["L"]/x["LN"]
   cnE <- parms$cnE #alphaC*parms$cnER + (1-alphaC)*parms$cnEL
   cnB <- parms$cnB
+  B <- x["B"]
   alphaC <- computeSesam2AllocationPartitioning(
-    dR = decRp, dL = decLp, B = x["B"]
+    dR = decRp, dL = decLp, B = B
     ,kmkN = parms$km*parms$kN, aE = parms$aE
   )
   alphaN <- computeSesam2AllocationPartitioning(
-    dR = decRp/cnR, dL = decLp/cnL, B = x["B"]
+    dR = decRp/cnR, dL = decLp/cnL, B = B
     ,kmkN = parms$km*parms$kN, aE = parms$aE
   )
-  #ETot <- parms$aE * x["B"] / parms$kN
-  rM <- parms$m * x["B"]          # maintenance respiration
-  tvrB <- parms$tau*x["B"]        # microbial turnover
+  #ETot <- parms$aE * B / parms$kN
+  rM <- parms$m * B          # maintenance respiration
+  tvrB <- parms$tau*B        # microbial turnover
   if (isTRUE(parms$isEnzymeMassFlux)) {
-    synE <- parms$aE * x["B"]       # total enzyme production per microbial biomass
+    synE <- parms$aE * B       # total enzyme production per microbial biomass
     # growth respiration associated with enzyme production
     respSynE <- (1 - parms$eps)/parms$eps * synE
   } else {
@@ -44,7 +45,7 @@ derivSesam3 <- function(
     respSynE <- 0
   }
   # for revenue, account for enzyme investments also if negleting mass fluxes
-  synERev <- parms$aE * x["B"]
+  synERev <- parms$aE * B
   # declare variables that will be computed/overidden in computeAlphaDependingFluxes
   # else operator '<<-' will override bindings in global environment
   tvrER <- tvrEL  <- decR <- decL <- tvrERecycling <- uC <-
@@ -101,7 +102,7 @@ derivSesam3 <- function(
     alphaC, alphaN, CsynBN, CsynBC
     , NsynBC = parms$eps*CsynBC/cnB, NsynBN)
   # microbial community change as fast as microbial turnover
-  dAlpha <- (alphaTarget - alpha) * parms$tau
+  dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
   #
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
   respO <- uC - (synE + respSynE + synB + rG + rM)
@@ -169,8 +170,8 @@ derivSesam3 <- function(
   if (isTRUE(parms$isFixedI)) { resDeriv["dI"] <-  0   }
   #
   # further computations just for output for tacking the system
-  ER <- alpha * parms$aE * x["B"] / parms$kN
-  EL <- (1 - alpha) * parms$aE * x["B"] / parms$kN
+  ER <- alpha * parms$aE * B / parms$kN
+  EL <- (1 - alpha) * parms$aE * B / parms$kN
   limER <- ER / (parms$kmR + ER)
   limEL <- EL / (parms$kmL + EL)
   revRC <- decRp / (parms$km*parms$kN + alphaC*synERev)

@@ -6,11 +6,7 @@ derivSesam4a <- function(
   ### Soil Enzyme Steady Allocation model with detailed turnover
   t,x,parms
 ){
-  ##details<<
-  ## Simplified version of sesam3s
-  ## model corresponding to Seam3 with enzyme levels computed by quasi steady state
-  ## Alpha as an explicit state variable that changes with turnover
-  ## Simplified computation of target based on current revenue based on current alpha
+  xOrig <- x
   x <- pmax(unlist(x),1e-16)      # no negative masses
   # compute steady state enzyme levels for N and for C limitation
   dRPot <- parms$kR * x["R"]
@@ -91,7 +87,7 @@ derivSesam4a <- function(
   )
   alphaTarget <- resBalance$alpha
   # microbial community change as fast as microbial turnover
-  dAlpha <- (alphaTarget - alpha) * (tvrB + tvrBPred)/B
+  dAlpha <- (alphaTarget - alpha) * (abs(synB) + tvrB + tvrBPred)/B
   #
 
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
@@ -114,6 +110,7 @@ derivSesam4a <- function(
   PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE + tvrBOrg*(1 - cW)/cpBL)
   #
   dB <- synB - tvrB - tvrBPred
+  if ((xOrig["B"] <= 1e-16) && (dB < 0)) dB <- 0
   dL <- -decL  + parms$iL
   dLN <- -decL/cnL   + parms$iL/parms$cnIL
   dLP <- -decL/cpL   + parms$iL/parms$cpIL
