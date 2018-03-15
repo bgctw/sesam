@@ -197,7 +197,7 @@ derivSeam3a <- function(
 
 balanceAlphaBetweenCNLimitationsExp <- function(
   ### compute balance between alphaC and alphaN based on C and N based biomass synthesis
-  alphaC, alphaN, CsynBN, CsynBC, ..., delta = 10, tauB
+  alphaC, alphaN, CsynBN, CsynBC, ..., delta = 20, tauB
 ){
   ##details<< if there is only small potential of immobilizalization, do a smooth
   ## transition between alphaC and alphaN.

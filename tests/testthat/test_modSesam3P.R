@@ -159,16 +159,22 @@ test_that("balanceAlphaBetweenElementLimitations",{
      alphaBs <- sapply(epsNs, function(epsN){
        CsynBE <- c(CsynBC = 40, CsynBN = 40 - epsN, CSynBP = 6000)
        alphaBalanced <- balanceAlphaBetweenElementLimitations(
-         alpha, CsynBE, tauB = 1, delta = 10)$alpha
+         alpha, CsynBE, tauB = 1, delta = 5)$alpha
          #alpha, CsynBE, tauB = 1)#, ce, eps  )
      })
      plot(alphaBs ~ epsNs, type = "l")
      alphaBs10 <- sapply(epsNs, function(epsN){
        CsynBE <- c(CsynBC = 40, CsynBN = 40 - epsN, CSynBP = 6000)
        alphaBalanced <- balanceAlphaBetweenElementLimitations(
-         alpha, CsynBE, tauB = 1, delta = 5)$alpha
+         alpha, CsynBE, tauB = 1, delta = 10)$alpha
      })
      lines(alphaBs10 ~ epsNs, lty = "dashed")
+     alphaBs20 <- sapply(epsNs, function(epsN){
+       CsynBE <- c(CsynBC = 40, CsynBN = 40 - epsN, CSynBP = 6000)
+       alphaBalanced <- balanceAlphaBetweenElementLimitations(
+         alpha, CsynBE, tauB = 1, delta = 20)$alpha
+     })
+     lines(alphaBs20 ~ epsNs, lty = "dotted")
   }
   #
   scen <- "strongly C - limited (negative synthesis)"
@@ -204,14 +210,16 @@ test_that("same as sesam3s for fixed substrates", {
   xEExp <- unlist(tail(resExp,1))
   expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
   expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  x0EExp2 <- xETest[2:11]; x0EExp2[names(xEExp[2:8])] <- xEExp[2:8]
   .tmp.f <- function(){
-    derivSesam3P(0, xETest[c(2:7)], within(parmsFixedS, isRecover <- TRUE))
-    derivSesam3P(0, xEExp[c(3:8)], within(parmsFixedS, isRecover <- TRUE))
+    derivSesam3P(0, xETest[c(2:11)], within(parmsFixedS, isRecover <- TRUE))
+    derivSesam3P(0, x0EExp2, within(parmsFixedS, isRecover <- TRUE))
     derivSesam3s(0, xEExp[c(2:8)], within(parmsFixedS, isRecover <- TRUE))
   }
   #
   # N limitation
   #times <- seq(0,2100, length.out = 101)
+  times <- seq(0, 8100, length.out = 2)
   resTest <- as.data.frame(lsoda( x0Nlim, times, derivSesam3P, parms = parmsFixedS))
   resExp <- as.data.frame(lsoda(
     getX0NoP(x0Nlim), times, derivSesam3s

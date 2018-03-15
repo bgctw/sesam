@@ -257,7 +257,7 @@ test_that("same as sesam3s with substrate feedbacks", {
   xEExp <- unlist(tail(resExp,1))
   expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 1e-6)
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
-  expect_equal( xETest[2:7], xEExp[c(3:8)], tolerance = 1e-6)
+  expect_equal( xETest[2:7], xEExp[c(3:8)], tolerance = 5e-3)
   #rbind(xEExp[names(xETest)], xETest)
   #
   # from C to N limitation

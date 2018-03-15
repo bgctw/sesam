@@ -153,15 +153,16 @@ testParmsScen <- function(parmsInit){
   #
   # NP col-limitation
   x0Plim <- x0Nlim; x0Plim["IP"] <- 0
+  parmsInitPlim <- within(parmsInit, cpIL <- 160)
   #times <- seq(0,2100, length.out = 101)
   resExp <- as.data.frame(lsoda(
     getX0NoP(x0Plim), times, derivSesam3s
-    , parms = within(parmsInit, {epsTvr <- epsPred})))
+    , parms = within(parmsInitPlim, {epsTvr <- epsPred})))
   #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xEExp <- unlist(tail(resExp,1))
   resTest <- as.data.frame(lsoda(
     x0Plim, times, derivSesam4a
-    , parms = within(parmsInit,{tauP <- tau/xEExp["B"]; tau <- 0})))
+    , parms = within(parmsInitPlim,{tauP <- tau/xEExp["B"]; tau <- 0})))
   xETest <- unlist(tail(resTest,1))
   expect_true( xETest["alpha"] < xEExp["alpha"])
   # interestingly this leads to slightly higher biomass under colimitation

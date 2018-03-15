@@ -49,7 +49,11 @@ derivSesam4a <- function(
   tvrBMin <- (1 - parms$epsP)*tvrBPred
   #
   tvrERecycling <- parms$kNB*synE
-  uNOrg <- parms$nu*(decL/cnL + decR/cnR + tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)
+  decNLR <- decL/cnL + decR/cnR
+  decNE <- tvrERecycling/cnE
+  decNB <- tvrBOrg*(1 - cW)/cnBL
+  uNOrg <- parms$nu*(decNLR + decNE + decNB)
+  #uNOrg <- parms$nu*(decL/cnL + decR/cnR + tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)
   uPOrg <- parms$nuP*(decL/cpL + decR/cpR + tvrERecycling/cpE + tvrBOrg*(1 - cW)/cpBL)
   uC <- decL + decR + tvrERecycling + tvrBOrg*(1 - cW)
   CsynBC <- uC - rM - synE/parms$eps
@@ -235,6 +239,7 @@ derivSesam4a <- function(
     , cpR = as.numeric(cpR), cpL = as.numeric(cpL)
     , limER = as.numeric(limER), limEL = as.numeric(limEL)
     , decR = as.numeric(decR), decL = as.numeric(decL)
+    , synB = as.numeric(synB)
     , tvrB = as.numeric(tvrB)
     , tvrBPred = as.numeric(tvrBPred)
     , revRC = as.numeric(revRC), revLC = as.numeric(revLC)
@@ -244,6 +249,8 @@ derivSesam4a <- function(
     , CsynBC = as.numeric(CsynBC)
     , CsynBN = as.numeric(CsynBN)
     , CsynBP = as.numeric(CsynBP)
+    , uptakeC = as.numeric(uC)
+    , decNLR = as.numeric(decNLR) ,decNE = as.numeric(decNE), decNB = as.numeric(decNB)
     #, pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) )
     #, NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
     #, dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)
@@ -259,7 +266,7 @@ balanceAlphaBetweenElementLimitations <- function(
   alpha    ##<< numeric vector of allocation coefficients for different elements
   , CsynBE ##<< numeric vector of carbon availale for biomass synthesis
   , tauB   ##<< numeric scalar: typical microbial turnover flux for scaling
-  , delta = 10  ##<< scalar smoothing factor, the higher, the steeper the transition
+  , delta = 20  ##<< scalar smoothing factor, the higher, the steeper the transition
 ){
   ##details<< Select the alpha corresponding to the smallest CsynBE.
   ## However, if elemental limitations are close,
