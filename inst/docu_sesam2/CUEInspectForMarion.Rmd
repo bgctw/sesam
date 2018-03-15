@@ -35,7 +35,8 @@ themeDefault <- theme_classic()
 ```
 
 ### Setup parameters and drivers
-Mass units are $gC/m^2$ or $gN/m^2$. Time unit is $yr$.
+Mass units are $gC/m^2$, $gN/m^2$ or $gP/m^2$. Time unit is $yr$.
+
 ```{r echo=TRUE, message=FALSE, warning=FALSE}
 require(sesam)
 
@@ -44,7 +45,7 @@ parms0 <- list(
   , cnBW = 8.4    ##<< C/N ratio of cell material that go to R (cell walls) NRSOM Tipping 16
   , cnE = 3.2     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
   , cnIR = 4.5     ##<< between micr and enzyme signal
-  , cnIL = 30      ##<< N poor substrate
+  , cnIL = 30      ##<< N litter OM
   , kN = 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
   , kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of R)
   , kR = 1/(50)    ##<< 1/(x years)
@@ -101,13 +102,13 @@ For simplicity model drivers are currently prescibed as constant parameters.
 ```{r}
 drivers <- list(
   iR = 0           ##<< input of residue litter
-  , iL = 400       ##<< g/m2 input per year (half NPP)
+  , iL = 400       ##<< input of labile litter
   , cnIR = 7       ##<< C/N ratio of the residue litter input
   , cnIL = 30      ##<< C/N ratio of labile litter input
   , cpIR = 40      ##<< C/P ratio of the residue litter input
   , cpIL = 919     ##<< C/P ratio of the labile litter input, NPSOM Tipping16
   , iI = 0         ##<< input of mineral N
-  , iIP = 0        ##<< input of mineral labile P
+  , iIP = 0        ##<< input of labile mineral P
 )
 parms0 <- c(parms0[setdiff(names(parms0),names(drivers))], drivers)
 ```
@@ -115,15 +116,15 @@ parms0 <- c(parms0[setdiff(names(parms0),names(drivers))], drivers)
 The initial pools must be specified. 
 ```{r}
 x0 <- c( #aE = 0.001*365
-  B = 17                    ##<< microbial biomass 
-  , R = 1100                ##<< C rich substrate
-  , RN = 1100/parms0$cnIR   ##<< N rich substrate 
-  , RP = 1100/parms0$cpIR   ##<< P rich substrate 
-  , L = 100                 ##<< C poor substrate
-  , LN = 100/parms0$cnIL    ##<< N poor substrate 
-  , LP = 100/parms0$cpIL    ##<< P poor substrate 
-  , I =  0.01                ##<< inorganic pool gN/m2
-  , IP =  0.01               ##<< inorganic pool gN/m2, no P limitation
+  B = 17                    ##<< microbial biomass in C units
+  , R = 1100                ##<< C residue OM
+  , RN = 1100/parms0$cnIR   ##<< N residue OM 
+  , RP = 1100/parms0$cpIR   ##<< P residue OM 
+  , L = 100                 ##<< C litter OM
+  , LN = 100/parms0$cnIL    ##<< N litter OM 
+  , LP = 100/parms0$cpIL    ##<< P litter OM 
+  , I =  0.01               ##<< inorganic pool 
+  , IP =  0.01              ##<< inorganic pool 
   , alpha = 0.5             ##<< microbial community partitioning [0,1]
 )
 ```
@@ -140,7 +141,6 @@ The first simulation runs to steady state for given parameters.
 Plot approaching the steady state.
 ```{r echo=FALSE}
 resC <- res %>% filter(time <= 300)  %>% cueSesam # constrained period
-ggplot( resC, aes(time, B)) + geom_line()
 ggplot( resC, aes(time, L)) + geom_line()
 ggplot( resC, aes(time, R)) + geom_line()
 # microbial turnover
@@ -165,6 +165,9 @@ ggplot( resAgg, aes(time, value, color = variable, linetype = variable)) + geom_
 # CUE
 resAgg <- resC %>% select(time, cueDef, cueSyn) %>% gather(key = "variable", "value", -time)
 ggplot( resAgg, aes(time, value, color = variable, linetype = variable)) + geom_line()
+
+ggplot( resC, aes(time, B)) + geom_line()
+ggplot( resC, aes(time, L + R + B)) + geom_line()
 ```
 
 # CN scenarios
@@ -214,10 +217,12 @@ resAgg <- xEs %>% mutate(tvrBTotal = tvrB + tvrBPred) %>% select(cnIL, tvrBTotal
 ggplot( resAgg, aes(cnIL, value, color = variable, linetype = variable)) + geom_line()
 
 ggplot(xEs, aes(cnIL, L + R + B)) + geom_point()
+```
+
+```{r echo=FALSE}
 # CUE
 resAgg <- cueSesam(xEs) %>% select(cnIL, cueDef, cueSyn) %>% gather(key = "variable", "value", -cnIL)
 ggplot( resAgg, aes(cnIL, value, color = variable, linetype = variable)) + geom_line()
-
 ```
 
 In steady state, microbes are C -limited up to litter C:N ratios of about 55.
@@ -231,9 +236,14 @@ inputs.
 Up to this point where N actually limits microbial growth, stocks do not change.
 Afterwards they decrease together with microbial biomass stocks and CUE.
 
-Note, also that due apparent CUE is lower than the intrinsic catabolic CUE, $\epsilon = 0.5$,
+Note, also that apparent CUE is lower than the intrinsic catabolic CUE, $\epsilon = 0.5$,
 due to investments into enzymes and maintenance that decrease the C available for
 biomass synthesis. 
 Basing CUE on adding microbial biomass synthesis and measured respiration 
-(including respiration by predation)
-yields similar estimates as those based on modeled microbial uptake.
+(including respiration by predation), $cue_{Syn}$,
+yields similar estimates as those based on modeled microbial uptake, $cue_{Def}$.
+
+```{r}
+
+```
+
