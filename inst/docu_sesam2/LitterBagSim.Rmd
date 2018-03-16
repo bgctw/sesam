@@ -219,6 +219,8 @@ The initial missing N accumulation which is ascribed to lower CUE in Manzoni17,
 is probably due to limitation of immobilization flux.
 But what can we learn from it?
 
+TODO: show a simulation with limited immobilization flux.
+
 
 ## Oscillations
 There are curious oscillarions.

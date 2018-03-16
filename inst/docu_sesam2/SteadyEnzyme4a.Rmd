@@ -1,0 +1,57 @@
+---
+title: "SESAM4a with more detailed microbial turnover"
+output: html_notebook
+---
+
+The SEAM and SESAM3 model microbial turnover first order to microbial biomass.
+A fraction of the turnover is mineralized due to predation.
+
+# Scaling turnover rate with pool size
+We hypothesize that increasing the predation turnover rate with microbial biomass
+in SESAM4 helps to avoid the unreasonable long priming time scales observed with these 
+models.
+
+There are now three microbial turnover fluxes.
+
+- turnover by predation: $\operatorname{tvr}_{B,pred}$
+- turnover by starvation, i.e. uptake < enzyme synthesis + maintenance: $\operatorname{tvr}_{B,starv}$
+- turnover by other causes: $\operatorname{tvr}_{B}$
+
+$$
+\begin{align}
+\operatorname{tvr}_{B,pred} &= \tau_P (B-B_0) B \\
+\operatorname{tvr}_{B,starv} &= min(0, -\operatorname{syn}_B) \\
+\operatorname{tvr}_{B} &= \tau B \\
+\end{align}
+$$
+
+Parameter $B_0$ ensures that predation ceases if microbial biomass is too scarce.
+
+If C available for biomass synthesis is negtive, current microbial biomass becomes
+a source for enzyme production and associated catabolic requirements and for maintenance respiration.
+
+
+## Tests
+simplified model with $\tau = 0$ and $B_0 = 0$.
+
+# Differential stoichiometry of lysed cell material
+Moreover, SESAM4 explicitly models the return of mircobial turnover to DOM and 
+to re-uptake. This shortcut C flux has not been explicitly presented in SEAM and SESAM3
+because it just scaled the parameters: turnover rate $\tau$, 
+catabolic C use efficiency $\epsilon$ with QSS for DOM where uptake equals DOM input fluxes
+
+SESAM4 implements different stoichiometry of lysed cell material returned to DOM and of 
+cell wall more C rich material transferred to residue pool, $R$. In order
+to mass balance all element, the explicit flux is now necessary.
+
+If the stoichiometric E:C ratios of biomass, $\beta_B$, and cell wall material,
+$\beta_W$, and the fraction of cell wall material, $c_W$ are given, the 
+stoichiometic ratio of the lysed material can be computed as:
+
+$$
+\begin{align}
+\beta_B B = c_w \beta_{W} B + (1 - c_w) \beta_L B \\
+\beta_B = c_w \beta_W + (1 - c_w) \beta_L \\
+\beta_L = \frac{\beta_B  - c_w \beta_W}{ (1 - c_w)} \\
+\end{align}
+$$
