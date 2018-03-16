@@ -17,6 +17,9 @@ MultiPoolFractions_updateElement <- function(
   .self$tot[poolNames] <- sapply(poolNames, function(poolName){
     sum(fracEl[[poolName]]*units)
   })
+  .self$rel[poolNames] <- lapply(poolNames, function(poolName){
+    fracEl[[poolName]]*units/.self$tot[poolName]
+  })
   .self
 }
 
@@ -34,7 +37,7 @@ MultiPoolFractions_getPoolStatesMap <- function(
 
 
 MultiPoolFractions_updateScalars <- function(
-  ### set states for given scalar
+  ### set states for given scalars, i.e. pools that are not devided into fractions
   .self       ##<< MultiPoolFractions object updated
   , x         ##<< numeric vector of state variables
   , poolNames ##<< numeric vector of pools that are scalars
@@ -43,6 +46,7 @@ MultiPoolFractions_updateScalars <- function(
   .self$frac[poolNames] <- structure(lapply(poolNames, function(poolName){
     structure(x[poolName], names = poolName)}), names = poolNames)
   .self$tot[poolNames] <- x[poolNames]
+  .self$rel[poolNames] <- 1
   .self
 }
 
@@ -50,9 +54,10 @@ MultiPoolFractions_updateScalars <- function(
 MulitPoolFractions <- list(
   ##describe<<
   className = "MultiPoolFractions"    ##<< string to identify the class
-  , frac = list()           ##<< list for each pool
+  , frac = list()   ##<< pool-list of state variable vector
     ##  with a named numeric vector of state variables
-  , tot = numeric()         ##<< named numeric vector with sums for each pool
+  , tot = numeric() ##<< named numeric vector with sums for each pool
+  , rel = list()    ##<< pool-list of state variable vector normalized by total
   , updateElement = MultiPoolFractions_updateElement  ##<< function
     ## to update frac and tot of fractions from given state vector
   , updateScalars = MultiPoolFractions_updateScalars
