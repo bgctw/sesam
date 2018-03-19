@@ -9,7 +9,7 @@ test_that("MultiPoolFractions amend through all fractions", {
   x <- createMultiPoolFractions(units, setX = createSesam4setX(units))
   expect_equal( x$units, units)
   x <- x$setX(x, numeric())
-  expect_equal( x$poolNames(x), c("B","R","L","RN","LN","I","RP","LP","IP","alpha"))
+  expect_equal( x$poolNames(x), c("B","R","L","BN","RN","LN","I","BP","RP","LP","IP","alpha"))
   expect_true( all( c("R_SOM","R_amend","RP_SOM","alpha") %in% x$stateNames(x) ))
   #.self <- x  # rm(.self)  # poolName <- "RP"
   x0 <- structure(seq_along(x$stateNames(x)), names = x$stateNames(x))
@@ -37,7 +37,7 @@ test_that("MultiPoolFractions 13C 14N, noPIso", {
   )
   x <- createMultiPoolFractions(units, setX = createSesam4CNsetX(units))
   x <- x$setX(x, numeric())
-  expect_equal( x$poolNames(x), c("B","R","L","RN","LN","I","RP","LP","IP","alpha"))
+  expect_equal( x$poolNames(x), c("B","R","L","BN","RN","LN","I","BP","RP","LP","IP","alpha"))
   expect_true( all( c("R_C12","R_C13","RN_N14","alpha","RP") %in% x$stateNames(x) ))
   #.self <- x  # rm(.self)  # poolName <- "RP"
   x0 <- structure(seq_along(x$stateNames(x)), names = x$stateNames(x))

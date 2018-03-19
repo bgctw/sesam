@@ -94,9 +94,9 @@ createSesam4setX <- function(
   .poolStatesMapC <- MultiPoolFractions_getPoolStatesMap(
     names(units$C), c("B","R","L"))
   .poolStatesMapN <- MultiPoolFractions_getPoolStatesMap(
-    names(units$N), c("RN","LN","I"))
+    names(units$N), c("BN","RN","LN","I"))
   .poolStatesMapP <- MultiPoolFractions_getPoolStatesMap(
-    names(units$P), c("RP","LP","IP"))
+    names(units$P), c("BP","RP","LP","IP"))
   ##value<< a function that properly updates frac and tot in .self
   function(.self,x){
     .self <- .self$updateElement(.self, x, "C", .poolStatesMapC)
@@ -111,7 +111,7 @@ createSesam4CNsetX <- function(
   ### create a setter function for MultiPoolFfractions for Sesam4 for CN isotopes
   units  ## list for C,N with a named numeric vector of fractions in these pools
 ){
-  .scalarPools <- c("RP", "LP", "IP", "alpha")
+  .scalarPools <- c("BP","RP", "LP", "IP", "alpha")
   required <- c("C","N")
   iMissing <- which( !(required %in% names(units)) )
   if (length(iMissing)) stop(
@@ -119,7 +119,7 @@ createSesam4CNsetX <- function(
   .poolStatesMapC <- MultiPoolFractions_getPoolStatesMap(
     names(units$C), c("B","R","L"))
   .poolStatesMapN <- MultiPoolFractions_getPoolStatesMap(
-    names(units$N), c("RN","LN","I"))
+    names(units$N), c("BN","RN","LN","I"))
   ##value<< a function that properly updates frac and tot in .self
   function(.self,x){
     .self <- .self$updateElement(.self, x, "C", .poolStatesMapC)
