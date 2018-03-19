@@ -18,7 +18,7 @@ MultiPoolFractions_updateElement <- function(
     sum(fracEl[[poolName]]*units)
   })
   .self$rel[poolNames] <- lapply(poolNames, function(poolName){
-    fracEl[[poolName]]*units/.self$tot[poolName]
+    fracEl[[poolName]]/.self$tot[poolName]
   })
   .self
 }

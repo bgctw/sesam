@@ -21,9 +21,13 @@ test_that("MultiPoolFractions amend through all fractions", {
   expect_equivalent( x$tot["R"], sum(x0[c("R_SOM","R_amend")]*units$C))
   expect_equivalent( x$tot["RN"], sum(x0[c("RN_SOM","RN_amend")]*units$N))
   expect_equivalent( x$rel[["alpha"]], 1)
-  expect_equivalent( x$rel[["R"]], x$frac[["R"]]*units$C/x$tot["R"])
-  expect_equivalent( x$rel[["RN"]], x$frac[["RN"]]*units$N/x$tot["RN"])
-  expect_true( all(sapply(x$rel, sum) - 1 < 1e-12) )
+  expect_equivalent( x$rel[["R"]], x$frac[["R"]]/x$tot["R"])
+  expect_equivalent( x$rel[["RN"]], x$frac[["RN"]]/x$tot["RN"])
+  # reli <- x$rel[["B"]]
+  expect_true( all(sapply(x$rel[c("B","R","L")], function(reli) sum(reli * units$C)) - 1 < 1e-12) )
+  expect_true( all(sapply(x$rel[c("RN","LN","I")], function(reli) sum(reli * units$N)) - 1 < 1e-12) )
+  expect_true( all(sapply(x$rel[c("RP","LP","IP")], function(reli) sum(reli * units$P)) - 1 < 1e-12) )
+  expect_true( all(unlist(x$rel[["alpha"]]) - 1 < 1e-12) )
 })
 
 test_that("MultiPoolFractions 13C 14N, noPIso", {
@@ -45,9 +49,12 @@ test_that("MultiPoolFractions 13C 14N, noPIso", {
   expect_equivalent( x$tot["R"], sum(x0[c("R_C12","R_C13","R_C14")]*units$C))
   expect_equivalent( x$tot["RN"], sum(x0[c("RN_N14","RN_N15")]*units$N))
   expect_equivalent( x$rel[["alpha"]], 1)
-  expect_equivalent( x$rel[["R"]], x$frac[["R"]]*units$C/x$tot["R"])
-  expect_equivalent( x$rel[["RN"]], x$frac[["RN"]]*units$N/x$tot["RN"])
-  expect_true( all(sapply(x$rel, sum) - 1 < 1e-12) )
+  expect_equivalent( x$rel[["R"]], x$frac[["R"]]/x$tot["R"])
+  expect_equivalent( x$rel[["RN"]], x$frac[["RN"]]/x$tot["RN"])
+  expect_true( all(sapply(x$rel[c("B","R","L")], function(reli) sum(reli * units$C)) - 1 < 1e-12) )
+  expect_true( all(sapply(x$rel[c("RN","LN","I")], function(reli) sum(reli * units$N)) - 1 < 1e-12) )
+  expect_true( all(sapply(x$rel[c("RP","LP","IP")], function(reli) sum(reli * units$P)) - 1 < 1e-12) )
+  expect_true( all(unlist(x$rel[["alpha"]]) - 1 < 1e-12) )
 })
 
 
