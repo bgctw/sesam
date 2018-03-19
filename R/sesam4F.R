@@ -55,19 +55,23 @@ derivSesam4F <- function(
   #uNOrg <- parms$nu*(decL/cnL + decR/cnR + tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)
   uPOrg <- parms$nuP*(decL/cpL + decR/cpR + tvrERecycling/cpE + tvrBOrg*(1 - cW)/cpBL)
   uC <- decL + decR + tvrERecycling + tvrBOrg*(1 - cW)
+  relUC <- (decL*x$rel[["L"]] + decR*x$rel[["R"]] + (tvrERecycling + tvrBOrg*(1 - cW))*x$rel[["B"]])/uC
   CsynBC <- uC - rM - synE/parms$eps
   CsynBN <- cnB/parms$eps*(uNOrg + immoPot - synE/cnE)
   CsynBP <- cpB/parms$eps*(uPOrg + immoPPot - synE/cpE)
   CsynB <- min(CsynBC, CsynBN, CsynBP)
   if (CsynB > 0) {
+    recycB <- 0
     synB <- parms$eps*CsynB
-    rG <- (1 - parms$eps)*CsynB
   } else {
-    synB <- CsynB # with negative biomass change, do growth respiration
-    rG <- 0
+    # with negative biomass change, no growth respiration but
+    # microbial recycling
+    recycB <- -CsynB
+    synB <- 0
   }
-  PhiB <- uNOrg - synB/cnB - synE/cnE
-  PhiPB <- uPOrg - synB/cpB - synE/cpE
+  rG <- (1 - parms$eps)*synB
+  PhiB <- uNOrg + recycB/cnB - synB/cnB - synE/cnE
+  PhiPB <- uPOrg + recycB/cpB - synB/cpB - synE/cpE
   alphaC <- computeSesam3sAllocationPartitioning(
     dR = dRPot, dL = dLPot, B = B
     , kmkN = kmN, aE = parms$aE
@@ -90,11 +94,11 @@ derivSesam4F <- function(
   )
   alphaTarget <- resBalance$alpha
   # microbial community change as fast as microbial turnover
-  dAlpha <- (alphaTarget - alpha) * (abs(synB) + tvrB + tvrBPred)/B
+  dAlpha <- (alphaTarget - alpha) * (synB + recycB + tvrB + tvrBPred)/B
   #
 
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
-  respO <- uC - (synE/parms$eps + synB + rG + rM)
+  respO <- uC + recycB - (synE/parms$eps + synB + rG + rM)
   respTvr <- (1 - parms$epsP) * tvrBPred
   # assuming same cnRatio of predators to equal cn ratio of microbes
   PhiTvr <- respTvr/parms$cnB
@@ -107,12 +111,12 @@ derivSesam4F <- function(
   # fluxes leaving the system (will be set in scen where trv does not feed back)
   tvrExC <- tvrExN <- tvrExP <- 0
   #
-  leach <- parms$l*x["I"]
+  leach <- parms$l*x$tot["I"]
   PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)
-  leachP <- parms$lP*x["IP"]
+  leachP <- parms$lP*x$tot["IP"]
   PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE + tvrBOrg*(1 - cW)/cpBL)
   #
-  dB <- synB*relUC - (tvrB + tvrBPred)*x$rel[["B"]]
+  dB <- synB*relUC - (recycB + tvrB + tvrBPred)*x$rel[["B"]]
   dBTot <- sum(dB*x$units)
   if ((xOrig["B"] <= 1e-16) && (dBTot < 0)) dB[] <- dBTot <- 0
   dL <- -decL*x$rel[[L]]  + parms$iL*parms$relIL
@@ -151,13 +155,13 @@ derivSesam4F <- function(
   respB <- (synE)/parms$eps*(1 - parms$eps)  + rG + rM + respO
   resp <- respB + respTvr
   # biomass mass balance
-  if (diff( unlist(c(uC = uC, usage = respB + synB + synE )))^2 > sqrEps )  stop(
+  if (diff( unlist(c(uC = uC + recycB, usage = respB + synB + synE )))^2 > sqrEps )  stop(
     "biomass mass balance C error")
   if (diff( unlist(
-    c(uN = uNOrg, usage = synE/parms$cnE + synB/parms$cnB + PhiB )))^2 >
+    c(uN = uNOrg + recycB/cnB, usage = synE/parms$cnE + synB/parms$cnB + PhiB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   if (diff( unlist(
-    c(uP = uPOrg, usage = synE/parms$cpE + synB/parms$cpB + PhiPB )))^2 >
+    c(uP = uPOrg + recycB/cpB, usage = synE/parms$cpE + synB/parms$cpB + PhiPB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   # biomass turnover mass balance
   if (diff( unlist(c(tvrB + tvrBPred, usage = respTvr + tvrBOrg )))^2 > sqrEps )  stop(
@@ -241,6 +245,7 @@ derivSesam4F <- function(
     , limER = as.numeric(limER), limEL = as.numeric(limEL)
     , decR = as.numeric(decR), decL = as.numeric(decL)
     , synB = as.numeric(synB)
+    , recycB = as.numeric(recycB)
     , tvrB = as.numeric(tvrB)
     , tvrBPred = as.numeric(tvrBPred)
     , revRC = as.numeric(revRC), revLC = as.numeric(revLC)

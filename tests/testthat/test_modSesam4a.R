@@ -169,6 +169,23 @@ testParmsScen <- function(parmsInit){
   # expect_true( xETest["B"] < xEExp["B"])
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-2)
   #expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  #
+  # Microbial starvation
+  x0Starv <- x0; x0Starv["B"] <- 80
+  times <- seq(0, 2100, length.out = 2)
+  #times <- seq(0,2100, length.out = 101)
+  resExp <- as.data.frame(lsoda(
+    getX0NoP(x0Starv), times, derivSesam3s
+    , parms = within(parmsInit, {epsTvr <- epsPred})))
+  #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
+  xEExp <- unlist(tail(resExp,1))
+  resTest <- as.data.frame(lsoda(
+    x0Starv, times, derivSesam4a
+    , parms = within(parmsInit,{tauP <- tau/xEExp["B"]; tau <- 0})))
+  xETest <- unlist(tail(resTest,1))
+  expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
+  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  xEExp2 <- xETest[2:11]; xEExp2[names(xEExp[c(2:8)])] <- xEExp[c(2:8)]
 }
 
 .tmp.f <- function(){

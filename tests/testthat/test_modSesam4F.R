@@ -54,6 +54,17 @@ parms0 <- list(
   , B0 = 0  # minimal biomass, below which predation rate is zero
   , tauP = 0.1 # slope of predation rate with biomass
 )
+
+# setup splitting all pools into SOM and amend
+elements <- c("C","N","P")
+units <- structure(lapply(elements, function(el) c(SOM = 1, amend = 1))
+                   , names = elements)
+parms0 <- within(parms0,{
+  multiPoolFractions <- createMultiPoolFractions(
+    units, setX = createSesam4setX(units))
+  relIL <- c(SOM = 0, amend = 1)
+  relIR <- c(SOM = 0, amend = 1)
+})
 parms0 <- within(parms0,{
   kmR <- kmL <- km
   eps1 <- eps2 <- eps
@@ -66,54 +77,52 @@ parms0 <- within(parms0,{
   kIPPlant <- kIPlant  # plant uptake rate of P equals that of N
   iIP <- l      # assume no P inputs compensate for leaching
 })
-# for compatibility set
-# C:N:P ratio of cell walls to that of biomass
-# all cell walls (all goes to R)
-# all predation turnover starting from zero biomass
-parms0C <- within(parms0,{
-  cnBW <- cnB
-  cpBW <- cpB
-  cW <- 1.0
-  B0 <- 0
-  tauP <- tau
-})
-
-parms <- parms0C
 
 x0 <- x0Orig <- c( #aE = 0.001*365
-  B = 20                     ##<< microbial biomass
-  , R = 7000                 ##<< N rich substrate
-  , RN = 7000/parms0$cnIR    ##<< N rich substrate N pool
-  , RP = 7000/parms0$cpIR
-  , L = 200                  ##<< N poor substrate
-  , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
-  , LP = 200/parms0$cpIL     ##<< N poor substrate P pool
-  , I =  1                   ##<< inorganic N pool
-  , IP =  1                  ##<< inorganic P pool
+  B_SOM = 20                     ##<< microbial biomass
+  , R_SOM = 7000                 ##<< N rich substrate
+  , L_SOM = 200                  ##<< N poor substrate
+  , RN_SOM = 7000/parms0$cnIR    ##<< N rich substrate N pool
+  , LN_SOM = 200/parms0$cnIL     ##<< N poor substrate N pool
+  , I_SOM =  1                   ##<< inorganic N pool
+  , RP_SOM = 7000/parms0$cpIR
+  , LP_SOM = 200/parms0$cpIL     ##<< N poor substrate P pool
+  , IP_SOM =  1                  ##<< inorganic P pool
+  , B_amend = 0                     ##<< microbial biomass
+  , R_amend = 0                 ##<< N rich substrate
+  , L_amend = 0
+  , RN_amend = 0
+  , LN_amend = 0
+  , I_amend =  0
+  , RP_amend = 0
+  , LP_amend = 0
+  , IP_amend =  0
   , alpha = 0.5              ##<< initial community composition
 )
 x <- x0
-getX0NoP <- function(x0){x0[setdiff(names(x0),c("RP","LP","IP","dRP","dLP","dIP"))]}
-getX0NoP(x0)
+getX0Sum <- function(x0){
+  x <- parms0$multiPoolFractions
+  x <- x$setX(x, x0)
+  x$tot
+}
+x0Sum <- getX0Sum(x0)
+test_that("equal initial sum of pools",{
+  expect_equivalent(x0Sum["alpha"], x0["alpha"])
+  expect_equivalent(x0Sum[1:9], x0[1:9])
+})
 
-x0Nlim <- c( #aE = 0.001*365
-  B = 20                     ##<< microbial biomass
-  , R = 1000                 ##<< N rich substrate
-  , RN = 1000/parms0$cnIR    ##<< N rich substrate N pool
-  , RP = 1000/parms0$cpIR
-  , L = 200                  ##<< N poor substrate
-  , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
-  , LP = 200/parms0$cpIL     ##<< N poor substrate P pool
-  , I =  0                   ##<< inorganic N pool
-  , IP =  10                  ##<< inorganic P pool
-  , alpha = 0.5              ##<< initial community composition
-)
 
+x0Nlim <- x0
+.R <- 1000
+x0Nlim["R_SOM"] = .R
+x0Nlim["RN_SOM"] = .R/parms0$cnIR    ##<< N rich substrate N pool
+x0Nlim["RP_SOM"] = .R/parms0$cpIR
+x0NlimSum <- getX0Sum(x0Nlim)
+
+#parmsInit <- parms0
 testParmsScen <- function(parmsInit){
-  ans0 <- derivSesam4a(0, x0, parms = within(
-    parmsInit, {tauP <- tau/x0["B"]; tau <- 0}))
-  ans0E <- derivSesam3a(0, x0, parms = within(
-    parmsInit,{epsTvr <- epsPred}))
+  ans0 <- derivSesam4F(0, x0, parms = parmsInit)
+  ans0E <- derivSesam4a(0, x0Sum, parms = parmsInit)
   expect_equal(getX0NoP(ans0[[1]]), ans0E[[1]], tolerance = 1e-6)
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
@@ -169,6 +178,23 @@ testParmsScen <- function(parmsInit){
   # expect_true( xETest["B"] < xEExp["B"])
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-2)
   #expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  #
+  # Microbial starvation
+  x0Starv <- x0; x0Starv["B"] <- 80
+  times <- seq(0, 2100, length.out = 2)
+  #times <- seq(0,2100, length.out = 101)
+  resExp <- as.data.frame(lsoda(
+    getX0NoP(x0Starv), times, derivSesam3s
+    , parms = within(parmsInit, {epsTvr <- epsPred})))
+  #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
+  xEExp <- unlist(tail(resExp,1))
+  resTest <- as.data.frame(lsoda(
+    x0Starv, times, derivSesam4a
+    , parms = within(parmsInit,{tauP <- tau/xEExp["B"]; tau <- 0})))
+  xETest <- unlist(tail(resTest,1))
+  expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
+  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  xEExp2 <- xETest[2:11]; xEExp2[names(xEExp[c(2:8)])] <- xEExp[c(2:8)]
 }
 
 .tmp.f <- function(){
@@ -194,7 +220,7 @@ testParmsScen <- function(parmsInit){
 }
 
 test_that("same as sesam3s for fixed substrates", {
-  parmsFixedS <- within(parms0C,{
+  parmsFixedS <- within(parms0,{
     isFixedS <- TRUE
   })
   testParmsScen(parmsFixedS)
@@ -202,7 +228,7 @@ test_that("same as sesam3s for fixed substrates", {
 
 
 test_that("mass balance also with feedback to DOM", {
-  parmsInit <- within(parms0C, {isFixedI <- TRUE})
+  parmsInit <- within(parms0, {isFixedI <- TRUE})
   ans0 <- derivSesam4a(0, x0, parms = within(parmsInit, {cW <- 1; B0 <- 0}))
   ans0 <- derivSesam4a(0, x0, parms = within(parmsInit, {cW <- 0; B0 <- 1e20}))
   ans0 <- derivSesam4a(0, x0, parms = parmsInit)
@@ -210,7 +236,7 @@ test_that("mass balance also with feedback to DOM", {
 
 
 test_that("same as sesam2 with substrate feedbacks", {
-  parmsInit <- within(parms0C, {isFixedI <- TRUE})
+  parmsInit <- within(parms0, {isFixedI <- TRUE})
   testParmsScen(parmsInit)
 })
 
@@ -228,7 +254,7 @@ test_that("same as sesam2 with substrate feedbacks", {
 #  within(parmsInit,  : an excessive amount of work (> maxsteps ) was done, but
 #  integration was not successful - increase maxsteps 2: In lsoda(x0CNLim,
 #  times, derivSesam4a, parms = within(parmsInit,  :
-  parmsInit <- within(parms0C, {isFixedI <- TRUE})
+  parmsInit <- within(parms0, {isFixedI <- TRUE})
   # from C to N limitation
   x0CNLim <- x0; x0CNLim["I"] <- 0
   #times <- seq(0,2100, length.out = 2)
