@@ -16,6 +16,7 @@ Most functions do this aspect
 }%itemize
 
 Further misc functionality: \itemize{
+\item Tracking several fractions across pools: \code{\link{createMultiPoolFractions}}
 }%itemize
 
 }%details

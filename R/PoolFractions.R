@@ -5,8 +5,9 @@ MultiPoolFractions_updateElement <- function(
   , x         ##<< numeric vector of state variables
   , element   ##<< scalar string of element to update
   , poolStatesMap ##<< named list with string vector of state variable names
-    ## for each pool, see \code{\link{MultiPoolFractions_getPoolStatesMap}}
+    ## for each pool as returned by \code{\link{MultiPoolFractions_getPoolStatesMap}}
 ){
+  ##seealso<< \code{\link{createMultiPoolFractions}},
   #message("MultiPoolFractions_updateElement for element ", element)
   poolNames <- names(poolStatesMap)
   fracEl <- lapply(poolStatesMap, function(extNames){
@@ -28,20 +29,20 @@ MultiPoolFractions_getPoolStatesMap <- function(
   frac        ##<< numeric vector of fractions for element pools
   , poolNames ##<< numeric vector of pools that are devided into these fractions
 ){
+  ##seealso<< \code{\link{createMultiPoolFractions}},
   ##value<< a list for each pool Name listing the state variable names
   poolStatesMap <- structure(lapply( poolNames, function(poolName){
     extNames <- paste(poolName, frac, sep = "_")
   }), names = poolNames)
 }
 
-
-
 MultiPoolFractions_updateScalars <- function(
   ### set states for given scalars, i.e. pools that are not devided into fractions
   .self       ##<< MultiPoolFractions object updated
   , x         ##<< numeric vector of state variables
-  , poolNames ##<< numeric vector of pools that are scalars
+  , poolNames ##<< string vector of pools that are scalars
 ){
+  ##seealso<< \code{\link{createMultiPoolFractions}},
   # make sure list entry and scalar have the pool name
   .self$frac[poolNames] <- structure(lapply(poolNames, function(poolName){
     structure(x[poolName], names = poolName)}), names = poolNames)
@@ -50,7 +51,7 @@ MultiPoolFractions_updateScalars <- function(
   .self
 }
 
-### An object (list) with list \code{frac} and vector \code{tot}
+### An (list) object as described by \code{\link{createMultiPoolFractions}}.
 MulitPoolFractions <- list(
   ##describe<<
   className = "MultiPoolFractions"    ##<< string to identify the class
@@ -58,34 +59,89 @@ MulitPoolFractions <- list(
     ##  with a named numeric vector of state variables
   , tot = numeric() ##<< named numeric vector with sums for each pool
   , rel = list()    ##<< pool-list of state variable vector normalized by total
+  , stateVec = function(.self){ do.call(c, c(.self$frac, use.names = FALSE)) }
+  #
+  , units = list()
+  , setX = function(.self, x) stop(
+    "need to set specific function, see example createSesam4setX")
   , updateElement = MultiPoolFractions_updateElement  ##<< function
     ## to update frac and tot of fractions from given state vector
   , updateScalars = MultiPoolFractions_updateScalars
-  , setX = function(.self, x) stop(
-    "need to set specific function, see createSesam4setX")
-  , poolNames = function(.self){ names(.self$frac) }
-  , stateNames = function(.self){
-    do.call(c, sapply(.self$frac, function(fraci) names(fraci)))  }
   ##end<<
 )
 
 createMultiPoolFractions <- function(
   ### construct a MultiPoolFractions object
-  units   ## list for each element with a named numeric vector of fractions
+  units   ##<< list for each element with a named numeric vector of fractions
   , setX  ##<< function to set state variable vector, see \code{\link{createSesam4setX}}
 ){
+  ##details<< The example and its comments provide a good documentation on
+  ## how to use a MultiPoolFractions object.
   pf <- MulitPoolFractions
   pf$units <- units
   pf$setX <- setX
+  ##value<< a MultiPoolFractions object
   pf
 }
-
-
+attr(createMultiPoolFractions,"ex") <- function(){
+  units <- list(
+    C = c(C12 = 1, C13 = 0.01, C14 = 1e-12) # 13C in percent, 14C ppt
+    , N = c(N14 = 1, N15 = 0.01) # 15N in percent
+  )
+  cnL = 30; cnB = 8; cnR = 10
+  cpB = 47.3; cpR = 61; cpL = 919
+  x0Vec <- c(B_C12 = 100, B_C13 = 27, B_C14 = 50
+             , R_C12 = 10000, R_C13 = 2700, R_C14 = 5000
+             , L_C12 = 1000, L_C13 = 270, L_C14 = 500
+             , BN_N14 = 100/cnB, BN_N15 = 40/cnB
+             , RN_N14 = 10000/cnR, RN_N15 = 600/cnR
+             , LN_N14 = 1000/cnL, LN_N15 = 500/cnL
+             , I_N14 = 10, I_N15 = 4
+             , BP = 100/cpB, RP = 10000/cpR, LP = 1000/cpL, IP = 2
+             , alpha = 0.5)
+  #
+  # create the Multipoolfractions object and set the state vector
+  x <- createMultiPoolFractions(units, setX = createSesam4CNsetX(units))
+  x <- x$setX(x, x0Vec)
+  #
+  # retrieve the original state vector back, names are sorted according to setX
+  x$stateVec(x)
+  #
+  # totals across fractions for each element
+  x$tot
+  #
+  # fractions for given pool (in units)
+  x$frac[["B"]]
+  # fractions in unit 1
+  x$frac[["B"]] * x$units$C
+  #
+  # relative fractions to total (in units)
+  # this is useful in mutiplying computed totals by its source
+  x$rel[["B"]]
+  # relative fractions sum to 1 at unit 1
+  sum( x$rel[["B"]] * x$units$C )
+}
 
 createSesam4setX <- function(
   ### create a setter function for MultiPoolFfractions for Sesam4
-  units  ## list for C,N,P with a named numeric vector of fractions in these pools
+  units  ##<< list with items C,N,P with a named numeric vector
+    ## of fractions in these pools
 ){
+  ##details<<
+  ## returns a \code{function(.self,x) -> .self} to update a
+  ## MulitPoolFractions object.
+  ## It used \code{.self$updateElement}
+  ## (\code{\link{MultiPoolFractions_updateElement}})
+  ## and \code{.self$updateScalars}
+  ## (\code{\link{MultiPoolFractions_updateScalars}})
+  ## with arguments other than \code{.self} and \code{x}
+  ## from local variables inside the create function (closure), that are
+  ## created using function \code{\link{MultiPoolFractions_getPoolStatesMap}}.
+  ##
+  ## Look at the functions source code.
+  #
+  ##seealso<< \code{\link{createMultiPoolFractions}},
+  ## \code{\link{createSesam4CNsetX}}
   .scalarPools <- c("alpha")
   required <- c("C","N","P")
   iMissing <- which( !(required %in% names(units)) )
@@ -97,7 +153,8 @@ createSesam4setX <- function(
     names(units$N), c("BN","RN","LN","I"))
   .poolStatesMapP <- MultiPoolFractions_getPoolStatesMap(
     names(units$P), c("BP","RP","LP","IP"))
-  ##value<< a function that properly updates frac and tot in .self
+  ##value<< a \code{function(.self,x) -> .self}
+  ## that properly updates state of \code{.self}.
   function(.self,x){
     .self <- .self$updateElement(.self, x, "C", .poolStatesMapC)
     .self <- .self$updateElement(.self, x, "N", .poolStatesMapN)
@@ -106,11 +163,16 @@ createSesam4setX <- function(
     .self
   }
 }
+attr(createSesam4setX,"ex") <- function(){
+  # display source code
+  createSesam4setX
+}
 
 createSesam4CNsetX <- function(
   ### create a setter function for MultiPoolFfractions for Sesam4 for CN isotopes
   units  ## list for C,N with a named numeric vector of fractions in these pools
 ){
+  ##seealso<< \code{\link{createMultiPoolFractions}}
   .scalarPools <- c("BP","RP", "LP", "IP", "alpha")
   required <- c("C","N")
   iMissing <- which( !(required %in% names(units)) )
