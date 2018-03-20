@@ -50,8 +50,77 @@ stoichiometic ratio of the lysed material can be computed as:
 
 $$
 \begin{align}
-\beta_B B = c_w \beta_{W} B + (1 - c_w) \beta_L B \\
-\beta_B = c_w \beta_W + (1 - c_w) \beta_L \\
-\beta_L = \frac{\beta_B  - c_w \beta_W}{ (1 - c_w)} \\
+\beta_B B &= c_w \beta_{W} B + (1 - c_w) \beta_L B \\
+\beta_B &= c_w \beta_W + (1 - c_w) \beta_L \\
+\beta_L &= \frac{\beta_B  - c_w \beta_W}{ (1 - c_w)} \\
 \end{align}
 $$
+# Pool composition of uptake
+
+In quasi steady state for enzymes, a fraction of the produced enzymes are added
+to DOM and uptake, $u_C$, again. The composition of respiration and enzymes, $r_{ui}$ is that
+of the composition of a mix of uptake, $r_{uC}$ and composition of internal microbial recycling due to starvation, $r_i$. Hence the composition of uptake depends by enzyme turnover on the composition of uptake.
+Hence, there is a more involved formula to compute the composition of the uptake flux.
+
+## Carbon 
+$$
+\begin{align}
+u_C &= \operatorname{dec}_R + \operatorname{dec}_L + t_{BD} + t_{ED} \\
+u_C r_{uC}  &= a  + t_{ED} r_{ui} = a + t_{ED} (u_C r_{uC} + i r_{i})/u_{ui} \\
+u_C r_{uC}  u_i &= a  u_i + t_{ED} (u_C r_{uC} + i r_{i}) \\
+u_C r_{uC} ( u_i - t_{ED}) &= a  u_i + t_{ED} i r_{i} \\
+r_{uC} &= \frac{1}{u_C} \frac{a  u_i + t_{ED} i r_{i}}{( u_i - t_{ED})} \\
+\end{align}
+$$
+
+where $t_{BD} = tvr_{B,Org}(1-c_w)$ is the fraction of microbial turnover
+that is added to DOM and uptake again, and $t_{ED} = k_ {NB} a_E B$ is the fraction of enzyme turnover that is added to DOM, and with
+$$
+\begin{align}
+a &= \operatorname{dec}_R r_R + \operatorname{dec}_L r_L + t_{BD} r_B \\
+i &= \operatorname{recyc_B} \\
+u_i &= u_C + i \\
+r_{ui} &= (u_C r_{uC} + i r_{i})/(u_C + i) = (u_C r_{uC} + i r_{i})/u_{ui}\\
+\end{align}
+$$
+A simpler derivation starts from $r_{ui}$:
+
+$$
+\begin{align}
+u_C &= \operatorname{dec}_R + \operatorname{dec}_L + t_{BD} + t_{ED} \\
+u_i &= u_C + i = \operatorname{dec}_R + \operatorname{dec}_L + t_{BD} + t_{ED} + i\\
+r_{ui} u_i &= r_{uC} u_C + r_i i = a + r_{ui} t_{ED} \\
+r_{ui}  &= a / (u_i - t_{ED}) \\
+r_{uC}  &= (r_{ui} u_i - r_i i)/u_C 
+\end{align} 
+$$
+where
+$$
+\begin{align}
+a &= \operatorname{dec}_R r_R + \operatorname{dec}_L r_L + t_{BD} r_B  + i \, r_B\\
+\end{align}
+$$
+and $i$ is microbial starvation, biomass used to fuel enzyme synthesis and maintenance.
+
+## Nitrogen
+For N its similar:
+
+$$
+\begin{align}
+s_N &= \nu (\operatorname{dec}_R/\beta_R + \operatorname{dec}_L/\beta_L + t_{BD}/\beta_{BL}
+ + t_{ED}/\beta_E) + i\beta_B  + \operatorname{imm}_N\\
+s_N r_{sN}  &= a_N  + \nu \, t_{ED} r_{sN} /\beta_E \\
+r_{sN}  &= a_N/(s_N - \nu \,t_{ED}/\beta_E) \\ 
+\end{align}
+$$
+ with
+$$
+\begin{align}
+a_N &= \nu( \operatorname{dec}_R r_R/\beta_R + \operatorname{dec}_L r_L/\beta_L 
++ t_{BD} r_B/\beta_{BL} ) +  i \, r_B \beta_B + \operatorname{imm}_N r_I\\
+\end{align}
+$$
+
+where $\beta_{BL}$ is the C:N ratio of the turnover that is returned to DOM. It is usually more
+rich in N than $\beta_B$, and $\beta_S$ is the isotopic ratio of the OM flux available for 
+synthesis and mineralization, i.e. the sum of organic uptake, immobilization, and starvation.

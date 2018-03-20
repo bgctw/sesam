@@ -62,8 +62,12 @@ units <- structure(lapply(elements, function(el) c(SOM = 1, amend = 1))
 parms0 <- within(parms0,{
   multiPoolFractions <- createMultiPoolFractions(
     units, setX = createSesam4setX(units))
-  relIL <- c(SOM = 0, amend = 1)
-  relIR <- c(SOM = 0, amend = 1)
+  relIL <- list( C = c(SOM = 0, amend = 1))
+  relIL$N <- relIL$P <- relIL$C
+  relIR <- list(C = c(SOM = 0, amend = 1))
+  relIR$N <- relIR$P <- relIR$C
+  relII <- c(SOM = 0, amend = 1)
+  relIIP <- c(SOM = 0, amend = 1)
 })
 parms0 <- within(parms0,{
   kmR <- kmL <- km
@@ -82,33 +86,39 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   B_SOM = 20                     ##<< microbial biomass
   , R_SOM = 7000                 ##<< N rich substrate
   , L_SOM = 200                  ##<< N poor substrate
+  , BN_SOM = 20/parms0$cnB
   , RN_SOM = 7000/parms0$cnIR    ##<< N rich substrate N pool
   , LN_SOM = 200/parms0$cnIL     ##<< N poor substrate N pool
   , I_SOM =  1                   ##<< inorganic N pool
+  , BP_SOM = 20/parms0$cpB
   , RP_SOM = 7000/parms0$cpIR
   , LP_SOM = 200/parms0$cpIL     ##<< N poor substrate P pool
   , IP_SOM =  1                  ##<< inorganic P pool
   , B_amend = 0                     ##<< microbial biomass
   , R_amend = 0                 ##<< N rich substrate
   , L_amend = 0
+  , BN_amend = 0
   , RN_amend = 0
   , LN_amend = 0
   , I_amend =  0
+  , BP_amend = 0
   , RP_amend = 0
   , LP_amend = 0
   , IP_amend =  0
   , alpha = 0.5              ##<< initial community composition
 )
-x <- x0
-getX0Sum <- function(x0){
-  x <- parms0$multiPoolFractions
+# TODO: need to resort so that all fractions of one pool are toegehter
+x0F <- parms0$multiPoolFractions$setX(parms0$multiPoolFractions, x0)
+x0 <- x0F$stateVec(x0F)
+getX0Sum <- function(x0, parms = parms0){
+  x <- parms$multiPoolFractions
   x <- x$setX(x, x0)
   x$tot
 }
 x0Sum <- getX0Sum(x0)
 test_that("equal initial sum of pools",{
   expect_equivalent(x0Sum["alpha"], x0["alpha"])
-  expect_equivalent(x0Sum[1:9], x0[1:9])
+  expect_equivalent(x0Sum[1:9], x0Orig[1:9])
 })
 
 
@@ -118,6 +128,36 @@ x0Nlim["R_SOM"] = .R
 x0Nlim["RN_SOM"] = .R/parms0$cnIR    ##<< N rich substrate N pool
 x0Nlim["RP_SOM"] = .R/parms0$cpIR
 x0NlimSum <- getX0Sum(x0Nlim)
+
+
+.tmp.f <- function(){
+  parms1 <- within(parms0, {isFixedI <- TRUE; l <- 0; iL <- 0})
+  ans1 <- derivSesam4F(0, x0, parms1)
+  x0A <- x0; x0A["L_amend"] <- x0["L_SOM"]; x0A["L_SOM"] <- x0["L_amend"]
+  x0A["LN_amend"] <- x0["LN_SOM"]; x0A["LN_SOM"] <- x0["LN_amend"]
+  x0A["LP_amend"] <- x0["LP_SOM"]; x0A["LP_SOM"] <- x0["LP_amend"]
+  ans1 <- derivSesam4F(0, x0A, parms1)
+  times <- seq(0,500, length.out = 101)
+  res <- res1 <- as.data.frame(lsoda(
+    x0, times, derivSesam4F
+    , parms = within(parms0, {isFixedI <- TRUE})
+    #, parms = within(parms0, {isFixedL <- TRUE; iI <- 1}) # works since no immobiization
+    #, parms = within(parms0, {isFixedI <- TRUE; isFixedL <- TRUE}) #works
+    #, parms = within(parms0, {isFixedI <- TRUE; isFixedR <- TRUE; isFixedL <- TRUE}) # works
+    ))
+  #
+  parmsZeroInput <- within(parms0, {iL <- 0; isFixedI <- TRUE})
+  ans2 <- derivSesam4F(0, x0, parmsZeroInput)
+  res <- res2 <- as.data.frame(lsoda( x0, times, derivSesam4F, parms = parmsZeroInput))
+
+}
+
+.tmp.f <- function(){
+  if (any(abs( sC*relSC - (.aC + tvrERecycling*relSC)) > sqrEps)) stop(
+    "composition C mass balance error in uptake")
+
+}
+
 
 #parmsInit <- parms0
 testParmsScen <- function(parmsInit){
@@ -279,12 +319,6 @@ test_that("same as sesam2 with substrate feedbacks", {
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
   expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
 })
-}
-
-.tmp.f <- function(){
-  ans1 <- derivSesam4a(0, x0, parms0)
-  times <- seq(0,500, length.out = 101)
-  res <- res1 <- as.data.frame(lsoda( x0, times, derivSesam4a, parms = parms0))
 }
 
 
