@@ -54,25 +54,6 @@ MultiPoolFractions_updateScalars <- function(
   .self
 }
 
-sumMultiPoolFractions <- function(
-  ### sum fraction-state variables across pools
-  .self  ##<< MultiPoolFractions object mapping stateVars to pools
-  , ds    ##<< data.frame with column names of state variables
-  , keepVars = names(ds)    ##<< list of columns to keep
-){
-  resEl <- lapply( setdiff(names(.self$poolPart),"scalars"), function(element){
-    units <- .self$units[[element]]
-    pools <- .self$poolPart[[element]]
-    unitM <- matrix(units, nrow = nrow(ds), ncol = length(units), byrow = TRUE)
-    dsE <- as.data.frame(structure(do.call(cbind, lapply(pools, function(pool){
-      rowSums( ds[, names(.self$frac[[pool]]), drop = FALSE]*unitM )
-    })), dimnames = list(NULL, pools)))
-  })
-  keepVarsS <- union(keepVars, .self$poolPart$scalars)
-  ##value<< a data.frame with columns named as in .self$tot
-  cbind(ds[, keepVarsS, drop=FALSE], do.call(cbind, resEl))
-}
-
 ### An (list) object as described by \code{\link{createMultiPoolFractions}}.
 MulitPoolFractions <- list(
   ##describe<<
@@ -99,6 +80,12 @@ createMultiPoolFractions <- function(
 ){
   ##details<< The example and its comments provide a good documentation on
   ## how to use a MultiPoolFractions object.
+  #
+  ##seealso<<
+  ## \itemize{
+  ## \item sum pools of state variables: \code{\link{sumMultiPoolFractions}}
+  ## \item sum pools of output fractions: \code{\link{sumMultiPoolFractionsVars}}
+  ## }
   pf <- MulitPoolFractions
   pf$units <- units
   pf$setX <- setX
@@ -213,6 +200,61 @@ createSesam4CNsetX <- function(
     .self
   }
 }
+
+
+sumMultiPoolFractions <- function(
+  ### sum fraction-state variables across pools
+  .self  ##<< MultiPoolFractions object mapping stateVars to pools
+  , ds    ##<< data.frame with column names of state variables
+  , keepVars = names(ds)    ##<< list of columns to keep
+){
+  ##seealso<< \code{\link{createMultiPoolFractions}}
+  resEl <- lapply( setdiff(names(.self$poolPart),"scalars"), function(element){
+    units <- .self$units[[element]]
+    pools <- .self$poolPart[[element]]
+    unitM <- matrix(units, nrow = nrow(ds), ncol = length(units), byrow = TRUE)
+    dsE <- as.data.frame(structure(do.call(cbind, lapply(pools, function(pool){
+      rowSums( ds[, names(.self$frac[[pool]]), drop = FALSE]*unitM )
+    })), dimnames = list(NULL, pools)))
+  })
+  keepVarsS <- union(keepVars, .self$poolPart$scalars)
+  ##value<< a data.frame with columns named as in .self$tot
+  cbind(ds[, keepVarsS, drop=FALSE], do.call(cbind, resEl))
+}
+
+
+sumMultiPoolFractionsVars <- function(
+  ### sum fraction variables across pools
+  .self  ##<< MultiPoolFractions object mapping stateVars to pools
+  , ds    ##<< data.frame with column names of state variables
+  , vars  ##<< list of element (corresponding to item in \code{.self$units})
+    ## -> string vector of variables
+  , keepVars = names(ds)    ##<< list of columns to keep
+){
+  ##seealso<< \code{\link{createMultiPoolFractions}}
+  resEl <- lapply( names(vars), function(element){
+    units <- .self$units[[element]]
+    pools <- vars[[element]] #outer(vars[[element]], names(units), paste, sep = "_")
+    unitM <- matrix(units, nrow = nrow(ds), ncol = length(units), byrow = TRUE)
+    dsE <- as.data.frame(structure(do.call(cbind, lapply(pools, function(pool){
+      fracNames <- paste(pool, names(units), sep = "_")
+      rowSums( ds[, fracNames, drop = FALSE]*unitM )
+    })), dimnames = list(NULL, pools)))
+  })
+  ##value<< a data.frame with columns of sums
+  cbind(ds[, keepVars, drop=FALSE], do.call(cbind, resEl))
+}
+attr(sumMultiPoolFractionsVars,"ex") <- function(){
+  units <- list(
+    C = c(C12 = 1, C13 = 0.01, C14 = 1e-12) # 13C in percent, 14C ppTrillion
+    , N = c(N14 = 1, N15 = 0.01)) # 15N in percent
+  x <- createMultiPoolFractions(units, setX = createSesam4CNsetX(units))
+  ds <- data.frame(time = 1:5, decNL_N14 = 1:5, decNL_N15 = 6:10)
+  dsSum <- sumMultiPoolFractionsVars(x, ds, vars = list(N = c("decNL")))
+  dsSum
+}
+
+
 
 
 
