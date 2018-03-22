@@ -15,6 +15,7 @@ MultiPoolFractions_updateElement <- function(
   })
   .self$frac[poolNames] <- fracEl
   units <- .self$units[[element]]
+  .self$poolPart[[element]] <- poolNames
   .self$tot[poolNames] <- sapply(poolNames, function(poolName){
     sum(fracEl[[poolName]]*units)
   })
@@ -44,11 +45,32 @@ MultiPoolFractions_updateScalars <- function(
 ){
   ##seealso<< \code{\link{createMultiPoolFractions}},
   # make sure list entry and scalar have the pool name
+  .self$poolPart[["scalars"]] <- poolNames
   .self$frac[poolNames] <- structure(lapply(poolNames, function(poolName){
     structure(x[poolName], names = poolName)}), names = poolNames)
   .self$tot[poolNames] <- x[poolNames]
   .self$rel[poolNames] <- 1
+  .self$units$scalars <- 1
   .self
+}
+
+sumMultiPoolFractions <- function(
+  ### sum fraction-state variables across pools
+  .self  ##<< MultiPoolFractions object mapping stateVars to pools
+  , ds    ##<< data.frame with column names of state variables
+  , keepVars = names(ds)    ##<< list of columns to keep
+){
+  resEl <- lapply( setdiff(names(.self$poolPart),"scalars"), function(element){
+    units <- .self$units[[element]]
+    pools <- .self$poolPart[[element]]
+    unitM <- matrix(units, nrow = nrow(ds), ncol = length(units), byrow = TRUE)
+    dsE <- as.data.frame(structure(do.call(cbind, lapply(pools, function(pool){
+      rowSums( ds[, names(.self$frac[[pool]]), drop = FALSE]*unitM )
+    })), dimnames = list(NULL, pools)))
+  })
+  keepVarsS <- union(keepVars, .self$poolPart$scalars)
+  ##value<< a data.frame with columns named as in .self$tot
+  cbind(ds[, keepVarsS, drop=FALSE], do.call(cbind, resEl))
 }
 
 ### An (list) object as described by \code{\link{createMultiPoolFractions}}.
@@ -80,8 +102,9 @@ createMultiPoolFractions <- function(
   pf <- MulitPoolFractions
   pf$units <- units
   pf$setX <- setX
+  pf$poolParts <- list()  # mapping poolName -> partitioning, i.e. entry in units
   ##value<< a MultiPoolFractions object
-  pf
+  pf$setX(pf, numeric())
 }
 attr(createMultiPoolFractions,"ex") <- function(){
   units <- list(

@@ -138,7 +138,7 @@ x0NlimSum <- getX0Sum(x0Nlim)
   x0A["LP_amend"] <- x0["LP_SOM"]; x0A["LP_SOM"] <- x0["LP_amend"]
   ans1 <- derivSesam4F(0, x0A, parms1)
   times <- seq(0,500, length.out = 101)
-  res <- res1 <- as.data.frame(lsoda(
+  resF <- res1 <- as.data.frame(lsoda(
     #x0
     x0A
     , times, derivSesam4F
@@ -149,6 +149,7 @@ x0NlimSum <- getX0Sum(x0Nlim)
     #, parms = within(parms0, {isFixedI <- TRUE; isFixedR <- TRUE; isFixedL <- TRUE}) # works
     )) %>%  mutate(scen = "tmpf1")
   #
+  res <- sumMultiPoolFractions(x0F, resF)
   parmsZeroInput <- within(parms0, {iL <- 0; isFixedI <- TRUE})
   ans2 <- derivSesam4F(0, x0, parmsZeroInput)
   res <- res2 <- as.data.frame(lsoda( x0, times, derivSesam4F, parms = parmsZeroInput))
