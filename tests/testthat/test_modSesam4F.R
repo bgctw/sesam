@@ -139,24 +139,31 @@ x0NlimSum <- getX0Sum(x0Nlim)
   ans1 <- derivSesam4F(0, x0A, parms1)
   times <- seq(0,500, length.out = 101)
   res <- res1 <- as.data.frame(lsoda(
-    x0, times, derivSesam4F
-    , parms = within(parms0, {isFixedI <- TRUE})
+    #x0
+    x0A
+    , times, derivSesam4F
+    ,parms = parms1
+    #, parms = within(parms0, {isFixedI <- TRUE})
     #, parms = within(parms0, {isFixedL <- TRUE; iI <- 1}) # works since no immobiization
     #, parms = within(parms0, {isFixedI <- TRUE; isFixedL <- TRUE}) #works
     #, parms = within(parms0, {isFixedI <- TRUE; isFixedR <- TRUE; isFixedL <- TRUE}) # works
-    ))
+    )) %>%  mutate(scen = "tmpf1")
   #
   parmsZeroInput <- within(parms0, {iL <- 0; isFixedI <- TRUE})
   ans2 <- derivSesam4F(0, x0, parmsZeroInput)
   res <- res2 <- as.data.frame(lsoda( x0, times, derivSesam4F, parms = parmsZeroInput))
-
 }
 
 .tmp.f <- function(){
-  if (any(abs( sC*relSC - (.aC + tvrERecycling*relSC)) > sqrEps)) stop(
-    "composition C mass balance error in uptake")
-
 }
+
+.tmp.f <- function(){
+  ggplot(filter(res, time >= 0), aes(time, B_SOM)) + geom_line(alpha = 0.5)
+  ggplot(filter(res, time >= 0), aes(time, B_amend)) + geom_line(alpha = 0.5)
+  ggplot(filter(res, time >= 0), aes(time, R_amend)) + geom_line(alpha = 0.5)
+}
+
+
 
 
 #parmsInit <- parms0

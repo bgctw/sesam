@@ -111,6 +111,11 @@ derivSesam4a <- function(
   PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)
   leachP <- parms$lP*x["IP"]
   PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE + tvrBOrg*(1 - cW)/cpBL)
+  immoN <- max(0,-PhiB); minN <- max(0,PhiB)
+  immoP <- max(0,-PhiPB); minP <- max(0,PhiPB)
+  #
+  sC <- uC + recycB
+  sN <- uNOrg + recycB/cnB + immoN
   #
   dB <- synB - recycB - tvrB - tvrBPred
   if ((xOrig["B"] <= 1e-16) && (dB < 0)) dB <- 0
@@ -251,7 +256,11 @@ derivSesam4a <- function(
     , CsynBN = as.numeric(CsynBN)
     , CsynBP = as.numeric(CsynBP)
     , uptakeC = as.numeric(uC)
-    , decNLR = as.numeric(decNLR) ,decNE = as.numeric(decNE), decNB = as.numeric(decNB)
+    , uptakeNOrg = as.numeric(uNOrg)
+    , synC = as.numeric(sC)
+    , synN = as.numeric(sN)
+    , decNL = as.numeric(decL/cnL), decNR = as.numeric(decR/cnR)
+    , decNE = as.numeric(decNE), decNB = as.numeric(decNB)
     #, pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) )
     #, NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
     #, dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)

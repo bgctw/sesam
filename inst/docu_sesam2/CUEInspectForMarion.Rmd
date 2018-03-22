@@ -123,8 +123,8 @@ x0 <- c( #aE = 0.001*365
   , L = 100                 ##<< C litter OM
   , LN = 100/parms0$cnIL    ##<< N litter OM 
   , LP = 100/parms0$cpIL    ##<< P litter OM 
-  , I =  0.01               ##<< inorganic pool 
-  , IP =  0.01              ##<< inorganic pool 
+  , I =  0.1               ##<< inorganic N pool 
+  , IP =  0.01              ##<< inorganic P pool 
   , alpha = 0.5             ##<< microbial community partitioning [0,1]
 )
 ```
@@ -157,7 +157,7 @@ ggplot( resAgg, aes(time, value, color = variable, linetype = variable)) + geom_
 resAgg <- resC %>% select(time, PhiTotal, PhiU, PhiB, PhiTvr) %>% gather(key = "variable", "value", -time)
 ggplot( resAgg, aes(time, value, color = variable, linetype = variable)) + geom_line()
 # N decomposition fluxes
-resAgg <- resC %>% select(time, decNLR, decNE, decNB) %>% gather(key = "variable", "value", -time)
+resAgg <- resC %>% select(time, decNL, decNR, decNE, decNB) %>% gather(key = "variable", "value", -time)
 ggplot( resAgg, aes(time, value, color = variable, linetype = variable)) + geom_line()
 # synthesis and respiration
 resAgg <- resC %>% select(time, uptakeC, synB, tvrB, tvrBPred, respB, respO, respTvr) %>% gather(key = "variable", "value", -time)
@@ -243,7 +243,36 @@ Basing CUE on adding microbial biomass synthesis and measured respiration
 (including respiration by predation), $cue_{Syn}$,
 yields similar estimates as those based on modeled microbial uptake, $cue_{Def}$.
 
-```{r}
+## DOM and synthesis flux composition
 
+Despite the high C/N ratios of litter, the substrate for microbial synthesis
+has more nutrients, due to decomposition of N-rich residue, and turnover 
+of microbial biomass and enzymes.
+
+```{r echo=FALSE}
+resAgg <- xEs %>% mutate(cnDOM = uptakeC/uptakeNOrg, cnSyn = synC/synN) %>% 
+  select(cnIL, cnDOM, cnSyn) %>% gather(key = "variable", "value", -cnIL)
+ggplot( resAgg, aes(cnIL, value, color = variable, linetype = variable)) + geom_line()
+```
+
+cnDOM is the C:N ratio of the disolved organic matter (DOM), 
+and cnSyn is the C:N ratio of the matter flux used for biosynthesis and mineralization. 
+The latter includes immobilization of nutrients and usage of starved biomass (cryptic)
+growth.
+
+Unitl a threshold elemental ratio, TER, of about 22, there is mineralization of 
+microbial N uptake from DOM. At DOM C/N ratios of slightly above this value,
+immobilization of inorganic N kepps the synthesis flux at the co-limitation.
+
+Decomposition of residue OM, $dec_{NR}$ is the largest contribution to synthesis N flux.
+Direct flux of microbial turnover to DOM, $dec_{NB}$ also contributes substantially, and in the 
+used parameterization also the flux by enzyme production and turnover, $dec_{NE}$.
+At steady state there is no microbial starvation, $starv_N$, and immobilization 
+of inorganic N, $immo_N$, contributes a small share when organic N is limiting.
+
+```{r echo=FALSE}
+resAgg <- xEs %>% mutate(immoN = pmax(0, -PhiB), starvN = recycB/parms0$cnB) %>% 
+  select(cnIL, decNR, decNL, decNB, decNE, immoN, starvN) %>% gather(key = "variable", "value", -cnIL)
+ggplot( resAgg, aes(cnIL, value, color = variable, linetype = variable)) + geom_line()
 ```
 
