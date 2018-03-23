@@ -114,7 +114,9 @@ testParmsScen <- function(parmsInit){
     parmsInit, {tauP <- tau/x0["B"]; tau <- 0}))
   ans0E <- derivSesam3a(0, x0, parms = within(
     parmsInit,{epsTvr <- epsPred}))
-  expect_equal(getX0NoP(ans0[[1]]), ans0E[[1]], tolerance = 1e-6)
+  names4A <- names(getX0NoP(ans0[[1]]))
+  expect_equal(getX0NoP(ans0[[1]]), structure(ans0E[[1]], names = names4A)
+                 , tolerance = 1e-6)
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
   resExp <- as.data.frame(lsoda(

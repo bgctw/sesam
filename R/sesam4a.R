@@ -144,7 +144,7 @@ derivSesam4a <- function(
   #
   resDeriv <- structure(as.numeric(
     c( dB, dR, dRN, dRP, dL, dLN, dLP, dI, dIP, dAlpha))
-    ,names = c("dB","dR","dRN","dRP","dL","dLN","dLP","dI","dIP","dAlpha"))
+    ,names = c("B","R","RN","RP","L","LN","LP","I","IP","alpha"))
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   sqrEps <- sqrt(.Machine$double.eps)
   # parms$iL - (decL + dL)
@@ -194,9 +194,9 @@ derivSesam4a <- function(
   }
   #
   # allowing scenarios with holding some pools fixed
-  if (isTRUE(parms$isFixedR)) { resDeriv["dR"] <- resDeriv["dRN"] <- resDeriv["dRP"] <- 0 }
-  if (isTRUE(parms$isFixedL)) { resDeriv["dL"] <- resDeriv["dLN"] <- resDeriv["dLP"] <- 0 }
-  if (isTRUE(parms$isFixedI)) { resDeriv["dI"] <- resDeriv["dIP"] <- 0   }
+  if (isTRUE(parms$isFixedR)) { resDeriv["R"] <- resDeriv["RN"] <- resDeriv["RP"] <- 0 }
+  if (isTRUE(parms$isFixedL)) { resDeriv["L"] <- resDeriv["LN"] <- resDeriv["LP"] <- 0 }
+  if (isTRUE(parms$isFixedI)) { resDeriv["I"] <- resDeriv["IP"] <- 0   }
   #
   # further computations just for output for tacking the system
   ER <- alpha * parms$aE * x["B"] / parms$kN
