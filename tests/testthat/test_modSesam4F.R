@@ -83,9 +83,9 @@ parms0 <- within(parms0,{
 })
 
 x0 <- x0Orig <- c( #aE = 0.001*365
-  B_SOM = 20                     ##<< microbial biomass
-  , R_SOM = 7000                 ##<< N rich substrate
-  , L_SOM = 200                  ##<< N poor substrate
+  BC_SOM = 20                     ##<< microbial biomass
+  , RC_SOM = 7000                 ##<< N rich substrate
+  , LC_SOM = 200                  ##<< N poor substrate
   , BN_SOM = 20/parms0$cnB
   , RN_SOM = 7000/parms0$cnIR    ##<< N rich substrate N pool
   , LN_SOM = 200/parms0$cnIL     ##<< N poor substrate N pool
@@ -94,9 +94,9 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   , RP_SOM = 7000/parms0$cpIR
   , LP_SOM = 200/parms0$cpIL     ##<< N poor substrate P pool
   , IP_SOM =  1                  ##<< inorganic P pool
-  , B_amend = 0                     ##<< microbial biomass
-  , R_amend = 0                 ##<< N rich substrate
-  , L_amend = 0
+  , BC_amend = 0                     ##<< microbial biomass
+  , RC_amend = 0                 ##<< N rich substrate
+  , LC_amend = 0
   , BN_amend = 0
   , RN_amend = 0
   , LN_amend = 0
@@ -123,10 +123,10 @@ test_that("equal initial sum of pools",{
 
 
 x0Nlim <- x0
-.R <- 1000
-x0Nlim["R_SOM"] = .R
-x0Nlim["RN_SOM"] = .R/parms0$cnIR    ##<< N rich substrate N pool
-x0Nlim["RP_SOM"] = .R/parms0$cpIR
+.RC <- 1000
+x0Nlim["RC_SOM"] = .RC
+x0Nlim["RN_SOM"] = .RC/parms0$cnIR    ##<< N rich substrate N pool
+x0Nlim["RP_SOM"] = .RC/parms0$cpIR
 x0NlimSum <- getX0Sum(x0Nlim)
 
 
@@ -150,99 +150,97 @@ x0NlimSum <- getX0Sum(x0Nlim)
     )) %>%  mutate(scen = "tmpf1")
   #
   res <- sumMultiPoolFractions(x0F, resF)
-  parmsZeroInput <- within(parms0, {iL <- 0; isFixedI <- TRUE})
-  ans2 <- derivSesam4F(0, x0, parmsZeroInput)
-  res <- res2 <- as.data.frame(lsoda( x0, times, derivSesam4F, parms = parmsZeroInput))
 }
 
-.tmp.f <- function(){
+namesF = c(       ##<< names in totals of sesam4F
+  "BC", "RC", "LC", "RN", "LN", "I", "RP", "LP", "IP", "alpha")
+namesA = c(       ##<< names in resA of the same order as namesF
+  "BC", "RC", "LC", "RN", "LN", "I", "RP", "LP", "IP", "alpha")
+
+
+testFState <- function(
+  ### test numeric equality of results of sesam4a and sesam4F
+  resF                ##<< data.frame or vector of state vectors of sesam4F
+  , resA              ##<< data.frame or vector of state vectors of sesam4a
+  , parms             ##<< list with entries cnB, cpB, and multiPoolFractions
+  , tolerance = 1e-4  ##<< tolerance of differences
+){
+  resFs <- sumMultiPoolFractions(parms$multiPoolFractions, resF)
+  expect_equal( resFs$BC, parms$cnB*resFs$BN, tolerance = tolerance)
+  expect_equal( resFs$BC, parms$cpB*resFs$BP, tolerance = tolerance)
+  if (!(is.matrix(resA) || is.data.frame(resA))) resA <- as.data.frame(t(resA))
+  expect_equal( resFs[namesF], structure(resA[namesA], names = namesF)
+                , tolerance = tolerance )
 }
-
-.tmp.f <- function(){
-  ggplot(filter(res, time >= 0), aes(time, B_SOM)) + geom_line(alpha = 0.5)
-  ggplot(filter(res, time >= 0), aes(time, B_amend)) + geom_line(alpha = 0.5)
-  ggplot(filter(res, time >= 0), aes(time, R_amend)) + geom_line(alpha = 0.5)
-}
-
-
-
 
 #parmsInit <- parms0
 testParmsScen <- function(parmsInit){
   ans0 <- derivSesam4F(0, x0, parms = parmsInit)
-  ans0E <- derivSesam4a(0, x0Sum, parms = parmsInit)
-  expect_equal(getX0NoP(ans0[[1]]), ans0E[[1]], tolerance = 1e-6)
+  xF <- x0F$setX(x0F, x0)
+  ans0E <- derivSesam4a(0, xF$tot, parms = parmsInit)
+  testFState(ans0[[1]], ans0E[[1]], parmsInit)
+  #
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
   resExp <- as.data.frame(lsoda(
-    getX0NoP(x0), times, derivSesam3s
-    , parms = within(parmsInit, {epsTvr <- epsPred})))
+    xF$tot[namesF], times, derivSesam4a
+    , parms = parmsInit))
   #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xEExp <- unlist(tail(resExp,1))
   resTest <- as.data.frame(lsoda(
-    x0, times, derivSesam4a
-    , parms = within(parmsInit,{tauP <- tau/xEExp["B"]; tau <- 0})))
+    x0, times, derivSesam4F
+    , parms = parmsInit))
   xETest <- unlist(tail(resTest,1))
-  expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
-  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
-  xEExp2 <- xETest[2:11]; xEExp2[names(xEExp[c(2:8)])] <- xEExp[c(2:8)]
-  .tmp.f <- function(){
-    derivSesam4a(0, xETest[c(2:11)], within(parmsInit, {isRecover <- TRUE; epsTvr <- epsPred}))
-    derivSesam4a(0, xEExp2, within(parmsInit, {isRecover <- TRUE; tauP <- tau/xEExp["B"]; tau <- 0}))
-    derivSesam3a(0, xEExp[c(2:8)], within(parmsInit, {isRecover <- TRUE; epsTvr <- epsPred}))
-  }
+  xFE <- x0F$setX(x0F, xETest)
+  testFState( xETest, xEExp, parmsInit)
   #
   # N limitation
   #times <- seq(0,2100, length.out = 101)
+  xF <- xF$setX(xF, x0Nlim)
   resExp <- as.data.frame(lsoda(
-    getX0NoP(x0Nlim), times, derivSesam3s
-    , parms = within(parmsInit, {epsTvr <- epsPred})))
+    xF$tot[namesF], times, derivSesam4a
+    , parms = parmsInit))
   #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xEExp <- unlist(tail(resExp,1))
   resTest <- as.data.frame(lsoda(
-    x0Nlim, times, derivSesam4a
-    , parms = within(parmsInit,{tauP <- tau/xEExp["B"]; tau <- 0})))
+    x0Nlim, times, derivSesam4F
+    , parms = parmsInit))
   xETest <- unlist(tail(resTest,1))
-  expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-6)
-  expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 1e-6)
-  expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
-  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  testFState( xETest, xEExp, parmsInit)
   #
   # NP col-limitation
-  x0Plim <- x0Nlim; x0Plim["IP"] <- 0
+  x0Plim <- x0Nlim; x0Plim["IP_SOM"] <- x0Plim["IP_amend"] <- 1e-12
+  xF <- xF$setX(xF, x0Plim)
   parmsInitPlim <- within(parmsInit, cpIL <- 160)
   #times <- seq(0,2100, length.out = 101)
   resExp <- as.data.frame(lsoda(
-    getX0NoP(x0Plim), times, derivSesam3s
-    , parms = within(parmsInitPlim, {epsTvr <- epsPred})))
-  #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
+    xF$tot[namesF], times, derivSesam4a
+    , parms = parmsInit))
   xEExp <- unlist(tail(resExp,1))
   resTest <- as.data.frame(lsoda(
-    x0Plim, times, derivSesam4a
-    , parms = within(parmsInitPlim,{tauP <- tau/xEExp["B"]; tau <- 0})))
+    x0Plim, times, derivSesam4F
+    , parms = parmsInit))
   xETest <- unlist(tail(resTest,1))
-  expect_true( xETest["alpha"] < xEExp["alpha"])
-  # interestingly this leads to slightly higher biomass under colimitation
-  # expect_true( xETest["B"] < xEExp["B"])
-  expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-2)
-  #expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  testFState( xETest, xEExp, parmsInit)
   #
-  # Microbial starvation
-  x0Starv <- x0; x0Starv["B"] <- 80
-  times <- seq(0, 2100, length.out = 2)
-  #times <- seq(0,2100, length.out = 101)
-  resExp <- as.data.frame(lsoda(
-    getX0NoP(x0Starv), times, derivSesam3s
-    , parms = within(parmsInit, {epsTvr <- epsPred})))
-  #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
-  xEExp <- unlist(tail(resExp,1))
-  resTest <- as.data.frame(lsoda(
-    x0Starv, times, derivSesam4a
-    , parms = within(parmsInit,{tauP <- tau/xEExp["B"]; tau <- 0})))
-  xETest <- unlist(tail(resTest,1))
-  expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
-  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
-  xEExp2 <- xETest[2:11]; xEExp2[names(xEExp[c(2:8)])] <- xEExp[c(2:8)]
+  # # Microbial starvation
+  # x0Starv <- setMultiPoolFractionsPool(xF, "BC", 80*0.5
+  #         , c(N = parmsInit$cnB, P = parmsInit$cpB)
+  #         , c(amend = 1))
+  # # x0Starv["B_SOM"] <- x0Starv["B_amend"] <- 80
+  # # x0Starv["B_SOM"] <- x0Starv["B_amend"] <- 80
+  # xF <- xF$setX(xF, x0Starv)
+  # times <- seq(0, 2100, length.out = 2)
+  # #times <- seq(0,2100, length.out = 101)
+  # resExp <- as.data.frame(lsoda(
+  #   xF$tot[namesF], times, derivSesam4a
+  #   , parms = parmsInit))
+  # xEExp <- unlist(tail(resExp,1))
+  # resTest <- as.data.frame(lsoda(
+  #   x0Starv, times, derivSesam4F
+  #   , parms = parmsInit))
+  # xETest <- unlist(tail(resTest,1))
+  # testFState( xETest, xEExp, parmsInit)
 }
 
 .tmp.f <- function(){
@@ -253,12 +251,12 @@ testParmsScen <- function(parmsInit){
   #   cbind(resTest, scen = "Test"), cbind(resTest2, scen = "Test2"), cbind(resExp, scen = "Exp")))
   res <- suppressWarnings(bind_rows(
     cbind(resTest, scen = "Test"), cbind(resExp, scen = "Exp")))
-  ggplot(filter(res, time > 1), aes(time, B, color = scen)) + geom_line(alpha = 0.5)
+  ggplot(filter(res, time > 1), aes(time, BC, color = scen)) + geom_line(alpha = 0.5)
   ggplot(filter(res, time > 0), aes(time, alpha, color = scen)) + geom_point(alpha = 0.5)
   ggplot(filter(res, time < 500 & time > 0), aes(time, alpha, color = scen)) + geom_point()
-  ggplot(filter(res, time < 500), aes(time, B, color = scen)) + geom_line()
-  ggplot(filter(res, time >= 0), aes(time, L, color = scen)) + geom_line()
-  ggplot(filter(res, time >= 0), aes(time, R, color = scen)) + geom_line()
+  ggplot(filter(res, time < 500), aes(time, BC, color = scen)) + geom_line()
+  ggplot(filter(res, time >= 0), aes(time, LC, color = scen)) + geom_line()
+  ggplot(filter(res, time >= 0), aes(time, RC, color = scen)) + geom_line()
   ggplot(filter(res, time < 500), aes(time, respO, color = scen)) + geom_line()
   ggplot(filter(res, time > 10 & time < 500), aes(time, ER, color = scen)) + geom_line()
   ggplot(filter(res, time > 10 & time < 500), aes(time, EL, color = scen)) + geom_line()
@@ -268,65 +266,23 @@ testParmsScen <- function(parmsInit){
 }
 
 test_that("same as sesam3s for fixed substrates", {
-  parmsFixedS <- within(parms0,{
+  parmsInit <- parmsFixedS <- within(parms0,{
     isFixedS <- TRUE
   })
-  testParmsScen(parmsFixedS)
-})
-
-
-test_that("mass balance also with feedback to DOM", {
-  parmsInit <- within(parms0, {isFixedI <- TRUE})
-  ans0 <- derivSesam4a(0, x0, parms = within(parmsInit, {cW <- 1; B0 <- 0}))
-  ans0 <- derivSesam4a(0, x0, parms = within(parmsInit, {cW <- 0; B0 <- 1e20}))
-  ans0 <- derivSesam4a(0, x0, parms = parmsInit)
-})
-
-
-test_that("same as sesam2 with substrate feedbacks", {
-  parmsInit <- within(parms0, {isFixedI <- TRUE})
   testParmsScen(parmsInit)
 })
 
-.tmp.f <- function(){ test_that("balanceAlphaBetweenElementLimitationsMin", {
-  alphas <- c(0.2,0.6,0.8)
-  CsynBEs <- c(40,20,20)
-  ans <- balanceAlphaBetweenElementLimitationsMin(alphas, CsynBEs)
-  expect_equal( ans$alpha, alphas[2L] )
-  expect_equal( ans$wELim, c(0,1,0))
-})
-}
 
-.tmp.f <- function(){ test_that("compare balanceAlphaBetweenElementLimitationsMin", {
-#  Warning messages: 1: In lsoda(x0CNLim, times, derivSesam4a, parms =
-#  within(parmsInit,  : an excessive amount of work (> maxsteps ) was done, but
-#  integration was not successful - increase maxsteps 2: In lsoda(x0CNLim,
-#  times, derivSesam4a, parms = within(parmsInit,  :
-  parmsInit <- within(parms0, {isFixedI <- TRUE})
-  # from C to N limitation
-  x0CNLim <- x0; x0CNLim["I"] <- 0
-  #times <- seq(0,2100, length.out = 2)
-  times <- seq(0,2100, length.out = 101)
-  resExp <- as.data.frame(lsoda(
-    getX0NoP(x0CNLim), times, derivSesam3s
-    , parms = within(parmsInit, {epsTvr <- epsPred})))
-  #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
-  xEExp <- unlist(tail(resExp,1))
-  resTest <- as.data.frame(lsoda(
-    x0CNLim, times, derivSesam4a
-    , parms = within(parmsInit,{tauP <- tau/xEExp["B"]; tau <- 0})))
-  # yields timeout when going near col-limitation
-  xETest <- unlist(tail(resTest,1))
-  resTest2 <- as.data.frame(lsoda(
-    x0CNLim, times, derivSesam4a
-    , parms = within(parmsInit,{
-      tauP <- tau/xEExp["B"]; tau <- 0; isBalanceAlphaMin <- TRUE})))
-  xETest2 <- unlist(tail(resTest2,1))
-  expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-6)
-  expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 1e-6)
-  expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
-  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
-})
-}
-
+# test_that("mass balance also with feedback to DOM", {
+#   parmsInit <- within(parms0, {isFixedI <- TRUE})
+#   ans0 <- derivSesam4F(0, x0, parms = within(parmsInit, {cW <- 1; B0 <- 0}))
+#   ans0 <- derivSesam4F(0, x0, parms = within(parmsInit, {cW <- 0; B0 <- 1e20}))
+#   ans0 <- derivSesam4F(0, x0, parms = parmsInit)
+# })
+#
+#
+# test_that("same as sesam2 with substrate feedbacks", {
+#   parmsInit <- within(parms0, {isFixedI <- TRUE})
+#   testParmsScen(parmsInit)
+# })
 

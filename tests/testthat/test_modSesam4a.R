@@ -81,11 +81,11 @@ parms0C <- within(parms0,{
 parms <- parms0C
 
 x0 <- x0Orig <- c( #aE = 0.001*365
-  B = 20                     ##<< microbial biomass
-  , R = 7000                 ##<< N rich substrate
+  BC = 20                     ##<< microbial biomass
+  , RC = 7000                 ##<< N rich substrate
   , RN = 7000/parms0$cnIR    ##<< N rich substrate N pool
   , RP = 7000/parms0$cpIR
-  , L = 200                  ##<< N poor substrate
+  , LC = 200                  ##<< N poor substrate
   , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
   , LP = 200/parms0$cpIL     ##<< N poor substrate P pool
   , I =  1                   ##<< inorganic N pool
@@ -93,15 +93,29 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   , alpha = 0.5              ##<< initial community composition
 )
 x <- x0
-getX0NoP <- function(x0){x0[setdiff(names(x0),c("RP","LP","IP","dRP","dLP","dIP"))]}
+
+mapValues <- function(x, from, to) {
+  mapidx <- match(x, from)
+  mapidxNA <- is.na(mapidx)
+  from_found <- sort(unique(mapidx))
+  x[!mapidxNA] <- to[mapidx[!mapidxNA]]
+  x
+}
+getX0NoC <- function(x0){
+  names(x0) <- mapValues(names(x0), c("BC","RC","LC"), c("B","R","L"))
+  x0
+}
+getX0NoP <- function(x0){
+  x0[setdiff(names(x0),c("RP","LP","IP","dRP","dLP","dIP"))]
+}
 getX0NoP(x0)
 
 x0Nlim <- c( #aE = 0.001*365
-  B = 20                     ##<< microbial biomass
-  , R = 1000                 ##<< N rich substrate
+  BC = 20                     ##<< microbial biomass
+  , RC = 1000                 ##<< N rich substrate
   , RN = 1000/parms0$cnIR    ##<< N rich substrate N pool
   , RP = 1000/parms0$cpIR
-  , L = 200                  ##<< N poor substrate
+  , LC = 200                  ##<< N poor substrate
   , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
   , LP = 200/parms0$cpIL     ##<< N poor substrate P pool
   , I =  0                   ##<< inorganic N pool
@@ -111,8 +125,8 @@ x0Nlim <- c( #aE = 0.001*365
 
 testParmsScen <- function(parmsInit){
   ans0 <- derivSesam4a(0, x0, parms = within(
-    parmsInit, {tauP <- tau/x0["B"]; tau <- 0}))
-  ans0E <- derivSesam3a(0, x0, parms = within(
+    parmsInit, {tauP <- tau/x0["BC"]; tau <- 0}))
+  ans0E <- derivSesam3a(0, getX0NoC(x0), parms = within(
     parmsInit,{epsTvr <- epsPred}))
   names4A <- names(getX0NoP(ans0[[1]]))
   expect_equal(getX0NoP(ans0[[1]]), structure(ans0E[[1]], names = names4A)
@@ -120,7 +134,7 @@ testParmsScen <- function(parmsInit){
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
   resExp <- as.data.frame(lsoda(
-    getX0NoP(x0), times, derivSesam3s
+    getX0NoP(getX0NoC(x0)), times, derivSesam3s
     , parms = within(parmsInit, {epsTvr <- epsPred})))
   #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xEExp <- unlist(tail(resExp,1))
@@ -129,7 +143,7 @@ testParmsScen <- function(parmsInit){
     , parms = within(parmsInit,{tauP <- tau/xEExp["B"]; tau <- 0})))
   xETest <- unlist(tail(resTest,1))
   expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
-  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  expect_equal( getX0NoP(getX0NoC(xETest[2:11])), xEExp[2:8], tolerance = 1e-6)
   xEExp2 <- xETest[2:11]; xEExp2[names(xEExp[c(2:8)])] <- xEExp[c(2:8)]
   .tmp.f <- function(){
     derivSesam4a(0, xETest[c(2:11)], within(parmsInit, {isRecover <- TRUE; epsTvr <- epsPred}))
@@ -140,7 +154,7 @@ testParmsScen <- function(parmsInit){
   # N limitation
   #times <- seq(0,2100, length.out = 101)
   resExp <- as.data.frame(lsoda(
-    getX0NoP(x0Nlim), times, derivSesam3s
+    getX0NoP(getX0NoC(x0Nlim)), times, derivSesam3s
     , parms = within(parmsInit, {epsTvr <- epsPred})))
   #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xEExp <- unlist(tail(resExp,1))
@@ -148,17 +162,17 @@ testParmsScen <- function(parmsInit){
     x0Nlim, times, derivSesam4a
     , parms = within(parmsInit,{tauP <- tau/xEExp["B"]; tau <- 0})))
   xETest <- unlist(tail(resTest,1))
-  expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-6)
+  expect_equal( xETest["BC"], setNames(xEExp["B"],"BC"), tolerance = 1e-6)
   expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 1e-6)
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
-  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  expect_equal( getX0NoP(getX0NoC(xETest[2:11])), xEExp[2:8], tolerance = 1e-6)
   #
   # NP col-limitation
   x0Plim <- x0Nlim; x0Plim["IP"] <- 0
   parmsInitPlim <- within(parmsInit, cpIL <- 160)
   #times <- seq(0,2100, length.out = 101)
   resExp <- as.data.frame(lsoda(
-    getX0NoP(x0Plim), times, derivSesam3s
+    getX0NoP(getX0NoC(x0Plim)), times, derivSesam3s
     , parms = within(parmsInitPlim, {epsTvr <- epsPred})))
   #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xEExp <- unlist(tail(resExp,1))
@@ -168,16 +182,16 @@ testParmsScen <- function(parmsInit){
   xETest <- unlist(tail(resTest,1))
   expect_true( xETest["alpha"] < xEExp["alpha"])
   # interestingly this leads to slightly higher biomass under colimitation
-  # expect_true( xETest["B"] < xEExp["B"])
+  # expect_true( xETest["BC"] < xEExp["B"])
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-2)
-  #expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  #expect_equal( getX0NoP(getX0NoC(xETest[2:11])), xEExp[2:8], tolerance = 1e-6)
   #
   # Microbial starvation
-  x0Starv <- x0; x0Starv["B"] <- 80
+  x0Starv <- x0; x0Starv["BC"] <- 80
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
   resExp <- as.data.frame(lsoda(
-    getX0NoP(x0Starv), times, derivSesam3s
+    getX0NoP(getX0NoC(x0Starv)), times, derivSesam3s
     , parms = within(parmsInit, {epsTvr <- epsPred})))
   #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xEExp <- unlist(tail(resExp,1))
@@ -186,8 +200,7 @@ testParmsScen <- function(parmsInit){
     , parms = within(parmsInit,{tauP <- tau/xEExp["B"]; tau <- 0})))
   xETest <- unlist(tail(resTest,1))
   expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
-  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
-  xEExp2 <- xETest[2:11]; xEExp2[names(xEExp[c(2:8)])] <- xEExp[c(2:8)]
+  expect_equal( getX0NoP(getX0NoC(xETest[2:11])), xEExp[2:8], tolerance = 1e-6)
 }
 
 .tmp.f <- function(){
@@ -198,12 +211,12 @@ testParmsScen <- function(parmsInit){
   #   cbind(resTest, scen = "Test"), cbind(resTest2, scen = "Test2"), cbind(resExp, scen = "Exp")))
   res <- suppressWarnings(bind_rows(
     cbind(resTest, scen = "Test"), cbind(resExp, scen = "Exp")))
-  ggplot(filter(res, time > 1), aes(time, B, color = scen)) + geom_line(alpha = 0.5)
+  ggplot(filter(res, time > 1), aes(time, BC, color = scen)) + geom_line(alpha = 0.5)
   ggplot(filter(res, time > 0), aes(time, alpha, color = scen)) + geom_point(alpha = 0.5)
   ggplot(filter(res, time < 500 & time > 0), aes(time, alpha, color = scen)) + geom_point()
-  ggplot(filter(res, time < 500), aes(time, B, color = scen)) + geom_line()
-  ggplot(filter(res, time >= 0), aes(time, L, color = scen)) + geom_line()
-  ggplot(filter(res, time >= 0), aes(time, R, color = scen)) + geom_line()
+  ggplot(filter(res, time < 500), aes(time, BC, color = scen)) + geom_line()
+  ggplot(filter(res, time >= 0), aes(time, LC, color = scen)) + geom_line()
+  ggplot(filter(res, time >= 0), aes(time, RC, color = scen)) + geom_line()
   ggplot(filter(res, time < 500), aes(time, respO, color = scen)) + geom_line()
   ggplot(filter(res, time > 10 & time < 500), aes(time, ER, color = scen)) + geom_line()
   ggplot(filter(res, time > 10 & time < 500), aes(time, EL, color = scen)) + geom_line()
@@ -213,10 +226,10 @@ testParmsScen <- function(parmsInit){
 }
 
 test_that("same as sesam3s for fixed substrates", {
-  parmsFixedS <- within(parms0C,{
+  parmsInit <- parmsFixedS <- within(parms0C,{
     isFixedS <- TRUE
   })
-  testParmsScen(parmsFixedS)
+  testParmsScen(parmsInit)
 })
 
 
@@ -267,10 +280,10 @@ test_that("same as sesam2 with substrate feedbacks", {
     , parms = within(parmsInit,{
       tauP <- tau/xEExp["B"]; tau <- 0; isBalanceAlphaMin <- TRUE})))
   xETest2 <- unlist(tail(resTest2,1))
-  expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-6)
+  expect_equal( xETest["BC"], xEExp["B"], tolerance = 1e-6)
   expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 1e-6)
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
-  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  expect_equal( getX0NoP(getX0NoC(xETest[2:11])), xEExp[2:8], tolerance = 1e-6)
 })
 }
 

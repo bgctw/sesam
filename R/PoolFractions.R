@@ -158,7 +158,7 @@ createSesam4setX <- function(
   if (length(iMissing)) stop(
      "need to provide units for fractions in ", required[iMissing])
   .poolStatesMapC <- MultiPoolFractions_getPoolStatesMap(
-    names(units$C), c("B","R","L"))
+    names(units$C), c("BC","RC","LC"))
   .poolStatesMapN <- MultiPoolFractions_getPoolStatesMap(
     names(units$N), c("BN","RN","LN","I"))
   .poolStatesMapP <- MultiPoolFractions_getPoolStatesMap(
@@ -189,7 +189,7 @@ createSesam4CNsetX <- function(
   if (length(iMissing)) stop(
     "need to provide units for fractions in ", required[iMissing])
   .poolStatesMapC <- MultiPoolFractions_getPoolStatesMap(
-    names(units$C), c("B","R","L"))
+    names(units$C), c("BC","RC","LC"))
   .poolStatesMapN <- MultiPoolFractions_getPoolStatesMap(
     names(units$N), c("BN","RN","LN","I"))
   ##value<< a function that properly updates frac and tot in .self

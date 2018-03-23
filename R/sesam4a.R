@@ -9,18 +9,18 @@ derivSesam4a <- function(
   xOrig <- x
   x <- pmax(unlist(x),1e-16)      # no negative masses
   # compute steady state enzyme levels for N and for C limitation
-  dRPot <- parms$kR * x["R"]
-  dLPot <- parms$kL * x["L"]
+  dRPot <- parms$kR * x["RC"]
+  dLPot <- parms$kL * x["LC"]
   immoPot <- parms$iB * x["I"]
   immoPPot <- parms$iBP * x["IP"]
-  cnR <- x["R"]/x["RN"]
-  cnL <- x["L"]/x["LN"]
+  cnR <- x["RC"]/x["RN"]
+  cnL <- x["LC"]/x["LN"]
   cnE <- parms$cnE
   cnB <- parms$cnB
   cnBW <- parms$cnBW
   cnBL <- parms$cnBL
-  cpR <- x["R"]/x["RP"]
-  cpL <- x["L"]/x["LP"]
+  cpR <- x["RC"]/x["RP"]
+  cpL <- x["LC"]/x["LP"]
   cpE <- parms$cpE
   cpB <- parms$cpB
   cpBW <- parms$cpBW
@@ -28,7 +28,7 @@ derivSesam4a <- function(
   cnBL <- if (cW == 1 ) cnB else (1 - cW)/(1/cnB - cW/cnBW)
   cpBL <- if (cW == 1 ) cpB else (1 - cW)/(1/cpB - cW/cpBW)
   alpha <- x["alpha"]
-  B <- x["B"]
+  B <- x["BC"]
   aeB <- parms$aE*B        # aeB without associanted growth respiration
   kmN <- parms$km*parms$kN
   rM <- parms$m*B          # maintenance respiration
@@ -118,7 +118,7 @@ derivSesam4a <- function(
   sN <- uNOrg + recycB/cnB + immoN
   #
   dB <- synB - recycB - tvrB - tvrBPred
-  if ((xOrig["B"] <= 1e-16) && (dB < 0)) dB <- 0
+  if ((xOrig["BC"] <= 1e-16) && (dB < 0)) dB <- 0
   dL <- -decL  + parms$iL
   dLN <- -decL/cnL   + parms$iL/parms$cnIL
   dLP <- -decL/cpL   + parms$iL/parms$cpIL
@@ -144,7 +144,7 @@ derivSesam4a <- function(
   #
   resDeriv <- structure(as.numeric(
     c( dB, dR, dRN, dRP, dL, dLN, dLP, dI, dIP, dAlpha))
-    ,names = c("B","R","RN","RP","L","LN","LP","I","IP","alpha"))
+    ,names = c("BC","RC","RN","RP","LC","LN","LP","I","IP","alpha"))
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   sqrEps <- sqrt(.Machine$double.eps)
   # parms$iL - (decL + dL)
@@ -194,13 +194,13 @@ derivSesam4a <- function(
   }
   #
   # allowing scenarios with holding some pools fixed
-  if (isTRUE(parms$isFixedR)) { resDeriv["R"] <- resDeriv["RN"] <- resDeriv["RP"] <- 0 }
-  if (isTRUE(parms$isFixedL)) { resDeriv["L"] <- resDeriv["LN"] <- resDeriv["LP"] <- 0 }
+  if (isTRUE(parms$isFixedR)) { resDeriv["RC"] <- resDeriv["RN"] <- resDeriv["RP"] <- 0 }
+  if (isTRUE(parms$isFixedL)) { resDeriv["LC"] <- resDeriv["LN"] <- resDeriv["LP"] <- 0 }
   if (isTRUE(parms$isFixedI)) { resDeriv["I"] <- resDeriv["IP"] <- 0   }
   #
   # further computations just for output for tacking the system
-  ER <- alpha * parms$aE * x["B"] / parms$kN
-  EL <- (1 - alpha) * parms$aE * x["B"] / parms$kN
+  ER <- alpha * parms$aE * B / parms$kN
+  EL <- (1 - alpha) * parms$aE * B / parms$kN
   limER <- ER / (parms$kmR + ER)
   limEL <- EL / (parms$kmL + EL)
   revRC <- dRPot / (parms$km*parms$kN + alphaC*aeB)

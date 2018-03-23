@@ -13,11 +13,12 @@ derivSesam4F <- function(
   xvec <- pmax(unlist(xvec), 0.0)      # no negative masses
   # sum pool fractions
   x <- parms$multiPoolFractions$setX(parms$multiPoolFractions, xvec)
+  if (any(x$tot <= 0)) stop("encountered zero or negative masses")
   # elemental ratios
-  cnR <- x$tot["R"]/x$tot["RN"]
-  cnL <- x$tot["L"]/x$tot["LN"]
-  cpR <- x$tot["R"]/x$tot["RP"]
-  cpL <- x$tot["L"]/x$tot["LP"]
+  cnR <- x$tot["RC"]/x$tot["RN"]
+  cnL <- x$tot["LC"]/x$tot["LN"]
+  cpR <- x$tot["RC"]/x$tot["RP"]
+  cpL <- x$tot["LC"]/x$tot["LP"]
   cW <- parms$cW
   cnE <- parms$cnE;  cnB <- parms$cnB;  cnBW <- parms$cnBW
   cpE <- parms$cpE;  cpB <- parms$cpB;  cpBW <- parms$cpBW
@@ -25,9 +26,9 @@ derivSesam4F <- function(
   cpBL <- if (cW == 1 ) cpB else (1 - cW)/(1/cpB - cW/cpBW)
   # abbreviations of variables from x and parms
   alpha <- x$tot["alpha"]
-  B <- x$tot["B"]
-  dRPot <- parms$kR * x$tot["R"]
-  dLPot <- parms$kL * x$tot["L"]
+  B <- x$tot["BC"]
+  dRPot <- parms$kR * x$tot["RC"]
+  dLPot <- parms$kL * x$tot["LC"]
   immoPot <- parms$iB * x$tot["I"]
   immoPPot <- parms$iBP * x$tot["IP"]
   aeB <- parms$aE*B
@@ -54,8 +55,8 @@ derivSesam4F <- function(
   decNB <- tvrBOrg*(1 - cW)/cnBL
   uC <- decL + decR + tvrERecycling + tvrBOrg*(1 - cW)
   # relURecyc depends on relUC because composition of enzymes is that of uptake
-  #fracUC <- decL*x$rel[["L"]] + decR*x$rel[["R"]] +
-  #  tvrERecycling*relSC + tvrBOrg*(1 - cW)*x$rel[["B"]]
+  #fracUC <- decL*x$rel[["LC"]] + decR*x$rel[["RC"]] +
+  #  tvrERecycling*relSC + tvrBOrg*(1 - cW)*x$rel[["BC"]]
   fracUNOrg <- parms$nu*(decL/cnL*x$rel[["LN"]] + decR/cnR*x$rel[["RN"]] +
                            (tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)*x$rel[["BN"]])
   uNOrg <- parms$nu*(decL/cnL + decR/cnR + tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)
@@ -132,8 +133,8 @@ derivSesam4F <- function(
   sP <- uPOrg + recycB/cpB + immoP
   cnS <- sC/sN
   cpS <- sC/sP
-  .aC <- decL*x$rel[["L"]] + decR*x$rel[["R"]] + tvrBOrg*(1 - cW)*x$rel[["B"]] +
-    recycB*x$rel[["B"]]
+  .aC <- decL*x$rel[["LC"]] + decR*x$rel[["RC"]] + tvrBOrg*(1 - cW)*x$rel[["BC"]] +
+    recycB*x$rel[["BC"]]
   .aN <- parms$nu * (decL/cnL*x$rel[["LN"]] + decR/cnR*x$rel[["RN"]] +
     tvrBOrg*(1 - cW)/cnBL*x$rel[["BN"]]) +
     recycB/cnB*x$rel[["BN"]] + immoN*x$rel[["I"]]
@@ -143,10 +144,8 @@ derivSesam4F <- function(
   relSC <- .aC/(sC - tvrERecycling)
   relSN <- .aN/(sN - parms$nu*tvrERecycling/cnE)
   relSP <- .aP/(sP - parms$nuP*tvrERecycling/cpE)
-  relUC <- (sC*relSC - recycB*x$rel[["B"]])/uC
-  #relUNOrg <- (sN*relSN - recycB/cnB*x$rel[["BN"]] - immoN*x$rel[["I"]])/uNOrg
-  #relUPOrg <- (sP*relSP - recycB/cpB*x$rel[["BP"]] - immoP*x$rel[["IP"]])/uPOrg
-  if (any(abs( uC*relUC - (.aC + tvrERecycling*relSC)) > sqrEps)) stop(
+  relUC <- (sC*relSC - recycB*x$rel[["BC"]])/uC
+  if (any(abs( sC*relSC - (.aC + tvrERecycling*relSC)) > sqrEps)) stop(
     "composition C mass balance error in synthesis flux")
   if (any(abs( sN*relSN - (.aN + parms$nu*tvrERecycling/cnE*relSN)) > sqrEps)) stop(
     "composition N mass balance error in synthesis flux")
@@ -161,26 +160,26 @@ derivSesam4F <- function(
   #
   # abbreviations for tvr, used again below that adds to R pool
   # source of tvrBOrg is B, source synE is synthesis pool, s
-  tvrC <- cW*tvrBOrg*x$rel[["B"]] + (1 - parms$kNB)*synE*relSC
+  tvrC <- cW*tvrBOrg*x$rel[["BC"]] + (1 - parms$kNB)*synE*relSC
   tvrN <- cW*tvrBOrg/parms$cnBW*x$rel[["BN"]] +
     (1 - parms$kNB)*synE/parms$cnE*relSN
   tvrP <- cW*tvrBOrg/parms$cpBW*x$rel[["BP"]] +
     (1 - parms$kNB)*synE/parms$cpE*relSP
   .bookmarkDB <- function(){}
   dB <- uC*relUC - (respB + synE)*relSC -
-    (tvrB + tvrBPred)*x$rel[["B"]]
+    (tvrB + tvrBPred)*x$rel[["BC"]]
   .dB <- (sC - respB - synE)*relSC -
-    (recycB + tvrB + tvrBPred)*x$rel[["B"]]
+    (recycB + tvrB + tvrBPred)*x$rel[["BC"]]
   dBN <- (sN - synE/cnE - minN)*relSN +
     (-tvrB - tvrBPred - recycB)/cnB*x$rel[["BN"]]
   dBP <- (sP - minP - synE/cpE)*relSP +
     (-tvrB - tvrBPred - recycB)/cpB*x$rel[["BP"]]
   dBTot <- sum(dB*x$units$C)
-  #if ((xOrig$frac["B"] <= 1e-16) && (dBTot < 0)) dB[] <- dBN[] <- dBP[] <- dBTot <- 0
-  dL <- -decL*x$rel[["L"]]  + parms$iL*parms$relIL$C
-  dLN <- -decL/cnL*x$rel[["L"]] + parms$iL/parms$cnIL*parms$relIL$N
-  dLP <- -decL/cpL*x$rel[["L"]] + parms$iL/parms$cpIL*parms$relIL$P
-  dR <- -decR*x$rel[["R"]]  + parms$iR*parms$relIR$C  + tvrC
+  #if ((xOrig$frac["BC"] <= 1e-16) && (dBTot < 0)) dB[] <- dBN[] <- dBP[] <- dBTot <- 0
+  dL <- -decL*x$rel[["LC"]]  + parms$iL*parms$relIL$C
+  dLN <- -decL/cnL*x$rel[["LC"]] + parms$iL/parms$cnIL*parms$relIL$N
+  dLP <- -decL/cpL*x$rel[["LC"]] + parms$iL/parms$cpIL*parms$relIL$P
+  dR <- -decR*x$rel[["RC"]]  + parms$iR*parms$relIR$C  + tvrC
   dRN <- -decR/cnR*x$rel[["RN"]]  + parms$iR/parms$cnIR*parms$relIR$N  + tvrN
   dRP <- -decR/cpR*x$rel[["RP"]]  + parms$iR/parms$cpIR*parms$relIR$P  + tvrP
   # here plant uptake as absolute parameter
@@ -239,7 +238,7 @@ derivSesam4F <- function(
   if (!isTRUE(parms$isFixedS)) {
     .bookmarkDCBalance <- function(){}
     if (any(abs(
-      (dB + dR + dL + tvrExC + respB*relSC + respTvr*x$rel[["B"]]) -
+      (dB + dR + dL + tvrExC + respB*relSC + respTvr*x$rel[["BC"]]) -
       (parms$iR*parms$relIR$C + parms$iL*parms$relIL$C)
       ) > 1e-3))  stop("mass balance dC error")
     if (any(abs(
@@ -258,10 +257,10 @@ derivSesam4F <- function(
   #
   # allowing scenarios with holding some pools fixed
   if (isTRUE(parms$isFixedR)) {
-    resDeriv[names(x$frac[["R"]])] <- resDeriv[names(x$frac[["RN"]])] <-
+    resDeriv[names(x$frac[["RC"]])] <- resDeriv[names(x$frac[["RN"]])] <-
       resDeriv[names(x$frac[["RP"]])] <- 0 }
   if (isTRUE(parms$isFixedL)) {
-    resDeriv[names(x$frac[["L"]])] <- resDeriv[names(x$frac[["LN"]])] <-
+    resDeriv[names(x$frac[["LC"]])] <- resDeriv[names(x$frac[["LN"]])] <-
       resDeriv[names(x$frac[["LP"]])] <- 0 }
   if (isTRUE(parms$isFixedI)) {
     resDeriv[names(x$frac[["I"]])] <- resDeriv[names(x$frac[["I"]])] <- 0   }
@@ -325,11 +324,11 @@ derivSesam4F <- function(
               , names = paste("resp",names(x$units$C), sep = "_"))
   , structure(as.numeric(immoN*x$rel[["I"]])
               , names = paste("immoN",names(x$units$N), sep = "_"))
-  , structure(as.numeric(minN*x$rel[["B"]])
+  , structure(as.numeric(minN*x$rel[["BN"]])
               , names = paste("minN",names(x$units$N), sep = "_"))
   , structure(as.numeric(immoP*x$rel[["IP"]])
               , names = paste("immoP",names(x$units$P), sep = "_"))
-  , structure(as.numeric(minP*x$rel[["B"]])
+  , structure(as.numeric(minP*x$rel[["BP"]])
               , names = paste("minP",names(x$units$P), sep = "_"))
   ))
 }
