@@ -1,7 +1,7 @@
 exportPattern("^[^\\.]")	#exports all variables that do not start with a period.
 
   importFrom("graphics", "legend", "matplot", "mtext", "plot")
-  importFrom("stats", "optimize", "plogis")
+  importFrom("stats", "optimize", "plogis","setNames")
   importFrom("utils", "dump.frames", "recover", "tail")
 
   importFrom("twModMeta", "initStateModMeta", "twCreateModMeta", "twSetModMetaAuxGroups")
