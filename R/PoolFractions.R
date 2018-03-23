@@ -50,7 +50,7 @@ MultiPoolFractions_updateScalars <- function(
     structure(x[poolName], names = poolName)}), names = poolNames)
   .self$tot[poolNames] <- x[poolNames]
   .self$rel[poolNames] <- 1
-  .self$units$scalars <- 1
+  #.self$units$scalars <- 1 # better do not modify units
   .self
 }
 
@@ -89,7 +89,7 @@ createMultiPoolFractions <- function(
   pf <- MulitPoolFractions
   pf$units <- units
   pf$setX <- setX
-  pf$poolParts <- list()  # mapping poolName -> partitioning, i.e. entry in units
+  pf$poolPart <- list()  # mapping poolName -> partitioning, i.e. entry in units
   ##value<< a MultiPoolFractions object
   pf$setX(pf, numeric())
 }
@@ -208,6 +208,7 @@ sumMultiPoolFractions <- function(
   , ds    ##<< data.frame with column names of state variables
   , keepVars = names(ds)    ##<< list of columns to keep
 ){
+  if (!(is.matrix(ds) || is.data.frame(ds))) ds <- as.data.frame(t(ds))
   ##seealso<< \code{\link{createMultiPoolFractions}}
   resEl <- lapply( setdiff(names(.self$poolPart),"scalars"), function(element){
     units <- .self$units[[element]]
@@ -219,7 +220,7 @@ sumMultiPoolFractions <- function(
   })
   keepVarsS <- union(keepVars, .self$poolPart$scalars)
   ##value<< a data.frame with columns named as in .self$tot
-  cbind(ds[, keepVarsS, drop=FALSE], do.call(cbind, resEl))
+  cbind(ds[, keepVarsS, drop = FALSE], do.call(cbind, resEl))
 }
 
 
@@ -232,6 +233,7 @@ sumMultiPoolFractionsVars <- function(
   , keepVars = names(ds)    ##<< list of columns to keep
 ){
   ##seealso<< \code{\link{createMultiPoolFractions}}
+  if (!(is.matrix(ds) || is.data.frame(ds))) ds <- as.data.frame(t(ds))
   resEl <- lapply( names(vars), function(element){
     units <- .self$units[[element]]
     pools <- vars[[element]] #outer(vars[[element]], names(units), paste, sep = "_")
@@ -242,7 +244,7 @@ sumMultiPoolFractionsVars <- function(
     })), dimnames = list(NULL, pools)))
   })
   ##value<< a data.frame with columns of sums
-  cbind(ds[, keepVars, drop=FALSE], do.call(cbind, resEl))
+  cbind(ds[, keepVars, drop = FALSE], do.call(cbind, resEl))
 }
 attr(sumMultiPoolFractionsVars,"ex") <- function(){
   units <- list(
@@ -252,6 +254,25 @@ attr(sumMultiPoolFractionsVars,"ex") <- function(){
   ds <- data.frame(time = 1:5, decNL_N14 = 1:5, decNL_N15 = 6:10)
   dsSum <- sumMultiPoolFractionsVars(x, ds, vars = list(N = c("decNL")))
   dsSum
+}
+
+setMultiPoolFractionsPool <- function(
+  ### set state variables corresponding to pool by fractions
+  .self   ##<< MultiPoolFractions object mapping stateVars to pools
+  , xvec  ##<< named numeric vector of state variables
+  , pool  ##<< scalar string: pool to set
+  , value ##<< scalar numeric: value of first fraction of the first element (C)
+  , ce    ##<< named numeric vector of C:Element ratios, of others elements
+  , rel  ##<< list: for each element a named vector giving relative amount of
+    ## other fractions to the first fraction.
+    ## If only one vector is given, it is repliaced for all elements
+){
+  elements <- names(.self$units)
+  if (!is.list(rel)) rel <- lapply()
+  el1 <- elements[1]
+  relA1 <- c(1, rel)
+  xvec[ .self$frac[el1] ] <- value*relA1
+  xvec[ .self$frac[el1][-1L] ] <- value*rel*.self$units
 }
 
 
