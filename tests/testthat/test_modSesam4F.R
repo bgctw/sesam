@@ -177,11 +177,13 @@ testFState <- function(
 testParmsScen <- function(parmsInit){
   ans0 <- derivSesam4F(0, x0, parms = parmsInit)
   xF <- x0F$setX(x0F, x0)
-  ans0E <- derivSesam4a(0, xF$tot, parms = parmsInit)
+  ans0E <- derivSesam4a(0, xF$tot[namesF], parms = parmsInit)
   testFState(ans0[[1]], ans0E[[1]], parmsInit)
   #
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
+  #times <- seq(0,0.2, length.out = 101)
+  xF <- x0F$setX(x0F, x0)
   resExp <- as.data.frame(lsoda(
     xF$tot[namesF], times, derivSesam4a
     , parms = parmsInit))
@@ -223,24 +225,36 @@ testParmsScen <- function(parmsInit){
   xETest <- unlist(tail(resTest,1))
   testFState( xETest, xEExp, parmsInit)
   #
-  # # Microbial starvation
-  # x0Starv <- setMultiPoolFractionsPool(xF, "BC", 80*0.5
-  #         , c(N = parmsInit$cnB, P = parmsInit$cpB)
-  #         , c(amend = 1))
-  # # x0Starv["B_SOM"] <- x0Starv["B_amend"] <- 80
-  # # x0Starv["B_SOM"] <- x0Starv["B_amend"] <- 80
-  # xF <- xF$setX(xF, x0Starv)
-  # times <- seq(0, 2100, length.out = 2)
-  # #times <- seq(0,2100, length.out = 101)
-  # resExp <- as.data.frame(lsoda(
-  #   xF$tot[namesF], times, derivSesam4a
-  #   , parms = parmsInit))
-  # xEExp <- unlist(tail(resExp,1))
-  # resTest <- as.data.frame(lsoda(
-  #   x0Starv, times, derivSesam4F
-  #   , parms = parmsInit))
-  # xETest <- unlist(tail(resTest,1))
-  # testFState( xETest, xEExp, parmsInit)
+  # Microbial starvation
+  x0Starv <- setMultiPoolFractionsPool(xF, x0, "B", 160)
+  # x0Starv["B_SOM"] <- x0Starv["B_amend"] <- 80
+  # x0Starv["B_SOM"] <- x0Starv["B_amend"] <- 80
+  xF <- xF$setX(xF, x0Starv)
+  times <- seq(0, 2100, length.out = 2)
+  #times <- seq(0,2100, length.out = 101)
+  resExp <- as.data.frame(lsoda(
+    xF$tot[namesF], times, derivSesam4a
+    , parms = parmsInit))
+  xEExp <- unlist(tail(resExp,1))
+  resTest <- as.data.frame(lsoda(
+    x0Starv, times, derivSesam4F
+    , parms = parmsInit))
+  xETest <- unlist(tail(resTest,1))
+  testFState( xETest, xEExp, parmsInit)
+}
+
+.tmp.f <- function(){
+  # debug error by running both models from xETest
+  ans0 <- derivSesam4F(0, xETest, parms = parmsInit)
+  xF <- x0F$setX(x0F, xETest)
+  ans0E <- derivSesam4a(0, xF$tot[namesF], parms = parmsInit)
+  testFState(ans0[[1]], ans0E[[1]], parmsInit)
+
+  sort( abs(sumMultiPoolFractions(xF,ans0[[1]])[namesF] -
+  ans0E[[1]][namesF]), decreasing = TRUE)
+
+  x0B <- x0
+  x0 <- xETest[2:24]
 }
 
 .tmp.f <- function(){
@@ -250,7 +264,7 @@ testParmsScen <- function(parmsInit){
   # res <- suppressWarnings(bind_rows(
   #   cbind(resTest, scen = "Test"), cbind(resTest2, scen = "Test2"), cbind(resExp, scen = "Exp")))
   res <- suppressWarnings(bind_rows(
-    cbind(resTest, scen = "Test"), cbind(resExp, scen = "Exp")))
+    cbind(sumMultiPoolFractions(xF, resTest), scen = "Test"), cbind(resExp, scen = "Exp")))
   ggplot(filter(res, time > 1), aes(time, BC, color = scen)) + geom_line(alpha = 0.5)
   ggplot(filter(res, time > 0), aes(time, alpha, color = scen)) + geom_point(alpha = 0.5)
   ggplot(filter(res, time < 500 & time > 0), aes(time, alpha, color = scen)) + geom_point()
@@ -265,7 +279,7 @@ testParmsScen <- function(parmsInit){
   ggplot(filter(res, time > 01), aes(time, PhiB, color = scen, linetype = scen)) + geom_line()
 }
 
-test_that("same as sesam3s for fixed substrates", {
+test_that("same as sesam4a for fixed substrates", {
   parmsInit <- parmsFixedS <- within(parms0,{
     isFixedS <- TRUE
   })
@@ -273,16 +287,33 @@ test_that("same as sesam3s for fixed substrates", {
 })
 
 
-# test_that("mass balance also with feedback to DOM", {
-#   parmsInit <- within(parms0, {isFixedI <- TRUE})
-#   ans0 <- derivSesam4F(0, x0, parms = within(parmsInit, {cW <- 1; B0 <- 0}))
-#   ans0 <- derivSesam4F(0, x0, parms = within(parmsInit, {cW <- 0; B0 <- 1e20}))
-#   ans0 <- derivSesam4F(0, x0, parms = parmsInit)
-# })
-#
-#
-# test_that("same as sesam2 with substrate feedbacks", {
-#   parmsInit <- within(parms0, {isFixedI <- TRUE})
-#   testParmsScen(parmsInit)
-# })
+test_that("mass balance also with feedback to DOM", {
+  parmsInit <- within(parms0, {isFixedI <- isFixedIP <- TRUE})
+  # no turnover to DOM impossible with cnBW != cnB
+  expect_error(
+    ans0 <- derivSesam4F(0, x0, parms = within(parmsInit, {cW <- 1; B0 <- 0}))
+  )
+  # with no turnover by predation
+  ans0 <- derivSesam4F(0, x0, parms = within(parmsInit, {B0 <- 1e20}))
+  # with only turnover by predation
+  ans0 <- derivSesam4F(0, x0, parms = within(parmsInit, {tau <- 0; B0 <- 0}))
+  # similar to sesam3 but with tau increasing
+  ans0 <- derivSesam4F(0, x0, parms = within(parmsInit, {
+    cnBW = cnB; cpBW = cpB; cW <- 1; tau <- 0; B0 <- 0}))
+})
+
+.tmp.f <- function(){
+  dx <- x$setX(x, resDeriv)
+  dx$tot
+  (dx$tot["BC"] + dx$tot["RC"] + dx$tot["LC"] + sum(tvrExC*x$units$N) + respB + respTvr)
+  (dx$tot["BN"] + dx$tot["RN"] + dx$tot["LN"] + sum(tvrExN*x$units$N) + dx$tot["I"])
+  (parms$iR/parms$cnIR  + parms$iL/parms$cnIL + parms$iI) +
+      (parms$kIPlant - parms$l*x$tot["I"])
+}
+
+
+test_that("same as sesam4a with substrate feedbacks", {
+  parmsInit <- within(parms0, {isFixedI <- isFixedIP <- TRUE})
+  testParmsScen(parmsInit)
+})
 

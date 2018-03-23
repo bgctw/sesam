@@ -22,6 +22,9 @@ derivSesam4F <- function(
   cW <- parms$cW
   cnE <- parms$cnE;  cnB <- parms$cnB;  cnBW <- parms$cnBW
   cpE <- parms$cpE;  cpB <- parms$cpB;  cpBW <- parms$cpBW
+  if (((cW == 1) || (cW == 0)) && ((cnB != cnBW) || (cpB != cpBW))) stop(
+    "If ceB != ceBW, organic turnover must be partitioned between R and DOM.",
+    "cW=1 and cW=0 are not allowed.")
   cnBL <- if (cW == 1 ) cnB else (1 - cW)/(1/cnB - cW/cnBW)
   cpBL <- if (cW == 1 ) cpB else (1 - cW)/(1/cpB - cW/cpBW)
   # abbreviations of variables from x and parms
@@ -183,10 +186,18 @@ derivSesam4F <- function(
   dRN <- -decR/cnR*x$rel[["RN"]]  + parms$iR/parms$cnIR*parms$relIR$N  + tvrN
   dRP <- -decR/cpR*x$rel[["RP"]]  + parms$iR/parms$cpIR*parms$relIR$P  + tvrP
   # here plant uptake as absolute parameter
+  dITot <-  +parms$iI + sum(fracPhiU*x$units$N) + minN + PhiTvr -
+    (parms$kIPlant + leach + immoN)
   dI <-  +parms$iI*parms$relII + fracPhiU  + minN*relSN + PhiTvr*x$rel[["BN"]] -
     (parms$kIPlant + leach + immoN)*x$rel[["I"]]
   dIP <-  +parms$iIP*parms$relIIP + fracPhiPU + minP*relSP + PhiPTvr*x$rel[["BP"]] -
     (parms$kIPPlant + leachP + immoP)*x$rel[["IP"]]
+  .tmp.f.displaySumDeriv <- function(){
+    c( BC=sum(dB*x$units$C), RC=sum(dR*x$units$C), LC=sum(dL*x$units$C)
+       , RN=sum(dRN*x$units$N), LN=sum(dLN*x$units$N), I=sum(dI*x$units$N)
+       , RP=sum(dRP*x$units$P), LP=sum(dLP*x$units$P), IP=sum(dIP*x$units$P)
+       , alpha = dAlpha
+  )}
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
@@ -232,9 +243,11 @@ derivSesam4F <- function(
   )))^2 > sqrEps )  stop(
     "biomass turnover mass balance N error")
   if (diff( unlist(c(
-    (tvrB + tvrBPred)/cpB
-    , usage = PhiPTvr + cW*tvrBOrg/cpBW + (1 - cW)*tvrBOrg/cpBL
-     )))^2 > sqrEps )  stop("biomass turnover mass balance P error")
+    tvrB/cpB + tvrBPred/cpB
+    , usage = PhiPTvr + tvrBOrg/cpB
+    #, usage = PhiTvr + cW*tvrBOrg/cnBW + (1 - cW)*tvrBOrg/cnBL
+  )))^2 > sqrEps )  stop(
+    "biomass turnover mass balance P error")
   if (!isTRUE(parms$isFixedS)) {
     .bookmarkDCBalance <- function(){}
     if (any(abs(
@@ -262,8 +275,8 @@ derivSesam4F <- function(
   if (isTRUE(parms$isFixedL)) {
     resDeriv[names(x$frac[["LC"]])] <- resDeriv[names(x$frac[["LN"]])] <-
       resDeriv[names(x$frac[["LP"]])] <- 0 }
-  if (isTRUE(parms$isFixedI)) {
-    resDeriv[names(x$frac[["I"]])] <- resDeriv[names(x$frac[["I"]])] <- 0   }
+  if (isTRUE(parms$isFixedI)) { resDeriv[names(x$frac[["I"]])] <- 0 }
+  if (isTRUE(parms$isFixedIP)) { resDeriv[names(x$frac[["IP"]])] <- 0 }
   #
   # further computations just for output for tacking the system
   ER <- alpha * parms$aE * B / parms$kN

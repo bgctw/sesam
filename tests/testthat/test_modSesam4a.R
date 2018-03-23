@@ -234,15 +234,16 @@ test_that("same as sesam3s for fixed substrates", {
 
 
 test_that("mass balance also with feedback to DOM", {
-  parmsInit <- within(parms0C, {isFixedI <- TRUE})
-  ans0 <- derivSesam4a(0, x0, parms = within(parmsInit, {cW <- 1; B0 <- 0}))
-  ans0 <- derivSesam4a(0, x0, parms = within(parmsInit, {cW <- 0; B0 <- 1e20}))
+  parmsInit <- within(parms0C, {isFixedI <- isFixedIP <- TRUE})
+  expect_error(
+    ans0 <- derivSesam4a(0, x0, parms = within(parmsInit, {cW <- 1; cnBW <- 10}))
+  )
   ans0 <- derivSesam4a(0, x0, parms = parmsInit)
 })
 
 
 test_that("same as sesam2 with substrate feedbacks", {
-  parmsInit <- within(parms0C, {isFixedI <- TRUE})
+  parmsInit <- within(parms0C, {isFixedI <- isFixedIP <- TRUE})
   testParmsScen(parmsInit)
 })
 

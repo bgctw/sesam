@@ -25,6 +25,9 @@ derivSesam4a <- function(
   cpB <- parms$cpB
   cpBW <- parms$cpBW
   cW <- parms$cW
+  if (((cW == 1) || (cW == 0)) && ((cnB != cnBW) || (cpB != cpBW))) stop(
+    "If ceB != ceBW, organic turnover must be partitioned between R and DOM.",
+    "cW=1 and cW=0 are not allowed.")
   cnBL <- if (cW == 1 ) cnB else (1 - cW)/(1/cnB - cW/cnBW)
   cpBL <- if (cW == 1 ) cpB else (1 - cW)/(1/cpB - cW/cpBW)
   alpha <- x["alpha"]
@@ -144,7 +147,7 @@ derivSesam4a <- function(
   #
   resDeriv <- structure(as.numeric(
     c( dB, dR, dRN, dRP, dL, dLN, dLP, dI, dIP, dAlpha))
-    ,names = c("BC","RC","RN","RP","LC","LN","LP","I","IP","alpha"))
+    ,names = c("BC","RC","RN","RP","LC","LN","LP","I","IP","alpha"))[names(x)]
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   sqrEps <- sqrt(.Machine$double.eps)
   # parms$iL - (decL + dL)
@@ -196,7 +199,8 @@ derivSesam4a <- function(
   # allowing scenarios with holding some pools fixed
   if (isTRUE(parms$isFixedR)) { resDeriv["RC"] <- resDeriv["RN"] <- resDeriv["RP"] <- 0 }
   if (isTRUE(parms$isFixedL)) { resDeriv["LC"] <- resDeriv["LN"] <- resDeriv["LP"] <- 0 }
-  if (isTRUE(parms$isFixedI)) { resDeriv["I"] <- resDeriv["IP"] <- 0   }
+  if (isTRUE(parms$isFixedI)) { resDeriv["I"] <- 0   }
+  if (isTRUE(parms$isFixedIP)) { resDeriv["IP"]  <- 0   }
   #
   # further computations just for output for tacking the system
   ER <- alpha * parms$aE * B / parms$kN
