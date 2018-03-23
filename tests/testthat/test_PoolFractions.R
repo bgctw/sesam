@@ -62,13 +62,30 @@ test_that("sumMultiPoolFractions", {
   )
   x <- createMultiPoolFractions(units, setX = createSesam4CNsetX(units))
   x0 <- structure(seq_along(x$stateVec(x)), names = names(x$stateVec(x)))
-  ds <- do.call(rbind, lapply(1:5, function(time){ data.frame(time = time, t(x0), note = "bla")}))
+  ds <- do.call(rbind, lapply(1:5, function(time){ data.frame(
+    time = time, t(x0), note = "bla")}))
   #.self <- x
   dsSum <- sumMultiPoolFractions(x, ds)
   expect_equal( nrow(dsSum), nrow(ds) )
   expect_true( all(names(x$tot) %in% names(dsSum)) )
   expect_equal( dsSum$RC, rowSums(ds[,c("RC_C12","RC_C13","RC_C14")]*matrix(
     x$units$C, nrow = nrow(ds), ncol = length(x$units$C), byrow = TRUE)))
+})
+
+test_that("sumMultiPoolFractionsVars", {
+  units <- list(
+    C = c(C12 = 1, C13 = 0.01, C14 = 1e-12) # 13C in percent, 14C ppTrillion
+    , N = c(N14 = 1, N15 = 0.01) # 15N in percent
+  )
+  x <- createMultiPoolFractions(units, setX = createSesam4CNsetX(units))
+  x0 <- structure(seq_along(x$stateVec(x)), names = names(x$stateVec(x)))
+  ds <- do.call(rbind, lapply(1:5, function(time){ data.frame(
+    time = time, t(x0), decNL_N14 = 1:5, decNL_N15 = 6:10)}))
+  #.self <- x
+  dsSum <- sumMultiPoolFractionsVars(x, ds, list(N = c("decNL")))
+  expect_equal( nrow(dsSum), nrow(ds) )
+  expect_equal( dsSum$decNL, rowSums(ds[,c("decNL_N14","decNL_N15")]*matrix(
+    x$units$N, nrow = nrow(ds), ncol = length(x$units$N), byrow = TRUE)))
 })
 
 test_that("setMultiPoolFractionsPool", {
