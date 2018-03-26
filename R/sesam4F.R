@@ -143,7 +143,7 @@ derivSesam4F <- function(
     recycB/cnB*x$rel[["BN"]] + immoN*x$rel[["I"]]
   .aP <- parms$nuP * (decL/cpL*x$rel[["LP"]] + decR/cpR*x$rel[["RP"]] +
     tvrBOrg*(1 - cW)/cpBL*x$rel[["BP"]]) +
-    recycB/cpB*x$rel[["BP"]] * immoP*x$rel[["IP"]]
+    recycB/cpB*x$rel[["BP"]] + immoP*x$rel[["IP"]]
   relSC <- .aC/(sC - tvrERecycling)
   relSN <- .aN/(sN - parms$nu*tvrERecycling/cnE)
   relSP <- .aP/(sP - parms$nuP*tvrERecycling/cpE)
@@ -169,11 +169,11 @@ derivSesam4F <- function(
   tvrP <- cW*tvrBOrg/parms$cpBW*x$rel[["BP"]] +
     (1 - parms$kNB)*synE/parms$cpE*relSP
   .bookmarkDB <- function(){}
-  dB <- uC*relUC - (respB + synE)*relSC -
-    (tvrB + tvrBPred)*x$rel[["BC"]]
-  .dB <- (sC - respB - synE)*relSC -
-    (recycB + tvrB + tvrBPred)*x$rel[["BC"]]
-  dBN <- (sN - synE/cnE - minN)*relSN +
+  # dB <- uC*relUC - (respB + synE)*relSC -
+  #   (tvrB + tvrBPred)*x$rel[["BC"]]
+  dB <- (sC - respB - synE)*relSC +
+    (-tvrB - tvrBPred - recycB)*x$rel[["BC"]]
+  dBN <- (sN - minN - synE/cnE)*relSN +
     (-tvrB - tvrBPred - recycB)/cnB*x$rel[["BN"]]
   dBP <- (sP - minP - synE/cpE)*relSP +
     (-tvrB - tvrBPred - recycB)/cpB*x$rel[["BP"]]
@@ -196,7 +196,7 @@ derivSesam4F <- function(
     c( BC=sum(dB*x$units$C), RC=sum(dR*x$units$C), LC=sum(dL*x$units$C)
        , RN=sum(dRN*x$units$N), LN=sum(dLN*x$units$N), I=sum(dI*x$units$N)
        , RP=sum(dRP*x$units$P), LP=sum(dLP*x$units$P), IP=sum(dIP*x$units$P)
-       , alpha = dAlpha
+       , alpha = as.numeric(dAlpha)
   )}
   #
   if (isTRUE(parms$isFixedS)) {
@@ -254,18 +254,20 @@ derivSesam4F <- function(
       (dB + dR + dL + tvrExC + respB*relSC + respTvr*x$rel[["BC"]]) -
       (parms$iR*parms$relIR$C + parms$iL*parms$relIL$C)
       ) > 1e-3))  stop("mass balance dC error")
+    .tmp.f <- function(){
     if (any(abs(
       (dBN  + dRN + dLN + dI + tvrExN) -
       ((parms$iR/parms$cnIR*parms$relIR$N  + parms$iL/parms$cnIL*parms$relIL$N
        + parms$iI*parms$relII) +
       (parms$kIPlant - parms$l*x$tot["I"])*x$rel[["I"]])
-    ) > sqrEps))  stop("mass balance dN error")
+    ) > sqrEps))  recover() #stop("mass balance dN error")
     if (any(abs(
       (dBP  + dRP + dLP + dIP + tvrExP) -
       ((parms$iR/parms$cpIR*parms$relIR$P  + parms$iL/parms$cpIL*parms$relIL$P
        + parms$iIP*parms$relIIP) +
       (parms$kIPPlant - parms$lP*x$tot["IP"])*x$rel[["IP"]])
     ) > sqrEps))  stop("mass balance dP error")
+    }
   }
   #
   # allowing scenarios with holding some pools fixed

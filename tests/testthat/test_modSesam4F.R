@@ -226,9 +226,12 @@ testParmsScen <- function(parmsInit){
   testFState( xETest, xEExp, parmsInit)
   #
   # Microbial starvation
-  x0Starv <- setMultiPoolFractionsPool(xF, x0, "B", 160)
-  # x0Starv["B_SOM"] <- x0Starv["B_amend"] <- 80
-  # x0Starv["B_SOM"] <- x0Starv["B_amend"] <- 80
+  x0Starv <- setMultiPoolFractionsElements(xF, x0, "B", 160)
+  x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "LP", x0Starv["LN_SOM"])
+  x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "RP", x0Starv["RN_SOM"])
+  x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "BP", x0Starv["BN_SOM"])
+  x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "IP", x0Starv["I_SOM"])
+  within(parmsInit, {ceB <- cnB; ceBW <- cnBW; nuP <- nu})
   xF <- xF$setX(xF, x0Starv)
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
@@ -238,7 +241,8 @@ testParmsScen <- function(parmsInit){
   xEExp <- unlist(tail(resExp,1))
   resTest <- as.data.frame(lsoda(
     x0Starv, times, derivSesam4F
-    , parms = parmsInit))
+    #, parms = parmsInit))
+    , parms = within(parmsInit, {cpB <- cnB; cpE <- cnE; cpBW <- cnBW; nuP <- nu; iIP <- iI; cpIL <- cnIL})))
   xETest <- unlist(tail(resTest,1))
   testFState( xETest, xEExp, parmsInit)
 }
