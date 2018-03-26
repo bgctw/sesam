@@ -1,3 +1,86 @@
+createMultiPoolFractions <- function(
+  ### construct a MultiPoolFractions object
+  units   ##<< list for each element with a named numeric vector of fractions
+  , setX  ##<< function to set state variable vector, see \code{\link{createSesam4setX}}
+){
+  ##details<< The example and its comments provide a good documentation on
+  ## how to use a MultiPoolFractions object.
+  #
+  ##seealso<<
+  ## \itemize{
+  ## \item sum pools of state variables: \code{\link{sumMultiPoolFractions}}
+  ## \item sum pools of output fractions: \code{\link{sumMultiPoolFractionsVars}}
+  ## \item set all state variables of one pool: \code{\link{setMultiPoolFractionsPool}}
+  ## \item set all state variables of elemental pools of one entity:
+  ##    \code{\link{setMultiPoolFractionsElements}}
+  ## }
+  ##value<< a MultiPoolFractions object with items
+  pf <- list(
+    frac = list()      ##<< pool-list of state variable vector
+    ##  with a named numeric vector of state variables
+    , tot = numeric()   ##<< named numeric vector with sums for each pool
+    , rel = list()      ##<< pool-list of state variable vector normalized by total
+    , poolPart = list() ##<< mapping element -> pool
+    ## Which partitioning, i.e. element, is applied to which pools.
+    ## Also contains entry "scalars" listing pools with a sole single fraction.
+    , stateVec = function(.self){ do.call(c, c(.self$frac, use.names = FALSE)) }
+    , units = units     ##<< from argument list
+    , setX = setX       ##<< from argument list
+    , updateElement = MultiPoolFractions_updateElement  ##<< function
+    ## to update frac and tot of fractions from given state vector
+    , updateScalars = MultiPoolFractions_updateScalars
+    ##end<<
+  )
+  class(pf) <- c("MultiPoolFractions","list")
+  pf$setX(pf, numeric())
+}
+attr(createMultiPoolFractions,"ex") <- function(){
+  units <- list(
+    C = c(C12 = 1, C13 = 0.01, C14 = 1e-12) # 13C in percent, 14C ppt
+    , N = c(N14 = 1, N15 = 0.01) # 15N in percent
+    , P = c(tot = 1)
+  )
+  x <- createMultiPoolFractions(units, setX = createSesam4setX(units))
+  #
+  # initializing state variables by elemental ratios and atomic ratios
+  cnB = 8;  cnR = 10; cnL = 30
+  cpB = 47.3; cpR = 61; cpL = 919
+  aR <- list(
+    C = c(C13 = 27, C14 = 120) # ~ C3 plants and atmosphere 1990
+    , N = c(N14 = 0.4))
+  x0Vec <- x$stateVec(x)
+  x0Vec["alpha"] <- 0.5    # scalars
+  x0Vec["IP_tot"] <- 2
+  x0Vec <- setMultiPoolFractionsPool(  # single element pools
+    x, x0Vec, "I", 10, rel = aR$N, element = "N")
+  x0Vec <- setMultiPoolFractionsElements( # multiple element pools
+    x, x0Vec, "B", 100, ce = c(cnB, cpB), rel = aR)
+  x0Vec <- setMultiPoolFractionsElements(
+    x, x0Vec, "R", 10000, ce = c(cnR, cpR), rel = aR)
+  x0Vec <- setMultiPoolFractionsElements(
+    x, x0Vec, "L", 1000, ce = c(cnL, cpL), rel = aR)
+  x <- x$setX(x, x0Vec)  # setting the state vector will compute totals and rel
+  #
+  # retrieve the original state vector back, names are sorted according to setX
+  x$stateVec(x)
+  #
+  # totals across fractions for each element
+  x$tot
+  x$tot["BC"]/x$tot["BN"]  # equals cnB
+  #
+  # fractions for given pool (in units)
+  x$frac[["BC"]]
+  # fractions in unit 1
+  x$frac[["BC"]] * x$units$C
+  #
+  # relative fractions to total (in units)
+  # this is useful in mutiplying computed totals by its source
+  x$rel[["BC"]]
+  # relative fractions sum to 1 at unit 1
+  sum( x$rel[["BC"]] * x$units$C )
+  # atomic ratios
+  x$rel[["BC"]]  / x$rel[["BC"]][1]
+}
 
 MultiPoolFractions_updateElement <- function(
   ### set states for given element
@@ -52,89 +135,6 @@ MultiPoolFractions_updateScalars <- function(
   .self$rel[poolNames] <- 1
   #.self$units$scalars <- 1 # better do not modify units
   .self
-}
-
-### An (list) object as described by \code{\link{createMultiPoolFractions}}.
-MulitPoolFractions <- list(
-  ##describe<<
-  className = "MultiPoolFractions"    ##<< string to identify the class
-  , frac = list()   ##<< pool-list of state variable vector
-    ##  with a named numeric vector of state variables
-  , tot = numeric() ##<< named numeric vector with sums for each pool
-  , rel = list()    ##<< pool-list of state variable vector normalized by total
-  , stateVec = function(.self){ do.call(c, c(.self$frac, use.names = FALSE)) }
-  #
-  , units = list()
-  , setX = function(.self, x) stop(
-    "need to set specific function, see example createSesam4setX")
-  , updateElement = MultiPoolFractions_updateElement  ##<< function
-    ## to update frac and tot of fractions from given state vector
-  , updateScalars = MultiPoolFractions_updateScalars
-  ##end<<
-)
-
-createMultiPoolFractions <- function(
-  ### construct a MultiPoolFractions object
-  units   ##<< list for each element with a named numeric vector of fractions
-  , setX  ##<< function to set state variable vector, see \code{\link{createSesam4setX}}
-){
-  ##details<< The example and its comments provide a good documentation on
-  ## how to use a MultiPoolFractions object.
-  #
-  ##seealso<<
-  ## \itemize{
-  ## \item sum pools of state variables: \code{\link{sumMultiPoolFractions}}
-  ## \item sum pools of output fractions: \code{\link{sumMultiPoolFractionsVars}}
-  ## \item set all state variables of one pool: \code{\link{setMultiPoolFractionsPool}}
-  ## \item set all state variables of elemental pools of one entity: \code{\link{setMultiPoolFractionsElements}}
-  ## }
-  pf <- MulitPoolFractions
-  pf$units <- units
-  pf$setX <- setX
-  pf$poolPart <- list()  # mapping poolName -> partitioning, i.e. entry in units
-  # set update functions again for easier debugging
-  pf$updateElement = MultiPoolFractions_updateElement
-  pf$updateScalars = MultiPoolFractions_updateScalars
-  ##value<< a MultiPoolFractions object
-  pf$setX(pf, numeric())
-}
-attr(createMultiPoolFractions,"ex") <- function(){
-  units <- list(
-    C = c(C12 = 1, C13 = 0.01, C14 = 1e-12) # 13C in percent, 14C ppt
-    , N = c(N14 = 1, N15 = 0.01) # 15N in percent
-  )
-  cnL = 30; cnB = 8; cnR = 10
-  cpB = 47.3; cpR = 61; cpL = 919
-  x0Vec <- c(B_C12 = 100, B_C13 = 27, B_C14 = 50
-             , R_C12 = 10000, R_C13 = 2700, R_C14 = 5000
-             , L_C12 = 1000, L_C13 = 270, L_C14 = 500
-             , BN_N14 = 100/cnB, BN_N15 = 40/cnB
-             , RN_N14 = 10000/cnR, RN_N15 = 600/cnR
-             , LN_N14 = 1000/cnL, LN_N15 = 500/cnL
-             , I_N14 = 10, I_N15 = 4
-             , BP = 100/cpB, RP = 10000/cpR, LP = 1000/cpL, IP = 2
-             , alpha = 0.5)
-  #
-  # create the Multipoolfractions object and set the state vector
-  x <- createMultiPoolFractions(units, setX = createSesam4CNsetX(units))
-  x <- x$setX(x, x0Vec)
-  #
-  # retrieve the original state vector back, names are sorted according to setX
-  x$stateVec(x)
-  #
-  # totals across fractions for each element
-  x$tot
-  #
-  # fractions for given pool (in units)
-  x$frac[["B"]]
-  # fractions in unit 1
-  x$frac[["B"]] * x$units$C
-  #
-  # relative fractions to total (in units)
-  # this is useful in mutiplying computed totals by its source
-  x$rel[["B"]]
-  # relative fractions sum to 1 at unit 1
-  sum( x$rel[["B"]] * x$units$C )
 }
 
 createSesam4setX <- function(

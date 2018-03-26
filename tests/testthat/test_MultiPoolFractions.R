@@ -8,6 +8,7 @@ test_that("MultiPoolFractions amend through all fractions", {
                      , names = elements)
   x <- createMultiPoolFractions(units, setX = createSesam4setX(units))
   expect_equal( x$units, units)
+  expect_true( inherits(x, "MultiPoolFractions"))
   expect_equal( names(x$tot), c("BC","RC","LC","BN","RN","LN","I","BP","RP","LP","IP","alpha"))
   expect_true( all( c("RC_SOM","RC_amend","RP_SOM","alpha") %in% names(x$stateVec(x)) ))
   #.self <- x  # rm(.self)  # poolName <- "RP"
@@ -131,6 +132,4 @@ test_that("setMultiPoolFractionsElements", {
   expect_equal(as.vector(x1cF$tot["BP"]*cpB), as.vector(x1cF$tot["BC"])) # cp-ratio
   expect_equal(as.vector(x1cF$frac[["BC"]][-1]/x1cF$frac[["BC"]][1]), c(2,4))
 })
-
-
 
