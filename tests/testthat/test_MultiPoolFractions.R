@@ -1,5 +1,5 @@
 #require(testthat)
-#test_file("tests/testthat/test_PoolFractions.R")
+#test_file("tests/testthat/test_MultiPoolFractions.R")
 context("MultiPoolFractions")
 
 test_that("MultiPoolFractions amend through all fractions", {
