@@ -227,22 +227,25 @@ testParmsScen <- function(parmsInit){
   #
   # Microbial starvation
   x0Starv <- setMultiPoolFractionsElements(xF, x0, "B", 160)
-  x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "LP", x0Starv["LN_SOM"])
-  x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "RP", x0Starv["RN_SOM"])
-  x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "BP", x0Starv["BN_SOM"])
-  x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "IP", x0Starv["I_SOM"])
-  within(parmsInit, {ceB <- cnB; ceBW <- cnBW; nuP <- nu})
+  .tmp.f <- function() {
+    #track differences between N and P by setting all P to N dynamics
+    x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "LP", x0Starv["LN_SOM"])
+    x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "RP", x0Starv["RN_SOM"])
+    x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "BP", x0Starv["BN_SOM"])
+    x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "IP", x0Starv["I_SOM"])
+    parmsInit <- within(parmsInit, {cpB <- cnB; cpE <- cnE; cpBW <- cnBW; nuP <- nu; iIP <- iI; cpIL <- cnIL})
+  }
   xF <- xF$setX(xF, x0Starv)
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
+  #times <- seq(0,2, length.out = 101)
   resExp <- as.data.frame(lsoda(
     xF$tot[namesF], times, derivSesam4a
     , parms = parmsInit))
   xEExp <- unlist(tail(resExp,1))
   resTest <- as.data.frame(lsoda(
     x0Starv, times, derivSesam4F
-    #, parms = parmsInit))
-    , parms = within(parmsInit, {cpB <- cnB; cpE <- cnE; cpBW <- cnBW; nuP <- nu; iIP <- iI; cpIL <- cnIL})))
+    , parms = parmsInit))
   xETest <- unlist(tail(resTest,1))
   testFState( xETest, xEExp, parmsInit)
 }
@@ -264,6 +267,7 @@ testParmsScen <- function(parmsInit){
 .tmp.f <- function(){
   # plots of results
   library(dplyr)
+  library(tidyr)
   library(ggplot2)
   # res <- suppressWarnings(bind_rows(
   #   cbind(resTest, scen = "Test"), cbind(resTest2, scen = "Test2"), cbind(resExp, scen = "Exp")))
@@ -273,6 +277,8 @@ testParmsScen <- function(parmsInit){
   ggplot(filter(res, time > 0), aes(time, alpha, color = scen)) + geom_point(alpha = 0.5)
   ggplot(filter(res, time < 500 & time > 0), aes(time, alpha, color = scen)) + geom_point()
   ggplot(filter(res, time < 500), aes(time, BC, color = scen)) + geom_line()
+  ggplot(filter(res, time <= 2), aes(time, BC, color = scen, linetype = scen)) + geom_line()
+  ggplot(filter(res, time <= 2), aes(time, starvB, color = scen, linetype = scen)) + geom_line()
   ggplot(filter(res, time >= 0), aes(time, LC, color = scen)) + geom_line()
   ggplot(filter(res, time >= 0), aes(time, RC, color = scen)) + geom_line()
   ggplot(filter(res, time < 500), aes(time, respO, color = scen)) + geom_line()
@@ -281,6 +287,18 @@ testParmsScen <- function(parmsInit){
   ggplot(filter(res, time < 500), aes(time, alphaC, color = scen)) + geom_line()
   ggplot(filter(res, time < 5000), aes(time, alphaN, color = scen)) + geom_line()
   ggplot(filter(res, time > 01), aes(time, PhiB, color = scen, linetype = scen)) + geom_line()
+}
+
+.tmp.f <- function(){
+  resTs <- resTest %>%
+    select(time, contains("_")) %>%
+    gather("var","value", -time) %>%
+    separate(var,c("pool","frac")) %>%
+    spread(pool, value)
+  ggplot(filter(resTs, time <= 2), aes(time, BN, color = frac)) + geom_line(alpha = 0.5)
+  ggplot(filter(resTs, time <= 2), aes(time, LN, color = frac)) + geom_line(alpha = 0.5)
+  #ggplot(filter(resTs, time <= 2), aes(time, RN, color = frac)) + geom_line(alpha = 0.5)
+
 }
 
 test_that("same as sesam4a for fixed substrates", {

@@ -76,10 +76,10 @@ derivSesam4F <- function(
   CsynBP <- cpB/parms$eps*(uPOrg + immoPPot - synE/cpE)
   CsynB <- min(CsynBC, CsynBN, CsynBP)
   if (CsynB > 0) {
-    recycB <- 0
+    starvB <- 0
     synB <- parms$eps*CsynB
   } else {
-    recycB <- -CsynB
+    starvB <- -CsynB
     synB <- 0
   }
   rG <- (1 - parms$eps)*synB
@@ -107,12 +107,12 @@ derivSesam4F <- function(
   )
   alphaTarget <- resBalance$alpha
   # microbial community change as fast as microbial turnover
-  dAlpha <- (alphaTarget - alpha) * (synB + recycB + tvrB + tvrBPred)/B
+  dAlpha <- (alphaTarget - alpha) * (synB + starvB + tvrB + tvrBPred)/B
   #
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
-  respO <- uC + recycB - (synE/parms$eps + synB + rG + rM)
-  PhiB <- uNOrg + recycB/cnB - synB/cnB - synE/cnE
-  PhiPB <- uPOrg + recycB/cpB - synB/cpB - synE/cpE
+  respO <- uC + starvB - (synE/parms$eps + synB + rG + rM)
+  PhiB <- uNOrg + starvB/cnB - synB/cnB - synE/cnE
+  PhiPB <- uPOrg + starvB/cpB - synB/cpB - synE/cpE
   #
   tvrN <-  +cW*tvrBOrg/parms$cnBW   + (1 - parms$kNB)*synE/parms$cnE
   tvrP <-  +cW*tvrBOrg/parms$cpBW   + (1 - parms$kNB)*synE/parms$cpE
@@ -131,23 +131,23 @@ derivSesam4F <- function(
   #
   # after sC and immo is known, relSC can be computed (see SteadyEnzyme4a.Rmd)
   # fluxes that feed synthesis, s, and mineralization fluxes
-  sC <- uC + recycB
-  sN <- uNOrg + recycB/cnB + immoN
-  sP <- uPOrg + recycB/cpB + immoP
+  sC <- uC + starvB
+  sN <- uNOrg + starvB/cnB + immoN
+  sP <- uPOrg + starvB/cpB + immoP
   cnS <- sC/sN
   cpS <- sC/sP
   .aC <- decL*x$rel[["LC"]] + decR*x$rel[["RC"]] + tvrBOrg*(1 - cW)*x$rel[["BC"]] +
-    recycB*x$rel[["BC"]]
+    starvB*x$rel[["BC"]]
   .aN <- parms$nu * (decL/cnL*x$rel[["LN"]] + decR/cnR*x$rel[["RN"]] +
     tvrBOrg*(1 - cW)/cnBL*x$rel[["BN"]]) +
-    recycB/cnB*x$rel[["BN"]] + immoN*x$rel[["I"]]
+    starvB/cnB*x$rel[["BN"]] + immoN*x$rel[["I"]]
   .aP <- parms$nuP * (decL/cpL*x$rel[["LP"]] + decR/cpR*x$rel[["RP"]] +
     tvrBOrg*(1 - cW)/cpBL*x$rel[["BP"]]) +
-    recycB/cpB*x$rel[["BP"]] + immoP*x$rel[["IP"]]
+    starvB/cpB*x$rel[["BP"]] + immoP*x$rel[["IP"]]
   relSC <- .aC/(sC - tvrERecycling)
   relSN <- .aN/(sN - parms$nu*tvrERecycling/cnE)
   relSP <- .aP/(sP - parms$nuP*tvrERecycling/cpE)
-  relUC <- (sC*relSC - recycB*x$rel[["BC"]])/uC
+  relUC <- (sC*relSC - starvB*x$rel[["BC"]])/uC
   if (any(abs( sC*relSC - (.aC + tvrERecycling*relSC)) > sqrEps)) stop(
     "composition C mass balance error in synthesis flux")
   if (any(abs( sN*relSN - (.aN + parms$nu*tvrERecycling/cnE*relSN)) > sqrEps)) stop(
@@ -172,11 +172,11 @@ derivSesam4F <- function(
   # dB <- uC*relUC - (respB + synE)*relSC -
   #   (tvrB + tvrBPred)*x$rel[["BC"]]
   dB <- (sC - respB - synE)*relSC +
-    (-tvrB - tvrBPred - recycB)*x$rel[["BC"]]
+    (-tvrB - tvrBPred - starvB)*x$rel[["BC"]]
   dBN <- (sN - minN - synE/cnE)*relSN +
-    (-tvrB - tvrBPred - recycB)/cnB*x$rel[["BN"]]
+    (-tvrB - tvrBPred - starvB)/cnB*x$rel[["BN"]]
   dBP <- (sP - minP - synE/cpE)*relSP +
-    (-tvrB - tvrBPred - recycB)/cpB*x$rel[["BP"]]
+    (-tvrB - tvrBPred - starvB)/cpB*x$rel[["BP"]]
   dBTot <- sum(dB*x$units$C)
   #if ((xOrig$frac["BC"] <= 1e-16) && (dBTot < 0)) dB[] <- dBN[] <- dBP[] <- dBTot <- 0
   dL <- -decL*x$rel[["LC"]]  + parms$iL*parms$relIL$C
@@ -221,13 +221,13 @@ derivSesam4F <- function(
   plantNUp <- plantPUp <- 0 # checked in mass balance but is not (any more) in model
   resp <- respB + respTvr
   # biomass mass balance
-  if (diff( unlist(c(uC = uC + recycB, usage = respB + synB + synE )))^2 > sqrEps )  stop(
+  if (diff( unlist(c(uC = uC + starvB, usage = respB + synB + synE )))^2 > sqrEps )  stop(
     "biomass mass balance C error")
   if (diff( unlist(
-    c(sN = uNOrg + recycB/cnB, usage = synE/parms$cnE + synB/parms$cnB + PhiB )))^2 >
+    c(sN = uNOrg + starvB/cnB, usage = synE/parms$cnE + synB/parms$cnB + PhiB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   if (diff( unlist(
-    c(uP = uPOrg + recycB/cpB, usage = synE/parms$cpE + synB/parms$cpB + PhiPB )))^2 >
+    c(uP = uPOrg + starvB/cpB, usage = synE/parms$cpE + synB/parms$cpB + PhiPB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance P error")
   if ((sum(dB*x$units$C) - parms$cnB*sum(dBN*x$units$N)) > sqrEps) stop(
     "biomass CN error")
@@ -254,20 +254,21 @@ derivSesam4F <- function(
       (dB + dR + dL + tvrExC + respB*relSC + respTvr*x$rel[["BC"]]) -
       (parms$iR*parms$relIR$C + parms$iL*parms$relIL$C)
       ) > 1e-3))  stop("mass balance dC error")
-    .tmp.f <- function(){
+    #.tmp.f <- function(){
+    #TODO: track error in N mass balance flux with starvation (small 1e-8)
     if (any(abs(
       (dBN  + dRN + dLN + dI + tvrExN) -
       ((parms$iR/parms$cnIR*parms$relIR$N  + parms$iL/parms$cnIL*parms$relIL$N
        + parms$iI*parms$relII) +
       (parms$kIPlant - parms$l*x$tot["I"])*x$rel[["I"]])
-    ) > sqrEps))  recover() #stop("mass balance dN error")
+    ) > 1e-6))  stop("mass balance dN error")
     if (any(abs(
       (dBP  + dRP + dLP + dIP + tvrExP) -
       ((parms$iR/parms$cpIR*parms$relIR$P  + parms$iL/parms$cpIL*parms$relIL$P
        + parms$iIP*parms$relIIP) +
       (parms$kIPPlant - parms$lP*x$tot["IP"])*x$rel[["IP"]])
-    ) > sqrEps))  stop("mass balance dP error")
-    }
+    ) > 1e-6))  stop("mass balance dP error")
+    #}
   }
   #
   # allowing scenarios with holding some pools fixed
@@ -319,7 +320,7 @@ derivSesam4F <- function(
     , limER = as.numeric(limER), limEL = as.numeric(limEL)
     , decR = as.numeric(decR), decL = as.numeric(decL)
     , synB = as.numeric(synB)
-    , recycB = as.numeric(recycB)
+    , starvB = as.numeric(starvB)
     , tvrB = as.numeric(tvrB)
     , tvrBPred = as.numeric(tvrBPred)
     , revRC = as.numeric(revRC), revLC = as.numeric(revLC)

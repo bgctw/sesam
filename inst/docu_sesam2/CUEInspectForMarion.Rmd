@@ -271,7 +271,7 @@ At steady state there is no microbial starvation, $starv_N$, and immobilization
 of inorganic N, $immo_N$, contributes a small share when organic N is limiting.
 
 ```{r echo=FALSE}
-resAgg <- xEs %>% mutate(immoN = pmax(0, -PhiB), starvN = recycB/parms0$cnB) %>% 
+resAgg <- xEs %>% mutate(immoN = pmax(0, -PhiB), starvN = starvB/parms0$cnB) %>% 
   select(cnIL, decNR, decNL, decNB, decNE, immoN, starvN) %>% gather(key = "variable", "value", -cnIL)
 ggplot( resAgg, aes(cnIL, value, color = variable, linetype = variable)) + geom_line()
 ```

@@ -60,17 +60,17 @@ derivSesam4a <- function(
   CsynBP <- cpB/parms$eps*(uPOrg + immoPPot - synE/cpE)
   CsynB <- min(CsynBC, CsynBN, CsynBP)
   if (CsynB > 0) {
-    recycB <- 0
+    starvB <- 0
     synB <- parms$eps*CsynB
   } else {
     # with negative biomass change
     # microbial recycling
-    recycB <- -CsynB #?/parms$eps
+    starvB <- -CsynB #?/parms$eps
     synB <- 0
   }
   rG <- (1 - parms$eps)*synB
-  PhiB <- uNOrg + recycB/cnB - synB/cnB - synE/cnE
-  PhiPB <- uPOrg + recycB/cpB - synB/cpB - synE/cpE
+  PhiB <- uNOrg + starvB/cnB - synB/cnB - synE/cnE
+  PhiPB <- uPOrg + starvB/cpB - synB/cpB - synE/cpE
   alphaC <- computeSesam3sAllocationPartitioning(
     dR = dRPot, dL = dLPot, B = B
     , kmkN = kmN, aE = parms$aE
@@ -93,11 +93,11 @@ derivSesam4a <- function(
   )
   alphaTarget <- resBalance$alpha
   # microbial community change as fast as microbial turnover
-  dAlpha <- (alphaTarget - alpha) * (synB + recycB + tvrB + tvrBPred)/B
+  dAlpha <- (alphaTarget - alpha) * (synB + starvB + tvrB + tvrBPred)/B
   #
 
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
-  respO <- uC + recycB - (synE/parms$eps + synB + rG + rM)
+  respO <- uC + starvB - (synE/parms$eps + synB + rG + rM)
   respTvr <- (1 - parms$epsP) * tvrBPred
   # assuming same cnRatio of predators to equal cn ratio of microbes
   PhiTvr <- respTvr/parms$cnB
@@ -117,10 +117,10 @@ derivSesam4a <- function(
   immoN <- max(0,-PhiB); minN <- max(0,PhiB)
   immoP <- max(0,-PhiPB); minP <- max(0,PhiPB)
   #
-  sC <- uC + recycB
-  sN <- uNOrg + recycB/cnB + immoN
+  sC <- uC + starvB
+  sN <- uNOrg + starvB/cnB + immoN
   #
-  dB <- synB - recycB - tvrB - tvrBPred
+  dB <- synB - starvB - tvrB - tvrBPred
   if ((xOrig["BC"] <= 1e-16) && (dB < 0)) dB <- 0
   dL <- -decL  + parms$iL
   dLN <- -decL/cnL   + parms$iL/parms$cnIL
@@ -158,13 +158,13 @@ derivSesam4a <- function(
   respB <- (synE)/parms$eps*(1 - parms$eps)  + rG + rM + respO
   resp <- respB + respTvr
   # biomass mass balance
-  if (diff( unlist(c(uC = uC + recycB, usage = respB + synB + synE )))^2 > sqrEps )  stop(
+  if (diff( unlist(c(uC = uC + starvB, usage = respB + synB + synE )))^2 > sqrEps )  stop(
     "biomass mass balance C error")
   if (diff( unlist(
-    c(uN = uNOrg + recycB/cnB, usage = synE/parms$cnE + synB/parms$cnB + PhiB )))^2 >
+    c(uN = uNOrg + starvB/cnB, usage = synE/parms$cnE + synB/parms$cnB + PhiB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   if (diff( unlist(
-    c(uP = uPOrg + recycB/cpB, usage = synE/parms$cpE + synB/parms$cpB + PhiPB )))^2 >
+    c(uP = uPOrg + starvB/cpB, usage = synE/parms$cpE + synB/parms$cpB + PhiPB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   # biomass turnover mass balance
   if (diff( unlist(c(tvrB + tvrBPred, usage = respTvr + tvrBOrg )))^2 > sqrEps )  stop(
@@ -249,7 +249,7 @@ derivSesam4a <- function(
     , limER = as.numeric(limER), limEL = as.numeric(limEL)
     , decR = as.numeric(decR), decL = as.numeric(decL)
     , synB = as.numeric(synB)
-    , recycB = as.numeric(recycB)
+    , starvB = as.numeric(starvB)
     , tvrB = as.numeric(tvrB)
     , tvrBPred = as.numeric(tvrBPred)
     , revRC = as.numeric(revRC), revLC = as.numeric(revLC)
