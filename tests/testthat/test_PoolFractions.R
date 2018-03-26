@@ -88,7 +88,7 @@ test_that("sumMultiPoolFractionsVars", {
     x$units$N, nrow = nrow(ds), ncol = length(x$units$N), byrow = TRUE)))
 })
 
-test_that("setMultiPoolFractionsPool", {
+test_that("setMultiPoolFractionsElements", {
   units <- list(
     C = c(C12 = 1, C13 = 0.01, C14 = 1e-12) # 13C in percent, 14C ppTrillion
     , N = c(N14 = 1, N15 = 0.01) # 15N in percent
@@ -98,7 +98,7 @@ test_that("setMultiPoolFractionsPool", {
   #.self <- x
   x0 <- structure(seq_along(x$stateVec(x)), names = names(x$stateVec(x)))
   C12 <- 100; cnB <- 8.3; cpB <- 47.3
-  x1 <- setMultiPoolFractionsPool(x, x0, "B", C12
+  x1 <- setMultiPoolFractionsElements(x, x0, "B", C12
                             , c(N = cnB,  P = cpB)
                             , list(C = c(C13 = 2, C14 = 4), N = c(N15 = 8)))
   x1F <- x$setX(x, x1)
@@ -116,7 +116,7 @@ test_that("setMultiPoolFractionsPool", {
   #
   # test setting without specifying fractions
   C12b <- 200
-  x1b <- setMultiPoolFractionsPool(x, x1, "B", C12b
+  x1b <- setMultiPoolFractionsElements(x, x1, "B", C12b
                                    , c(N = cnB*2,  P = cpB*2))
   x1bF <- x$setX(x, x1b)
   expect_equal(as.vector(x1bF$tot["BN"]*cnB*2), as.vector(x1bF$tot["BC"])) # cn-ratio
@@ -125,7 +125,7 @@ test_that("setMultiPoolFractionsPool", {
   #
   # test setting without specifying elemental ratios
   C12c <- 400
-  x1c <- setMultiPoolFractionsPool(x, x1, "B", C12c)
+  x1c <- setMultiPoolFractionsElements(x, x1, "B", C12c)
   x1cF <- x$setX(x, x1c)
   expect_equal(as.vector(x1cF$tot["BN"]*cnB), as.vector(x1cF$tot["BC"])) # cn-ratio
   expect_equal(as.vector(x1cF$tot["BP"]*cpB), as.vector(x1cF$tot["BC"])) # cp-ratio

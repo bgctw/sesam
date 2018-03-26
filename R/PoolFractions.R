@@ -85,6 +85,8 @@ createMultiPoolFractions <- function(
   ## \itemize{
   ## \item sum pools of state variables: \code{\link{sumMultiPoolFractions}}
   ## \item sum pools of output fractions: \code{\link{sumMultiPoolFractionsVars}}
+  ## \item set all state variables of one pool: \code{\link{setMultiPoolFractionsPool}}
+  ## \item set all state variables of elemental pools of one entity: \code{\link{setMultiPoolFractionsElements}}
   ## }
   pf <- MulitPoolFractions
   pf$units <- units
@@ -261,58 +263,83 @@ attr(sumMultiPoolFractionsVars,"ex") <- function(){
 
 setMultiPoolFractionsPool <- function(
   ### set state variables corresponding to pool by fractions
-  .self   ##<< MultiPoolFractions object mapping stateVars to pools
-  , xvec  ##<< named numeric vector of state variables
-  , pool  ##<< scalar string: pool to set
-  , value ##<< scalar numeric: value of first fraction of the first element (C)
-  , ce = numeric()   ##<< named numeric vector of C:Element ratios, of others elements
-    ## If not specified or zero length, then the current elemental ratios are used.
-  , rel = list()    ##<< list: for each element a named vector giving relative
+  .self       ##<< MultiPoolFractions object mapping stateVars to pools
+  , xvec      ##<< named numeric vector of state variables
+  , pool      ##<< scalar string: pool to set
+  , firstFrac ##<< scalar numeric: value of first fraction
+  , total = NULL ##<< alternative to firstFrac: value of the sum of all fractions.
+    ## If specified this will compute and overide firstFrac.
+  , rel = numeric(0)    ##<< a named vector giving relative
     ## amount of other fractions to the first fraction (usually the heavy isotope).
     ## If only one vector is given, it is repliaced for all elements.
     ## If not specified or zero length, then the current proportions used.
+  , element = substr(pool, nchar(pool), nchar(pool)) ##<< the element that
+    ## for wich this pool tracks fractions
 ){
-  elements <- names(.self$units)
+  ##seealso<< \code{\link{createMultiPoolFractions}},
+  stateNames <- paste(pool, names(.self$units[[element]]), sep = "_")
   # if missing rel, then use the current partitioning
   if (!length(rel)) {
-    rel <- setNames(lapply(elements, function(eli){
-      stateNames <- paste(paste0(pool, eli), names(.self$units[[eli]]), sep = "_")
       xp <- xvec[stateNames]
-      relE <- if (length(xp) == 1L) c() else xp[-1]/xp[1]
-    }), elements)
+      rel <- if (length(xp) == 1L) c() else xp[-1]/xp[1]
+  }
+  if (length(total)) {
+    firstFrac = total/sum(c(1,rel)*.self$units[[element]])
+  }
+  if (length(rel) == 0) {
+    # single fraction
+    xvec[stateNames] <- firstFrac
+  } else {
+    relA <- c(1, rel)
+    xvec[stateNames] <- firstFrac*relA
+  }
+  ##value<< state vector xvec with all entries for given pool updated
+  xvec
+}
+
+setMultiPoolFractionsElements <- function(
+  ### set state variables corresponding to pool by fractions
+  .self   ##<< MultiPoolFractions object mapping stateVars to pools
+  , xvec  ##<< named numeric vector of state variables
+  , poolBase  ##<< scalar string: part of the poolname without element
+  , value ##<< scalar numeric: value of first fraction of the first element (C)
+  , ce = numeric()   ##<< named numeric vector of C:Element ratios, of others elements
+  ## If not specified or zero length, then the current elemental ratios are used.
+  , rel = list()    ##<< list: for each element a named vector giving relative
+  ## amount of other fractions to the first fraction (usually the heavy isotope).
+  ## If only one vector is given, it is repliaced for all elements.
+  ## If not specified or zero length, then the current proportions used.
+){
+  ##seealso<< \code{\link{createMultiPoolFractions}},
+  ## \code{\link{setMultiPoolFractionsPool}}
+  elements <- names(.self$units)
+  # if missing ce, then use the current elemental partitioning
+  if (!length(ce) && length(elements != 1L)) {
+    xs <- sumMultiPoolFractions(.self, xvec)
+    poolNames <- paste0(poolBase,elements)
+    xsp <- unlist(xs[poolNames])
+    ce <- setNames(xsp[1L]/xsp[-1L], elements[-1])
   }
   # if only one duplicate vector to all list entries if
   if (!is.list(rel)) rel <- setNames(
     lapply(elements, function(element) rel), elements)
-  # if missing ce, then use the current elemental partitioning
-  if (!length(ce) && length(elements != 1L)) {
-    xs <- sumMultiPoolFractions(.self, xvec)
-    poolNames <- paste0(pool,elements)
-    xsp <- unlist(xs[poolNames])
-    ce <- setNames(xsp[1L]/xsp[-1L], elements[-1])
-  }
   iE <- 1L
-  eli <- elements[iE]
-  relA <- c(1, rel[[eli]])
-  stateNames <- paste(paste0(pool, eli), names(.self$units[[eli]]), sep = "_")
-  xvec[stateNames] <- value*relA
-  cTot <- sum(xvec[stateNames]*.self$units[[1]])
+  element <- elements[iE]
+  pool <- paste0(poolBase, element)
+  xvec <- setMultiPoolFractionsPool(
+    .self, xvec, pool, firstFrac = value, rel = rel[[element]], element = element)
+  stateNames <- paste(pool, names(.self$units[[element]]), sep = "_")
+  cTot <- sum(xvec[stateNames]*.self$units[[iE]])
   eTot <- cTot / c(1, ce)
-  while( iE < length(elements) ){
-    iE <- iE + 1
-    eli <- elements[iE]
-    if (length(rel[[eli]]) == 0){
-      # single fraction
-      stateNames <- paste(paste0(pool, eli), names(.self$units[[eli]]), sep = "_")
-      xvec[stateNames] <- eTot[iE]
-    } else {
-      relA <- c(1, rel[[eli]])
-      firstFrac <- eTot[iE]/sum(relA*.self$units[[eli]])
-      stateNames <- paste(paste0(pool, eli), names(.self$units[[eli]]), sep = "_")
-      xvec[stateNames] <- firstFrac*relA
-    }
+  while (iE < length(elements)) {
+    iE <- iE + 1L
+    element <- elements[iE]
+    pool <- paste0(poolBase, element)
+    xvec <- setMultiPoolFractionsPool(
+      .self, xvec, pool, firstFrac = NULL
+      , total = eTot[iE], rel = rel[[element]], element = element)
   }
-  ##value<< state vector xvec with all entries for given pool updated
+  ##value<< state vector xvec with all entries for pools updated
   xvec
 }
 
