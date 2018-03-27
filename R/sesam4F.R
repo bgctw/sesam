@@ -262,20 +262,17 @@ derivSesam4F <- function(
     if (any(abs(
       (dB + dR + dL + tvrExC + dResp) -
       (parms$iR*parms$relIR$C + parms$iL*parms$relIL$C)
-      ) > 1e-3))  stop("mass balance dC error")
-    #.tmp.f <- function(){
-    #TODO: track error in N mass balance flux with starvation (small 1e-8)
+      ) > sqrEps))  stop("mass balance dC error")
     if (any(abs(
       (dBN  + dRN + dLN + dI + tvrExN) -
       (parms$iR/parms$cnIR*parms$relIR$N  + parms$iL/parms$cnIL*parms$relIL$N +
        parms$iI*parms$relII - parms$kIPlant*x$rel[["I"]] - dLeachN)
-    ) > 1e-6))  stop("mass balance dN error")
+    ) > sqrEps))  stop("mass balance dN error")
     if (any(abs(
       (dBP  + dRP + dLP + dIP + tvrExP) -
       (parms$iR/parms$cpIR*parms$relIR$P  + parms$iL/parms$cpIL*parms$relIL$P +
        parms$iIP*parms$relIIP - parms$kIPPlant*x$rel[["IP"]] - dLeachP)
-    ) > 1e-6))  stop("mass balance dP error")
-    #}
+    ) > sqrEps))  stop("mass balance dP error")
   }
   #
   # allowing scenarios with holding some pools fixed
