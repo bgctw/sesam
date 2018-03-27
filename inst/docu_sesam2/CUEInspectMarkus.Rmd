@@ -1,0 +1,141 @@
+---
+title: "Inspecting CUE effect on steady state of a simple one pool model"
+output: html_notebook
+---
+
+## Summary
+Markus drew a up a very simple SOM(S) and Microbial biomass (B) model,
+computed Steady state and searched the CUE for which S is at minimu.
+
+
+```{r, echo=FALSE, results='hide', message=FALSE}
+library(ggplot2)
+library(grid)   #unit
+library(reshape)  # melt
+library(RColorBrewer) # brewer.pal
+library(tidyr)
+library(dplyr)
+library(purrr)
+
+myColors <- brewer.pal(5,"Dark2")	
+.simpleCap <- function(s) {
+    paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
+}
+colScale <- scale_colour_manual(name = "Variant",values = myColors)
+.treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
+sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
+
+themeDefault <- theme_classic()  
+```
+
+## The model
+$$
+\begin{align}
+dS/dt &= I - f(S)g(B) + \tau B\\
+dB/dt &= \epsilon f(S)g(B) - \tau B
+\end{align}
+$$
+
+## Steady states
+Steady state of S by setting derivatives to zero and adding the two equations:
+$$
+\begin{align}
+0 &= I + (\epsilon - 1) f(S^*)g(B^*) \\
+f(S^*) &= \frac{I}{(1-\epsilon) g(B^*)} \\
+S^* &= f^{-1}\left( \frac{I}{(1-\epsilon) g(B^*)} \right) \\
+\frac{dS}{dt} &= (f^{-1})' \left( \frac{I}{(1-\epsilon) g(B^*)} \right) \frac{I}{(1-\epsilon)^2 g(B^*)}\\
+\end{align}
+$$
+
+With:
+$$
+\begin{align}
+y &= f(S) = kS \\
+f^{-1}(y) &= y/k \\
+(f^{-1})'(y) &= 1/k \\
+S^* &=  \frac{I}{k (1-\epsilon) g(B^*)}  \\
+\end{align}
+$$
+Steady state stocks increase with decreasing steady state biomass if $g$ is 
+monotonically increasing.
+(This contradicts findings of Markus Lange at the Jena Experiment)
+
+Steady state for Biomass B:
+$$
+\begin{align}
+0 &= \epsilon \, k S^* g(B^*) - \tau B^* \\
+0 &= \epsilon \, k \frac{I}{k (1-\epsilon) g(B^*)} g(B^*) - \tau B^* \\
+0 &= \epsilon \, \frac{I}{(1-\epsilon) }  - \tau B^* \\
+B^* &= \frac{\epsilon}{(1-\epsilon)} \frac{I}{\tau} \\
+\end{align}
+$$
+
+$B^*$ does neither depend on $k$ (as time is not important for staedy state) nor
+on $g(B)$.
+
+With $g(B) = B/(k_M + B)$:
+$$
+\begin{align}
+S^* &=  \frac{I}{k (1-\epsilon) g(B^*)}  \\
+    &=  \frac{I}{k (1-\epsilon)}  \frac{k_M+B^*}{B^*}\\
+    &=  \frac{I}{k (1-\epsilon)}  \frac{k_M+\frac{\epsilon}{(1-\epsilon)}
+        \frac{I}{\tau}}{\frac{\epsilon}{(1-\epsilon)} \frac{I}{\tau}}\\
+    &= \frac{k_M+ \frac{\epsilon}{(1-\epsilon)} \frac{I}{\tau}}{k \epsilon / \tau} \\
+    &= \frac{\tau k_M+ \frac{\epsilon}{(1-\epsilon)} I}{k \epsilon} \\
+    &= \frac{1}{k }\left( \frac{\tau k_M}{\epsilon }+ \frac{I}{(1-\epsilon)} \right)\\
+\end{align}
+$$
+On increasing $\epsilon$, the first biomass related part decreases
+but the second input related part increases. For $\epsilon \to 0$, $B^* \to 0$ and
+steady state stocks increase because of no decomposition. 
+For $\epsilon \to 1$, $B^* \to \infty$ but steady state stocks also
+increase. Between there is a minimum obtained when
+
+$$
+\begin{align}
+f(\epsilon) &= \frac{\tau k_M}{\epsilon }+ \frac{I}{(1-\epsilon)} \to min\\
+f'(\epsilon) &= -\frac{\tau k_M}{\epsilon^2 }+ \frac{I}{(1-\epsilon)^2} \to min\\
+0 &= (\epsilon -1)^2 \tau k_M +  \epsilon^2 I \\
+0 &= (I + \tau k_M) \epsilon^2 -2 \tau k_M \epsilon + \tau k_M\\
+\end{align}
+$$
+
+```{r include=FALSE}
+.solveSquare <- function(
+  ### provides the solutions of eq. 0 = a x^2 + b x + c
+  a,b,c   ##<< coefficients of the square equation
+){
+  p2 <- b/a/2
+  q <- c/a
+  D <- sqrt(p2*p2 - q)
+  x0 <- -p2 + c(+1,-1)*D
+recover()  
+  ### complex vector of length 2: roots
+  x0
+}
+```
+
+
+```{r echo=FALSE}
+I <- 100
+tau <- 12
+k <- 1/5
+B <- eps/(1 - eps) * I/tau
+kM <- quantile(B, 0.8)
+tkm <- tau*kM
+#epsMin <- .solveSquare(I + tkm, -2*tkm, tkm )
+S <- S1 <- I/(k*(1 - eps))*(kM + B)/B
+#S <- S2 <- 1/k*(tau*kM/eps + I/(1 - eps))
+ds <- data.frame(eps,B,S)
+ggplot(ds, aes(eps,B)) + geom_line() + geom_point() +
+  themeDefault
+ggplot(ds, aes(eps,S)) + geom_line() + geom_point() +
+  #geom_vline(aes(xintercept = epsMin), linetype = "dashed", color = "grey") +
+  themeDefault
+```
+
+For CUE in a reasonable range, steady state stocks decrease with increasing CUE.
+```{r}
+
+```
+
