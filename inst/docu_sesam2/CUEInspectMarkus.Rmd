@@ -1,0 +1,105 @@
+---
+title: "Inspecting CUE effect on steady state of simple model"
+output: html_notebook
+---
+
+## Summary
+Markus drew a up a very simple SOM(S) and Microbial biomass (B) model,
+computed Steady state and searched the CUE for which S is at minimu.
+
+
+```{r, echo=FALSE, results='hide', message=FALSE}
+library(ggplot2)
+library(grid)   #unit
+library(reshape)  # melt
+library(RColorBrewer) # brewer.pal
+library(tidyr)
+library(dplyr)
+library(purrr)
+
+myColors <- brewer.pal(5,"Dark2")	
+.simpleCap <- function(s) {
+    paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
+}
+colScale <- scale_colour_manual(name = "Variant",values = myColors)
+.treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
+sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
+
+themeDefault <- theme_classic()  
+```
+
+### The model
+$$
+\begin{align}
+dS/dt &= I - f(S)g(B) + \tau B\\
+dB/dt &= \epsilon f(S)g(B) - \tau B
+\end{align}
+$$
+
+## Steady states
+Steady state of S by setting derivatives to zero and adding the two equations:
+$$
+\begin{align}
+0 &= I + (\epsilon - 1) f(S^*)g(B^*) \\
+f(S^*) &= \frac{I}{(1-\epsilon) g(B^*)} \\
+S^* &= f^{-1}\left( \frac{I}{(1-\epsilon) g(B^*)} \right) \\
+\frac{dS}{dt} &= (f^{-1})' \left( \frac{I}{(1-\epsilon) g(B^*)} \right) \frac{I}{(1-\epsilon)^2 g(B^*)}\\
+\end{align}
+$$
+
+With $f(S) = kS$ and $g(B) = B/(k_M+B)$:
+$$
+\begin{align}
+y &= f(S) = kS \\
+f^{-1}(y) &= y/k \\
+(f^{-1})'(y) &= 1/k \\
+S^* &=  \frac{I}{k (1-\epsilon) g(B^*)}  \\
+\end{align}
+$$
+Steady state stocks increase with decreasing steady state biomass.
+
+Steady state for Bomass B:
+$$
+\begin{align}
+0 &= \epsilon \, kS^* g(B^*) - \tau B^* \\
+0 &= \epsilon \, k \frac{I}{k (1-\epsilon) g(B^*)} g(B^*) - \tau B^* \\
+0 &= \epsilon \, \frac{I}{(1-\epsilon) }  - \tau B^* \\
+B^* &= \frac{\epsilon}{(1-\epsilon)} \frac{I}{\tau} \\
+\end{align}
+$$
+
+$B^*$ does neither depend on $k$ (as time is not important for staedy state) nor
+on $g(B)$.
+
+$$
+\begin{align}
+S^* &=  \frac{I}{k (1-\epsilon) g(B^*)}  \\
+    &=  \frac{I}{k (1-\epsilon)}  \frac{b+B^*}{B^*}\\
+    &=  \frac{I}{k (1-\epsilon)}  \frac{b+\frac{\epsilon}{(1-\epsilon)}
+        \frac{I}{\tau}}{\frac{\epsilon}{(1-\epsilon)} \frac{I}{\tau}}\\
+    &= \frac{b+ \frac{\epsilon}{(1-\epsilon)} \frac{I}{\tau}}{k \epsilon / \tau} \\
+    &= \frac{\tau b+ \frac{\epsilon}{(1-\epsilon)} I}{k \epsilon} \\
+    &= \frac{1}{k }\left( \frac{\tau b}{\epsilon }+ \frac{I}{(1-\epsilon)} \right)\\
+\end{align}
+$$
+
+```{r}
+eps <- seq(0,0.8, by = 0.05)[-(1:2)]
+I <- 100
+tau <- 12
+k <- 1/5
+B <- eps/(1 - eps) * I/tau
+b <- quantile(B, 0.8)
+S <- I/(k*(1 - eps))*(b + B)/B
+ds <- data.frame(eps,B,S)
+ggplot(ds, aes(eps,B)) + geom_line() + geom_point() +
+  themeDefault
+ggplot(ds, aes(eps,S)) + geom_line() + geom_point() +
+  themeDefault
+```
+
+For CUE in a reasonable range, steady state stocks decrease with increasing CUE.
+```{r}
+
+```
+
