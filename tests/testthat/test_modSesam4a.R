@@ -91,6 +91,9 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   , I =  1                   ##<< inorganic N pool
   , IP =  1                  ##<< inorganic P pool
   , alpha = 0.5              ##<< initial community composition
+  , resp = 0                 ##<< cumulated respiration
+  , leachN = 0               ##<< cumulated N losses by leaching
+  , leachP = 0               ##<< cumulated P losses by leaching
 )
 x <- x0
 
@@ -103,10 +106,10 @@ mapValues <- function(x, from, to) {
 }
 getX0NoC <- function(x0){
   names(x0) <- mapValues(names(x0), c("BC","RC","LC"), c("B","R","L"))
-  x0
+  x0[setdiff(names(x0),c("resp","leachN","leachP"))]
 }
 getX0NoP <- function(x0){
-  x0[setdiff(names(x0),c("RP","LP","IP","dRP","dLP","dIP"))]
+  x0[setdiff(names(x0),c("RP","LP","IP","dRP","dLP","dIP","resp","leachN","leachP"))]
 }
 getX0NoP(x0)
 
@@ -121,6 +124,9 @@ x0Nlim <- c( #aE = 0.001*365
   , I =  0                   ##<< inorganic N pool
   , IP =  10                  ##<< inorganic P pool
   , alpha = 0.5              ##<< initial community composition
+  , resp = 0                 ##<< cumulated respiration
+  , leachN = 0               ##<< cumulated N losses by leaching
+  , leachP = 0               ##<< cumulated P losses by leaching
 )
 
 testParmsScen <- function(parmsInit){

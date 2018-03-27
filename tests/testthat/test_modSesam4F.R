@@ -1,6 +1,6 @@
 #require(testthat)
-#test_file("tests/testthat/test_modSesam4a.R")
-context("modSesam4a")
+#test_file("tests/testthat/test_modSesam4F.R")
+context("modSesam4F")
 
 parms0 <- list(
   cnB = 7.16
@@ -86,25 +86,31 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   BC_SOM = 20                     ##<< microbial biomass
   , RC_SOM = 7000                 ##<< N rich substrate
   , LC_SOM = 200                  ##<< N poor substrate
+  , resp_SOM = 0
   , BN_SOM = 20/parms0$cnB
   , RN_SOM = 7000/parms0$cnIR    ##<< N rich substrate N pool
   , LN_SOM = 200/parms0$cnIL     ##<< N poor substrate N pool
   , I_SOM =  1                   ##<< inorganic N pool
+  , leachN_SOM = 0
   , BP_SOM = 20/parms0$cpB
   , RP_SOM = 7000/parms0$cpIR
   , LP_SOM = 200/parms0$cpIL     ##<< N poor substrate P pool
   , IP_SOM =  1                  ##<< inorganic P pool
+  , leachP_SOM = 0
   , BC_amend = 0                     ##<< microbial biomass
   , RC_amend = 0                 ##<< N rich substrate
   , LC_amend = 0
+  , resp_amend = 0
   , BN_amend = 0
   , RN_amend = 0
   , LN_amend = 0
   , I_amend =  0
+  , leachN_amend = 0
   , BP_amend = 0
   , RP_amend = 0
   , LP_amend = 0
   , IP_amend =  0
+  , leachP_amend = 0
   , alpha = 0.5              ##<< initial community composition
 )
 # TODO: need to resort so that all fractions of one pool are toegehter
@@ -118,7 +124,7 @@ getX0Sum <- function(x0, parms = parms0){
 x0Sum <- getX0Sum(x0)
 test_that("equal initial sum of pools",{
   expect_equivalent(x0Sum["alpha"], x0["alpha"])
-  expect_equivalent(x0Sum[1:9], x0Orig[1:9])
+  expect_equivalent(x0Sum[1:14], x0Orig[1:14])
 })
 
 
@@ -133,7 +139,7 @@ x0NlimSum <- getX0Sum(x0Nlim)
 .tmp.f <- function(){
   parms1 <- within(parms0, {isFixedI <- TRUE; l <- 0; iL <- 0})
   ans1 <- derivSesam4F(0, x0, parms1)
-  x0A <- x0; x0A["L_amend"] <- x0["L_SOM"]; x0A["L_SOM"] <- x0["L_amend"]
+  x0A <- x0; x0A["LC_amend"] <- x0["LC_SOM"]; x0A["LC_SOM"] <- x0["LC_amend"]
   x0A["LN_amend"] <- x0["LN_SOM"]; x0A["LN_SOM"] <- x0["LN_amend"]
   x0A["LP_amend"] <- x0["LP_SOM"]; x0A["LP_SOM"] <- x0["LP_amend"]
   ans1 <- derivSesam4F(0, x0A, parms1)
@@ -147,7 +153,8 @@ x0NlimSum <- getX0Sum(x0Nlim)
     #, parms = within(parms0, {isFixedL <- TRUE; iI <- 1}) # works since no immobiization
     #, parms = within(parms0, {isFixedI <- TRUE; isFixedL <- TRUE}) #works
     #, parms = within(parms0, {isFixedI <- TRUE; isFixedR <- TRUE; isFixedL <- TRUE}) # works
-    )) %>%  mutate(scen = "tmpf1")
+    ))
+  resF <- resF %>% mutate(scen = "tmpf1")
   #
   res <- sumMultiPoolFractions(x0F, resF)
 }

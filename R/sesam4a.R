@@ -116,6 +116,8 @@ derivSesam4a <- function(
   PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE + tvrBOrg*(1 - cW)/cpBL)
   immoN <- max(0,-PhiB); minN <- max(0,PhiB)
   immoP <- max(0,-PhiPB); minP <- max(0,PhiPB)
+  respB <- (synE)/parms$eps*(1 - parms$eps)  + rG + rM + respO
+  resp <- respB + respTvr
   #
   sC <- uC + starvB
   sN <- uNOrg + starvB/cnB + immoN
@@ -131,6 +133,9 @@ derivSesam4a <- function(
   # here plant uptake as absolute parameter
   dI <-  +parms$iI  - parms$kIPlant  - leach  + PhiU  + PhiB  + PhiTvr
   dIP <-  +parms$iIP  - parms$kIPPlant  - leachP  + PhiPU  + PhiPB  + PhiPTvr
+  dResp <- resp
+  dLeachN <- leach
+  dLeachP <- leachP
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
@@ -146,8 +151,9 @@ derivSesam4a <- function(
   }
   #
   resDeriv <- structure(as.numeric(
-    c( dB, dR, dRN, dRP, dL, dLN, dLP, dI, dIP, dAlpha))
-    ,names = c("BC","RC","RN","RP","LC","LN","LP","I","IP","alpha"))[names(x)]
+    c( dB, dR, dRN, dRP, dL, dLN, dLP, dI, dIP, dAlpha, dResp, dLeachN, dLeachP))
+    ,names = c("BC","RC","RN","RP","LC","LN","LP","I","IP"
+               , "alpha", "resp", "leachN", "leachP"))[names(x)]
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   sqrEps <- sqrt(.Machine$double.eps)
   # parms$iL - (decL + dL)
@@ -155,8 +161,6 @@ derivSesam4a <- function(
   #
   # checking the mass balance of fluxes
   plantNUp <- plantPUp <- 0 # checked in mass balance but is not (any more) in model
-  respB <- (synE)/parms$eps*(1 - parms$eps)  + rG + rM + respO
-  resp <- respB + respTvr
   # biomass mass balance
   if (diff( unlist(c(uC = uC + starvB, usage = respB + synB + synE )))^2 > sqrEps )  stop(
     "biomass mass balance C error")
@@ -181,18 +185,18 @@ derivSesam4a <- function(
      )))^2 > sqrEps )  stop("biomass turnover mass balance P error")
   if (!isTRUE(parms$isFixedS)) {
     if (diff(unlist(
-      c(dB + dR + dL + tvrExC + resp,    parms$iR + parms$iL )
+      c(dB + dR + dL + tvrExC + dResp,    parms$iR + parms$iL )
       ))^2 >
       sqrEps )  stop("mass balance dC error")
     if (diff(unlist(
       c( dB/parms$cnB  + dRN + dLN + dI + tvrExN
          , parms$iR/parms$cnIR  + parms$iL/parms$cnIL - plantNUp  + parms$iI -
-         parms$kIPlant - parms$l*x["I"])
+         parms$kIPlant - dLeachN)
       ))^2 > .Machine$double.eps )  stop("mass balance dN error")
     if (diff(unlist(
       c( dB/parms$cpB  + dRP + dLP + dIP + tvrExP
          , parms$iR/parms$cpIR  + parms$iL/parms$cpIL - plantPUp  + parms$iIP -
-         parms$kIPPlant - parms$lP*x["IP"])))^2 >
+         parms$kIPPlant - dLeachP)))^2 >
       .Machine$double.eps )  stop("mass balance dP error")
   }
   #
@@ -225,7 +229,7 @@ derivSesam4a <- function(
   #
   if (isTRUE(parms$isRecover) ) recover()
   list( resDeriv,  c(
-     resp = as.numeric(resp)
+     respTotal = as.numeric(resp)
      , respO = as.numeric(respO)
      , respB = as.numeric(respB)
      , respTvr = as.numeric(respTvr)

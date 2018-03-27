@@ -13,7 +13,8 @@ derivSesam4F <- function(
   xvec <- pmax(unlist(xvec), 0.0)      # no negative masses
   # sum pool fractions
   x <- parms$multiPoolFractions$setX(parms$multiPoolFractions, xvec)
-  if (any(x$tot <= 0)) stop("encountered zero or negative masses")
+  if (any(x$tot[c("BC","BN","BP","RC","RN","RP","LC","LN","LP")] <= 0)) stop(
+    "encountered zero or negative masses")
   # elemental ratios
   cnR <- x$tot["RC"]/x$tot["RN"]
   cnL <- x$tot["LC"]/x$tot["LN"]
@@ -126,6 +127,7 @@ derivSesam4F <- function(
   PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE + tvrBOrg*(1 - cW)/cpBL)
   #
   respB <- (synE)/parms$eps*(1 - parms$eps)  + rG + rM + respO
+  resp <- respB + respTvr
   immoN <- max(0,-PhiB); minN <- max(0,PhiB)
   immoP <- max(0,-PhiPB); minP <- max(0,PhiPB)
   #
@@ -192,10 +194,15 @@ derivSesam4F <- function(
     (parms$kIPlant + leach + immoN)*x$rel[["I"]]
   dIP <-  +parms$iIP*parms$relIIP + fracPhiPU + minP*relSP + PhiPTvr*x$rel[["BP"]] -
     (parms$kIPPlant + leachP + immoP)*x$rel[["IP"]]
+  dResp <- respB*relSC + respTvr*x$rel[["BC"]]
+  dLeachN <- leach*x$rel[["I"]]
+  dLeachP <- leachP*x$rel[["IP"]]
   .tmp.f.displaySumDeriv <- function(){
-    c( BC=sum(dB*x$units$C), RC=sum(dR*x$units$C), LC=sum(dL*x$units$C)
-       , RN=sum(dRN*x$units$N), LN=sum(dLN*x$units$N), I=sum(dI*x$units$N)
-       , RP=sum(dRP*x$units$P), LP=sum(dLP*x$units$P), IP=sum(dIP*x$units$P)
+    c( BC = sum(dB*x$units$C), RC = sum(dR*x$units$C), LC = sum(dL*x$units$C)
+       , RN = sum(dRN*x$units$N), LN = sum(dLN*x$units$N), I = sum(dI*x$units$N)
+       , RP = sum(dRP*x$units$P), LP = sum(dLP*x$units$P), IP = sum(dIP*x$units$P)
+       , resp = sum(dResp*x$units$C
+       , leachN = sum(dLeachN*x$units$N), leachP = sum(dLeachP*x$units$P))
        , alpha = as.numeric(dAlpha)
   )}
   #
@@ -213,13 +220,15 @@ derivSesam4F <- function(
   #
   # make sure same order as stateNames in x (C, N P, scalars)
   resDeriv <- structure(as.numeric(
-    c( dB, dR, dL, dBN, dRN, dLN, dI, dBP, dRP, dLP, dIP, dAlpha))
+    c( dB, dR, dL, dResp
+       , dBN, dRN, dLN, dI, dLeachN
+       , dBP, dRP, dLP, dIP, dLeachP
+       , dAlpha))
     , names = names(x$stateVec(x)) )
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   #
   # checking the mass balance of fluxes
   plantNUp <- plantPUp <- 0 # checked in mass balance but is not (any more) in model
-  resp <- respB + respTvr
   # biomass mass balance
   if (diff( unlist(c(uC = uC + starvB, usage = respB + synB + synE )))^2 > sqrEps )  stop(
     "biomass mass balance C error")
@@ -251,22 +260,20 @@ derivSesam4F <- function(
   if (!isTRUE(parms$isFixedS)) {
     .bookmarkDCBalance <- function(){}
     if (any(abs(
-      (dB + dR + dL + tvrExC + respB*relSC + respTvr*x$rel[["BC"]]) -
+      (dB + dR + dL + tvrExC + dResp) -
       (parms$iR*parms$relIR$C + parms$iL*parms$relIL$C)
       ) > 1e-3))  stop("mass balance dC error")
     #.tmp.f <- function(){
     #TODO: track error in N mass balance flux with starvation (small 1e-8)
     if (any(abs(
       (dBN  + dRN + dLN + dI + tvrExN) -
-      ((parms$iR/parms$cnIR*parms$relIR$N  + parms$iL/parms$cnIL*parms$relIL$N
-       + parms$iI*parms$relII) +
-      (parms$kIPlant - parms$l*x$tot["I"])*x$rel[["I"]])
+      (parms$iR/parms$cnIR*parms$relIR$N  + parms$iL/parms$cnIL*parms$relIL$N +
+       parms$iI*parms$relII - parms$kIPlant*x$rel[["I"]] - dLeachN)
     ) > 1e-6))  stop("mass balance dN error")
     if (any(abs(
       (dBP  + dRP + dLP + dIP + tvrExP) -
-      ((parms$iR/parms$cpIR*parms$relIR$P  + parms$iL/parms$cpIL*parms$relIL$P
-       + parms$iIP*parms$relIIP) +
-      (parms$kIPPlant - parms$lP*x$tot["IP"])*x$rel[["IP"]])
+      (parms$iR/parms$cpIR*parms$relIR$P  + parms$iL/parms$cpIL*parms$relIL$P +
+       parms$iIP*parms$relIIP - parms$kIPPlant*x$rel[["IP"]] - dLeachP)
     ) > 1e-6))  stop("mass balance dP error")
     #}
   }
@@ -297,7 +304,7 @@ derivSesam4F <- function(
   #
   if (isTRUE(parms$isRecover) ) recover()
   list( resDeriv,  c(
-     resp = as.numeric(resp)
+     respTotal = as.numeric(resp)
      , respO = as.numeric(respO)
      , respB = as.numeric(respB)
      , respTvr = as.numeric(respTvr)
@@ -337,7 +344,7 @@ derivSesam4F <- function(
     , decNE = as.numeric(decNE), decNB = as.numeric(decNB)
     #, ER = as.numeric(ER), EL = as.numeric(EL)
   , structure(as.numeric(resp*relSC)
-              , names = paste("resp",names(x$units$C), sep = "_"))
+              , names = paste("respTotal",names(x$units$C), sep = "_"))
   , structure(as.numeric(immoN*x$rel[["I"]])
               , names = paste("immoN",names(x$units$N), sep = "_"))
   , structure(as.numeric(minN*x$rel[["BN"]])
@@ -347,30 +354,5 @@ derivSesam4F <- function(
   , structure(as.numeric(minP*x$rel[["BP"]])
               , names = paste("minP",names(x$units$P), sep = "_"))
   ))
-}
-
-
-balanceAlphaBetweenElementLimitations <- function(
-  ### compute balance between alphas of different element limitations
-  alpha    ##<< numeric vector of allocation coefficients for different elements
-  , CsynBE ##<< numeric vector of carbon availale for biomass synthesis
-  , tauB   ##<< numeric scalar: typical microbial turnover flux for scaling
-  , delta = 20  ##<< scalar smoothing factor, the higher, the steeper the transition
-){
-  ##details<< Select the alpha corresponding to the smallest CsynBE.
-  ## However, if elemental limitations are close,
-  ## do a smooth transition between corresponding smallest alpha values
-  wELim <- sapply( seq_along(CsynBE), function(iE){
-    wELimi <- min( .Machine$double.xmax
-                   , exp( delta/tauB*(min(CsynBE[-iE]) - CsynBE[iE])))
-  })
-  names(wELim) <- names(alpha)
-  wELimNorm <- wELim/sum(wELim)
-  alphaBalanced <- sum(wELimNorm * alpha)
-  ##value<< a list with entries
-  list(
-    alpha = alphaBalanced  ##<< numeric scalar: balanced alpha
-    , wELim = wELimNorm    ##<< numeric vector: fractional element limitations
-  )
 }
 

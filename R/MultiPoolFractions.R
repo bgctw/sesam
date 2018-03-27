@@ -163,11 +163,11 @@ createSesam4setX <- function(
   if (length(iMissing)) stop(
      "need to provide units for fractions in ", required[iMissing])
   .poolStatesMapC <- MultiPoolFractions_getPoolStatesMap(
-    names(units$C), c("BC","RC","LC"))
+    names(units$C), c("BC","RC","LC","resp"))
   .poolStatesMapN <- MultiPoolFractions_getPoolStatesMap(
-    names(units$N), c("BN","RN","LN","I"))
+    names(units$N), c("BN","RN","LN","I","leachN"))
   .poolStatesMapP <- MultiPoolFractions_getPoolStatesMap(
-    names(units$P), c("BP","RP","LP","IP"))
+    names(units$P), c("BP","RP","LP","IP","leachP"))
   ##value<< a \code{function(.self,x) -> .self}
   ## that properly updates state of \code{.self}.
   function(.self,x){
@@ -188,15 +188,15 @@ createSesam4CNsetX <- function(
   units  ## list for C,N with a named numeric vector of fractions in these pools
 ){
   ##seealso<< \code{\link{createMultiPoolFractions}}
-  .scalarPools <- c("BP","RP", "LP", "IP", "alpha")
+  .scalarPools <- c("BP","RP", "LP", "IP", "leachP", "alpha")
   required <- c("C","N")
   iMissing <- which( !(required %in% names(units)) )
   if (length(iMissing)) stop(
     "need to provide units for fractions in ", required[iMissing])
   .poolStatesMapC <- MultiPoolFractions_getPoolStatesMap(
-    names(units$C), c("BC","RC","LC"))
+    names(units$C), c("BC","RC","LC","resp"))
   .poolStatesMapN <- MultiPoolFractions_getPoolStatesMap(
-    names(units$N), c("BN","RN","LN","I"))
+    names(units$N), c("BN","RN","LN","I","leachN"))
   ##value<< a function that properly updates frac and tot in .self
   function(.self,x){
     .self <- .self$updateElement(.self, x, "C", .poolStatesMapC)
@@ -223,9 +223,11 @@ sumMultiPoolFractions <- function(
       rowSums( ds[, names(.self$frac[[pool]]), drop = FALSE]*unitM )
     })), dimnames = list(NULL, pools)))
   })
-  keepVarsS <- union(keepVars, .self$poolPart$scalars)
+  sumDs <- do.call(cbind, resEl)
+  # at least keep scalars, but at least drop columns that will be added by sumDS
+  keepVarsS <- setdiff( union(keepVars, .self$poolPart$scalars), names(sumDs))
   ##value<< a data.frame with columns named as in .self$tot
-  cbind(ds[, keepVarsS, drop = FALSE], do.call(cbind, resEl))
+  cbind(ds[, keepVarsS, drop = FALSE], sumDs)
 }
 
 
