@@ -9,7 +9,11 @@ test_that("MultiPoolFractions amend through all fractions", {
   x <- createMultiPoolFractions(units, setX = createSesam4setX(units))
   expect_equal( x$units, units)
   expect_true( inherits(x, "MultiPoolFractions"))
-  expect_equal( names(x$tot), c("BC","RC","LC","BN","RN","LN","I","BP","RP","LP","IP","alpha"))
+  expect_equal( names(x$tot), c(
+    "BC","RC","LC","resp"
+    , "BN","RN","LN","I","leachN"
+    , "BP","RP","LP","IP","leachP"
+    , "alpha"))
   expect_true( all( c("RC_SOM","RC_amend","RP_SOM","alpha") %in% names(x$stateVec(x)) ))
   #.self <- x  # rm(.self)  # poolName <- "RP"
   x0 <- structure(seq_along(x$stateVec(x)), names = names(x$stateVec(x)))
@@ -36,7 +40,7 @@ test_that("MultiPoolFractions 13C 14N, noPIso", {
     , N = c(N14 = 1, N15 = 0.01) # 15N in percent
   )
   x <- createMultiPoolFractions(units, setX = createSesam4CNsetX(units))
-  expect_equal( names(x$tot), c("BC","RC","LC","BN","RN","LN","I","BP","RP","LP","IP","alpha"))
+  expect_equal( names(x$tot), c("BC","RC","LC","resp","BN","RN","LN","I","leachN","BP","RP","LP","IP","leachP","alpha"))
   expect_true( all( c("RC_C12","RC_C13","RN_N14","alpha","RP") %in% names(x$stateVec(x)) ))
   #.self <- x  # rm(.self)  # poolName <- "RP"
   x0 <- structure(seq_along(x$stateVec(x)), names = names(x$stateVec(x)))
