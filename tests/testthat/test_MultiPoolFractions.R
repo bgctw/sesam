@@ -137,3 +137,33 @@ test_that("setMultiPoolFractionsElements", {
   expect_equal(as.vector(x1cF$frac[["BC"]][-1]/x1cF$frac[["BC"]][1]), c(2,4))
 })
 
+test_that("elementMultiPoolFractions", {
+  units <- list(
+    C = c(C12 = 1, C13 = 0.01, C14 = 1e-12) # 13C in percent, 14C ppTrillion
+    , N = c(N14 = 1, N15 = 0.01) # 15N in percent
+    , P = c(tot = 1) # P only one pool
+  )
+  x <- createMultiPoolFractions(units, setX = createSesam4setX(units))
+  #.self <- x
+  x0 <- structure(seq_along(x$stateVec(x)), names = names(x$stateVec(x)))
+  C12 <- 100; cnB <- 8.3; cpB <- 47.3
+  x1 <- setMultiPoolFractionsElements(x, x0, "B", C12
+                                      , c(N = cnB,  P = cpB)
+                                      , list(C = c(C13 = 2, C14 = 4), N = c(N15 = 8)))
+  x1F <- x$setX(x, x1)
+  elF <- elementMultiPoolFractions(x1F,"C")
+  expect_equal( colnames(elF), c("BC", "RC", "LC", "resp"))
+  expect_equal( rownames(elF), names(x1F$units$C))
+  expect_equal( elF[,"BC"], c(C12 = 100, C13 = 200, C14 = 400))
+  #
+  elFb <- elementMultiPoolFractions(x1F,"C",c("LC","RC"))
+  expect_equal( colnames(elFb), c("LC","RC"))
+  #
+  elFc <- elementMultiPoolFractions(x1F,"N")
+  expect_equal( colnames(elFc), c("BN", "RN", "LN", "I", "leachN"))
+  expect_equal( rownames(elFc), names(x1F$units$N))
+  #
+  elFd <- elementMultiPoolFractions(x1F,"P")
+  expect_equal( rownames(elFd), names(x1F$units$P))
+})
+

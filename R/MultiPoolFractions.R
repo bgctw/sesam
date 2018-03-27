@@ -345,6 +345,19 @@ setMultiPoolFractionsElements <- function(
   xvec
 }
 
+elementMultiPoolFractions <- function(
+  ### get a matrix of state-variable of pools of one partitioning
+  .self      ##<< MultiPoolFractions object
+  , element  ##<< string scalar of element/partitioning
+  , pools = .self$poolPart[[element]]
+){
+  ans <- do.call(cbind, sapply(
+    pools, function(pool) .self$frac[[pool]], simplify = FALSE))
+  rownames(ans) <- names(.self$units[[element]])
+  ##value<< named numeric matrix with pools in columns and fraction in rows
+  ans
+}
+
 
 
 
