@@ -331,18 +331,55 @@ test_that("mass balance also with feedback to DOM", {
     cnBW = cnB; cpBW = cpB; cW <- 1; tau <- 0; B0 <- 0}))
 })
 
-.tmp.f <- function(){
-  dx <- x$setX(x, resDeriv)
-  dx$tot
-  (dx$tot["BC"] + dx$tot["RC"] + dx$tot["LC"] + sum(tvrExC*x$units$N) + respB + respTvr)
-  (dx$tot["BN"] + dx$tot["RN"] + dx$tot["LN"] + sum(tvrExN*x$units$N) + dx$tot["I"])
-  (parms$iR/parms$cnIR  + parms$iL/parms$cnIL + parms$iI) +
-      (parms$kIPlant - parms$l*x$tot["I"])
-}
-
-
 test_that("same as sesam4a with substrate feedbacks", {
   parmsInit <- within(parms0, {isFixedI <- isFixedIP <- TRUE})
   testParmsScen(parmsInit)
+})
+
+test_that("mass balance in output pools", {
+  parmsInit <- within(parms0,{})
+  endTime <- 5
+  times <- seq(0, endTime, length.out = 2)
+  #times <- seq(0,2100, length.out = 101)
+  #times <- seq(0,0.2, length.out = 101)
+  x0F <- x0F$setX(x0F, x0)
+  resTest <- as.data.frame(lsoda(
+    x0, times, derivSesam4F
+    , parms = parmsInit))
+  xETest <- unlist(tail(resTest,1))
+  # totals
+  xF <- x0F$setX(x0F, xETest)
+  expect_equal(
+    as.numeric(sum(xF$tot[c("BC","RC","LC","resp")]))
+    , as.numeric(sum(x0F$tot[c("BC","RC","LC","resp")]) + xETest["time"] * parmsInit$iL)
+    , tolerance = 1e-8)
+  expect_equal(
+    as.numeric(sum(xF$tot[c("BN","RN","LN","I","leachN")]))
+    , as.numeric(sum(x0F$tot[c("BN","RN","LN","I","leachN")]) + xETest["time"]*(
+      parmsInit$iL/parmsInit$cnIL + parmsInit$iI))
+    , tolerance = 1e-8)
+  expect_equal(
+    as.numeric(sum(xF$tot[c("BP","RP","LP","IP","leachP")]))
+    , as.numeric(sum(x0F$tot[c("BP","RP","LP","IP","leachP")]) + xETest["time"]*(
+      parmsInit$iL/parmsInit$cpIL + parmsInit$iIP))
+    , tolerance = 1e-8)
+  # fractions
+  expect_equal(
+    as.numeric(rowSums(elementMultiPoolFractions(xF,"C", c("BC","RC","LC","resp"))))
+    , as.numeric(rowSums(elementMultiPoolFractions(x0F,"C", c("BC","RC","LC","resp"))) +
+      xETest["time"]*(parmsInit$iL*parmsInit$relIL$C))
+    , tolerance = 1e-8)
+  expect_equal(
+    as.numeric(rowSums(elementMultiPoolFractions(xF,"N", c("BN","RN","LN","I","leachN"))))
+    , as.numeric(rowSums(elementMultiPoolFractions(x0F,"N", c("BN","RN","LN","I","leachN"))) +
+                   xETest["time"]*(parmsInit$iL/parmsInit$cnIL*parmsInit$relIL$N +
+                                     parmsInit$iI*parmsInit$relII))
+    , tolerance = 1e-8)
+  expect_equal(
+    as.numeric(rowSums(elementMultiPoolFractions(xF,"P", c("BP","RP","LP","IP","leachP"))))
+    , as.numeric(rowSums(elementMultiPoolFractions(x0F,"P", c("BP","RP","LP","IP","leachP"))) +
+                   xETest["time"]*(parmsInit$iL/parmsInit$cpIL*parmsInit$relIL$P +
+                                     parmsInit$iIP*parmsInit$relIIP))
+    , tolerance = 1e-8)
 })
 
