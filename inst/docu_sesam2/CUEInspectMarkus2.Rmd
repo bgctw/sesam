@@ -1,0 +1,171 @@
+---
+title: "CUE effect on SOM steady state with neglecting litter stock changes"
+output: html_notebook
+---
+
+## Summary
+Markus drew a up a simple SOM, $S$ and Microbial biomass, $B$,
+computed Steady state and inspected relationship of steady states stocks $S^*$ 
+versus Carbon use efficiency (CUE),
+represented by parameter $\epsilon$.
+
+With the simple model, $S^*$ increased as CUE decreased because fresh inputs 
+accumulated and were only slowly decomposed.
+
+Here I study a different system where I assume that the accumulation of litter
+inputs is not the primary determinant of SOM stocks. 
+
+
+```{r, echo=FALSE, results='hide', message=FALSE}
+library(ggplot2)
+library(grid)   #unit
+library(reshape)  # melt
+library(RColorBrewer) # brewer.pal
+library(tidyr)
+library(dplyr)
+library(purrr)
+
+myColors <- brewer.pal(5,"Dark2")	
+.simpleCap <- function(s) {
+    paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
+}
+colScale <- scale_colour_manual(name = "Variant",values = myColors)
+.treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
+sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
+
+themeDefault <- theme_classic()  
+```
+
+## The model
+There is a specific litter pool, that is assumed
+
+- to be in quasi steady state (anyway when studying steady state),
+- its changes in pool size are small compared to changes in pool size of the 
+  residue pool, $R$.
+  
+Hence here, litter inputs, $I$, directly feed to microbial biomass, $B$.
+
+$$
+\begin{align}
+dB/dt &= I + \epsilon f(R)g(B) - \tau B \\
+dR/dt &= -f(R)g(B) + \tau B\\
+\end{align}
+$$
+where decomposition is a multiplicative function of stocks and microbial biomass,
+and a part $(1-\epsilon)$ is respired.
+
+## Steady states
+Steady state of $R$ by setting derivatives to zero and adding the two equations:
+$$
+\begin{align}
+0 &= I + (\epsilon - 1) f(R^*)g(B^*) \\
+f(R^*) &= \frac{I}{(1-\epsilon) g(B^*)} \\
+R^* &= f^{-1}\left( \frac{I}{(1-\epsilon) g(B^*)} \right) \\
+\frac{dR}{dt} &= (f^{-1})' \left( \frac{I}{(1-\epsilon) g(B^*)} \right) \frac{I}{(1-\epsilon)^2 g(B^*)}\\
+\end{align}
+$$
+
+With:
+$$
+\begin{align}
+y &= f(R) = kS \\
+f^{-1}(y) &= y/k \\
+(f^{-1})'(y) &= 1/k \\
+R^* &=  \frac{I}{k (1-\epsilon) g(B^*)}  \\
+\end{align}
+$$
+Steady state stocks increase with decreasing steady state biomass, $B^*$, if $g$ is 
+monotonically increasing.
+
+Steady state for Biomass B:
+$$
+\begin{align}
+0 &= I +\epsilon \, k R^* g(B^*) - \tau B^* \\
+0 &= I + \epsilon \, k \frac{I}{k (1-\epsilon) g(B^*)} g(B^*) - \tau B^* \\
+0 &= I + \epsilon \, \frac{I}{(1-\epsilon) }  - \tau B^* \\
+B^* &= \left( 1 + \frac{\epsilon}{(1-\epsilon)} \right) \frac{I}{\tau} 
+     = \frac{I}{\tau (1-\epsilon)} \\
+\end{align}
+$$
+
+$B^*$ does neither depend on $k$ (as time is not important for staedy state) nor
+on $g(B)$.
+
+With $g(B) = B/(k_M + B)$:
+$$
+\begin{align}
+R^* &=  \frac{I}{k (1-\epsilon) g(B^*)}  
+    =  \frac{I}{k (1-\epsilon)}  \frac{k_M+B^*}{B^*}\\
+    &=  \frac{I}{k (1-\epsilon)}  \frac{k_M+\frac{I}{\tau (1-\epsilon)}}
+        {\frac{I}{\tau (1-\epsilon)}}
+    = \frac{k_M+ \frac{I}{\tau (1-\epsilon)}}{k / \tau} \\
+    &= \frac{1}{k }\left( \tau k_M+ \frac{I}{(1-\epsilon)} \right)\\
+\end{align}
+$$
+On increasing $\epsilon$ the second input related term increases. 
+For $\epsilon \to 0$, $B^* \to 0$ and
+residue steady state stocks decrease towards a minimumm, but the neglected
+litter stock will accumulate unlimited.
+For $\epsilon \to 1$, $B^* \to \infty$ but steady state stocks also
+increase unlimited, as there is no loss of carbon from the system.
+
+Hence residue stocks always decrease with decreasing CUE.
+The balance of total SOM stocks will depend on the balance of increasing 
+litter stock and decreasing residue stock. However, residue stocks and their
+changes are usually larger than changes in litter stocks. Moreover the balance
+between litter and residue is  also be strongly controlled by their stoichiometry, 
+e.g. their nitrogen contents.
+
+```{r include=FALSE}
+eps <- seq(0.1, 0.8, by = 0.05)
+I <- 100
+tau <- 12
+k <- 1/5
+B <- I/(tau*(1 - eps))
+kM <- as.numeric(quantile(B, 0.8))
+tkm <- tau*kM
+R <- R1 <- I/(k*(1 - eps))*(kM + B)/B
+R <- R2 <- 1/k*(tau*kM + I/(1 - eps))
+ds <- data.frame(eps,B,R)
+ggplot(ds, aes(eps,B)) + geom_line() + geom_point() +
+  themeDefault
+ggplot(ds, aes(eps,R)) + geom_line() + geom_point() +
+  themeDefault
+```
+
+
+The following plots show the relatinship between residue steady states and CUE.
+The red square denotes the state of a simulation of the model over 100 years.
+
+```{r echo=FALSE}
+p <- list(I = I, tau = tau, k = k, kM = kM, eps = 0.4)
+unlist(p)
+```
+
+```{r include=FALSE}
+require(deSolve)
+dMod2 <- function(t,x,p){
+  decR <- p$k*x["R"] * x["B"]/(p$kM + x["B"])
+  tvrB <- p$tau*x["B"]
+  dB <- p$I + p$eps*decR - tvrB
+  dR <- -decR + tvrB
+  list(setNames( c(dB, dR), c("B","R")))
+}
+x0 <- c( B = 14, R = 2300)
+ans0 <- dMod2(0, x0, p)
+times <- seq(0,100, length.out = 101)
+res <- as.data.frame(lsoda(x0, times, dMod2, p))
+xE <- unlist(tail(res,1)[-1])
+ggplot(res, aes(time,R)) + geom_line()
+```
+
+```{r echo=FALSE}
+dsSim <- cbind(eps = p$eps, as.data.frame(t(xE)))
+ggplot(ds, aes(eps,B)) + geom_line() + geom_point() +
+  geom_point(data = dsSim, col = "red", shape = 22) +
+  themeDefault
+ggplot(ds, aes(eps,R)) + geom_line() + geom_point() +
+  geom_point(data = dsSim, col = "red", shape = 22) +
+  themeDefault
+```
+
