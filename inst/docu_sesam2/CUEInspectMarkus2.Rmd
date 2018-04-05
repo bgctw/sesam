@@ -4,6 +4,9 @@ output: html_notebook
 ---
 
 ## Summary
+
+Extending CUEInspectMarkus2.Rmd for an explicit L pool.
+
 Markus drew a up a simple SOM, $S$ and Microbial biomass, $B$,
 computed Steady state and inspected relationship of steady states stocks $S^*$ 
 versus Carbon use efficiency (CUE),
@@ -47,64 +50,79 @@ Hence here, litter inputs, $I$, directly feed to microbial biomass, $B$.
 
 $$
 \begin{align}
-dB/dt &= I + \epsilon f(R)g(B) - \tau B \\
-dR/dt &= -f(R)g(B) + \tau B\\
+dL/dt &= I -f_L(L)g(B) \\
+dB/dt &= \epsilon f_L(L)g(B) + \epsilon f_R(R)g(B) - \tau B \\
+dR/dt &= -f_R(R)g(B) + \tau B\\
 \end{align}
 $$
 where decomposition is a multiplicative function of stocks and microbial biomass,
 and a part $(1-\epsilon)$ is respired.
 
 ## Steady states
-Steady state of $R$ by setting derivatives to zero and adding the two equations:
+At steady state:
 $$
 \begin{align}
-0 &= I + (\epsilon - 1) f(R^*)g(B^*) \\
-f(R^*) &= \frac{I}{(1-\epsilon) g(B^*)} \\
-R^* &= f^{-1}\left( \frac{I}{(1-\epsilon) g(B^*)} \right) \\
-\frac{dR}{dt} &= (f^{-1})' \left( \frac{I}{(1-\epsilon) g(B^*)} \right) \frac{I}{(1-\epsilon)^2 g(B^*)}\\
+f_L(L)g(B) &= I \\
+dB/dt &= \epsilon I + \epsilon f_R(R)g(B) - \tau B \\
+\end{align}
+$$
+
+Steady state of $R$ by setting derivatives to zero and adding the equations of $dB$ and $dR$:
+$$
+\begin{align}
+0 &= \epsilon I + (\epsilon - 1) f_R(R^*)g(B^*) \\
+f_R(R^*) &= \frac{\epsilon I}{(1-\epsilon) g(B^*)} \\
+R^* &= f^{-1}\left( \frac{\epsilon I}{(1-\epsilon) g(B^*)} \right) \\
+\frac{dR}{dt} &= (f^{-1})' \left( \frac{\epsilon I}{(1-\epsilon) g(B^*)} \right) \frac{\epsilon I}{(1-\epsilon)^2 g(B^*)}\\
 \end{align}
 $$
 
 With:
 $$
 \begin{align}
-y &= f(R) = kS \\
-f^{-1}(y) &= y/k \\
-(f^{-1})'(y) &= 1/k \\
-R^* &=  \frac{I}{k (1-\epsilon) g(B^*)}  \\
+y &= f_R(R) = k_R R \\
+f^{-1}(y) &= y/k_R \\
+(f^{-1})'(y) &= 1/k_R \\
+R^* &=  \frac{\epsilon I}{k_R (1-\epsilon) g(B^*)}  \\
 \end{align}
 $$
-Steady state stocks increase with decreasing steady state biomass, $B^*$, if $g$ is 
-monotonically increasing.
-
 Steady state for Biomass B:
 $$
 \begin{align}
-0 &= I +\epsilon \, k R^* g(B^*) - \tau B^* \\
-0 &= I + \epsilon \, k \frac{I}{k (1-\epsilon) g(B^*)} g(B^*) - \tau B^* \\
-0 &= I + \epsilon \, \frac{I}{(1-\epsilon) }  - \tau B^* \\
-B^* &= \left( 1 + \frac{\epsilon}{(1-\epsilon)} \right) \frac{I}{\tau} 
-     = \frac{I}{\tau (1-\epsilon)} \\
+0 &= \epsilon I +\epsilon \, k_R R^* g(B^*) - \tau B^* \\
+0 &= \epsilon I + \epsilon \, k_R \frac{\epsilon I}{k_R (1-\epsilon) g(B^*)} g(B^*) - \tau B^* \\
+0 &= \epsilon I + \epsilon \, \frac{\epsilon I}{(1-\epsilon) }  - \tau B^* \\
+B^* &= \left( 1 + \frac{\epsilon}{(1-\epsilon)} \right) \frac{\epsilon I}{\tau} 
+     = \frac{\epsilon I}{\tau (1-\epsilon)} \\
 \end{align}
 $$
 
-$B^*$ does neither depend on $k$ (as time is not important for staedy state) nor
+$B^*$ does neither depend on dynamics of the litter pool nor on $k_R$ (as time is not important for staedy state) nor
 on $g(B)$.
 
 With $g(B) = B/(k_M + B)$:
 $$
 \begin{align}
-R^* &=  \frac{I}{k (1-\epsilon) g(B^*)}  
-    =  \frac{I}{k (1-\epsilon)}  \frac{k_M+B^*}{B^*}\\
-    &=  \frac{I}{k (1-\epsilon)}  \frac{k_M+\frac{I}{\tau (1-\epsilon)}}
-        {\frac{I}{\tau (1-\epsilon)}}
-    = \frac{k_M+ \frac{I}{\tau (1-\epsilon)}}{k / \tau} \\
-    &= \frac{1}{k }\left( \tau k_M+ \frac{I}{(1-\epsilon)} \right)\\
+R^* &=  \frac{\epsilon I}{k_R (1-\epsilon) g(B^*)}  
+    =  \frac{\epsilon I}{k_R (1-\epsilon)}  \frac{k_M+B^*}{B^*}\\
+    &=  \frac{\epsilon I}{k_R (1-\epsilon)}  \frac{k_M+\frac{\epsilon I}{\tau (1-\epsilon)}}
+        {\frac{\epsilon I}{\tau (1-\epsilon)}}
+    = \frac{k_M+ \frac{\epsilon I}{\tau (1-\epsilon)}}{k_R / \tau} \\
+    &= \frac{1}{k_R }\left( \tau k_M+ \frac{\epsilon I}{1-\epsilon} \right)\\
 \end{align}
 $$
-On increasing $\epsilon$ the second input related term increases. 
+And with $f_L(L) = k_L L$:
+$$
+\begin{align}
+L^* &= f_L^{-1}\left( I / g(B^*) \right)    
+    = \frac{I}{k_L}  \frac{k_M+B^*}{B^*}\\
+    & = \frac{I}{k_L}  \frac{k_M+\frac{\epsilon I}{\tau (1-\epsilon)}}{\frac{\epsilon I}{\tau (1-\epsilon)}}
+    = \frac{1}{k_L} \left( \frac{1-\epsilon}{\epsilon} k_m \tau + I \right) \\
+\end{align}
+$$
+On increasing $\epsilon$ the second input related term of $R^*$ increases. 
 For $\epsilon \to 0$, $B^* \to 0$ and
-residue steady state stocks decrease towards a minimumm, but the neglected
+residue steady state stocks decrease towards a minimumm, but the 
 litter stock will accumulate unlimited.
 For $\epsilon \to 1$, $B^* \to \infty$ but steady state stocks also
 increase unlimited, as there is no loss of carbon from the system.
@@ -116,17 +134,65 @@ changes are usually larger than changes in litter stocks. Moreover the balance
 between litter and residue is  also be strongly controlled by their stoichiometry, 
 e.g. their nitrogen contents.
 
+### Minimum of SOM stocks
+To compute the minimum of L+R stocks.
+$$
+\begin{align}
+R^* + L^* &=  \frac{1}{k_R }\left( \tau k_M+ \frac{\epsilon I}{(1-\epsilon)} \right)+ \frac{1}{k_L} \left( \frac{1-\epsilon}{\epsilon} k_m \tau + I \right) \\
+\end{align}
+$$
+
+As a preparatory step, compute derivatives of the fractions:
+$$
+\begin{align}
+\left( \frac{\epsilon}{1-\epsilon} \right)' &= \frac{1}{(1-\epsilon)^2} \\
+\left( \frac{1 -\epsilon}{\epsilon} \right)' &= -\frac{1}{\epsilon^2} \\
+\end{align}
+$$
+Next we find the $\epsilon$ for which the derivative in respect to $\epsilon$ is zero.
+$$
+\begin{align}
+(R^* + L^*)' &=  \frac{1}{k_R }\left( \frac{I}{(1-\epsilon)^2} \right)
+              + \frac{1}{k_L} \left( -\frac{1}{\epsilon^2} k_m \tau  \right) \\
+            &= \frac{I}{k_R(1-\epsilon)^2} -\frac{k_m \tau}{k_L \epsilon^2}  \\
+0 &= I k_L \epsilon^2 -  k_m \tau k_R(1-\epsilon)^2 = a \epsilon^2 -  b(1-\epsilon)^2 \\
+0 &= (a-b) \epsilon^2  +2b \epsilon -b \\
+0 &= \epsilon^2  +2b(a-b) \epsilon -b/(a-b) = \epsilon^2  +p\epsilon -q \\
+\epsilon_0 &= -\frac{p}{2} \pm \sqrt{\frac{p^2}{4}-q} = -\frac{p}{2} \pm \sqrt D\\
+\end{align}
+$$
+with
+$$
+\begin{align}
+a &= I \, k_L \\
+b &= \tau k_M \, k_R \\
+p &= 2 \tau k_M k_R / (I k_L - \tau k_M k_R) \\
+q &= -\tau k_M k_R / (I k_L - \tau k_M k_R) \\
+D &= \frac{p^2}{4}-q = \frac{\tau k_M k_R I k_L}{(I k_L - \tau k_M k_R)^2}
+\end{align}
+$$
+A minimum always exists, because always $D > 0$ for $a \ne b$.
+and for $a = b$, $\epsilon_0 = 0.5$.
+Only the positive solution ($+\sqrt{D}$) is a reasonable solution.
+
+## Figures and numerical solution
+
 ```{r include=FALSE}
 eps <- seq(0.1, 0.8, by = 0.05)
 I <- 100
 tau <- 12
-k <- 1/5
-B <- I/(tau*(1 - eps))
+kR <- 1/5
+kL <- 5
+B <- eps*I/(tau*(1 - eps))
 kM <- as.numeric(quantile(B, 0.8))
 tkm <- tau*kM
-R <- R1 <- I/(k*(1 - eps))*(kM + B)/B
-R <- R2 <- 1/k*(tau*kM + I/(1 - eps))
-ds <- data.frame(eps,B,R)
+R <- R1 <- eps*I/(kR*(1 - eps))*(kM + B)/B
+R <- R2 <- 1/kR*(tau*kM + eps*I/(1 - eps))
+L <- 1/kL*((1 - eps)/eps*tau*kM + I)
+ds <- data.frame(eps,L,B,R)
+a <- I*kL
+b <- tkm*kR
+epsMin <- solveSquare(a - b, 2*b, -b)[1]
 ggplot(ds, aes(eps,B)) + geom_line() + geom_point() +
   themeDefault
 ggplot(ds, aes(eps,R)) + geom_line() + geom_point() +
@@ -136,24 +202,28 @@ ggplot(ds, aes(eps,R)) + geom_line() + geom_point() +
 
 The following plots show the relatinship between residue steady states and CUE.
 The red square denotes the state of a simulation of the model over 100 years.
+The gray dashed line denotes the CUE for which SOM stocks are minimal.
 
 ```{r echo=FALSE}
-p <- list(I = I, tau = tau, k = k, kM = kM, eps = 0.4)
+p <- list(I = I, tau = tau, kR = kR, kL = kL, kM = kM, eps = 0.4)
 unlist(p)
 ```
 
 ```{r include=FALSE}
 require(deSolve)
 dMod2 <- function(t,x,p){
-  decR <- p$k*x["R"] * x["B"]/(p$kM + x["B"])
+  gB <- x["B"]/(p$kM + x["B"])
+  decR <- p$kR*x["R"] * gB
+  decL <- p$kL*x["L"] * gB
   tvrB <- p$tau*x["B"]
-  dB <- p$I + p$eps*decR - tvrB
+  dL <- p$I - decL
+  dB <- p$eps*decL + p$eps*decR - tvrB
   dR <- -decR + tvrB
-  list(setNames( c(dB, dR), c("B","R")))
+  list(setNames( c(dL, dB, dR), c("L","B","R")))
 }
-x0 <- c( B = 14, R = 2300)
+x0 <- c( L = 500, B = 14, R = 1800)
 ans0 <- dMod2(0, x0, p)
-times <- seq(0,100, length.out = 101)
+times <- seq(0,500, length.out = 101)
 res <- as.data.frame(lsoda(x0, times, dMod2, p))
 xE <- unlist(tail(res,1)[-1])
 ggplot(res, aes(time,R)) + geom_line()
@@ -167,5 +237,22 @@ ggplot(ds, aes(eps,B)) + geom_line() + geom_point() +
 ggplot(ds, aes(eps,R)) + geom_line() + geom_point() +
   geom_point(data = dsSim, col = "red", shape = 22) +
   themeDefault
+ggplot(ds, aes(eps,L)) + geom_line() + geom_point() +
+  geom_point(data = dsSim, col = "red", shape = 22) +
+  themeDefault
+ggplot(ds, aes(eps,L + B + R)) + geom_line() + geom_point() +
+  geom_point(data = dsSim, col = "red", shape = 22) +
+  geom_vline(data = data.frame(epsMin = epsMin), aes(xintercept = epsMin), lty = "dashed", color = "darkgray") +
+  themeDefault
+```
+
+Usually total SOM stocks decrease with decreasing CUE.
+Only for very low CUE they increae again because of accumualtion of undecomposed litter.
+This increase is more prominent with decreasing turnover rate of litter pool, $k_L$, 
+in relation to $k_R$.
+
+
+```{r}
+
 ```
 
