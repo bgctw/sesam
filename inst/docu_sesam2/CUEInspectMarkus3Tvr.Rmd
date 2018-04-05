@@ -1,0 +1,202 @@
+---
+title: "CUE effect on SOM steady state with neglecting litter stock changes"
+output: html_notebook
+---
+
+## Summary
+
+Extending CUEInspectMarkus2.Rmd for microbial turnover increasing with
+microbial biomass (density effect): $tvr_B = \tau B^\delta$.
+
+```{r, echo=FALSE, results='hide', message=FALSE}
+library(ggplot2)
+library(grid)   #unit
+library(reshape)  # melt
+library(RColorBrewer) # brewer.pal
+library(tidyr)
+library(dplyr)
+library(purrr)
+
+myColors <- brewer.pal(5,"Dark2")	
+.simpleCap <- function(s) {
+    paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
+}
+colScale <- scale_colour_manual(name = "Variant",values = myColors)
+.treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
+sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
+
+themeDefault <- theme_classic()  
+```
+
+## The model
+$$
+\begin{align}
+dL/dt &= I -f_L(L)g(B) \\
+dB/dt &= \epsilon f_L(L)g(B) + \epsilon f_R(R)g(B) - \tau B^\delta \\
+dR/dt &= -f_R(R)g(B) + \tau B^\delta\\
+\end{align}
+$$
+where decomposition is a multiplicative function of stocks and microbial biomass,
+and a part $(1-\epsilon)$ is respired.
+
+And microbial turnover increases with microbial biomass, i.e. $\delta > 1$.
+
+## Steady states
+At steady state:
+$$
+\begin{align}
+f_L(L)g(B) &= I \\
+dB/dt &= \epsilon I + \epsilon f_R(R)g(B) - \tau B^\delta \\
+\end{align}
+$$
+
+Steady state of $R$ by setting derivatives to zero and adding the equations of $dB$ and $dR$:
+$$
+\begin{align}
+0 &= \epsilon I + (\epsilon - 1) f_R(R^*)g(B^*) \\
+f_R(R^*) &= \frac{\epsilon I}{(1-\epsilon) g(B^*)} \\
+R^* &= f^{-1}\left( \frac{\epsilon I}{(1-\epsilon) g(B^*)} \right) \\
+\frac{dR}{dt} &= (f^{-1})' \left( \frac{\epsilon I}{(1-\epsilon) g(B^*)} \right) \frac{\epsilon I}{(1-\epsilon)^2 g(B^*)}\\
+\end{align}
+$$
+
+With:
+$$
+\begin{align}
+y &= f_R(R) = k_R R \\
+f^{-1}(y) &= y/k_R \\
+(f^{-1})'(y) &= 1/k_R \\
+R^* &=  \frac{\epsilon I}{k_R (1-\epsilon) g(B^*)}  \\
+\end{align}
+$$
+Steady state for Biomass B:
+$$
+\begin{align}
+0 &= \epsilon I +\epsilon \, k_R R^* g(B^*) - \tau {B^*}^\delta \\
+0 &= \epsilon I + \epsilon \, k_R \frac{\epsilon I}{k_R (1-\epsilon) g(B^*)} g(B^*) - \tau {B^*}^\delta \\
+0 &= \epsilon I + \epsilon \, \frac{\epsilon I}{(1-\epsilon) }  - \tau {B^*}^\delta \\
+B^* &= \left( \left( 1 + \frac{\epsilon}{(1-\epsilon)} \right) \frac{\epsilon I}{\tau} \right)^{1/\delta}
+     = \left( \frac{\epsilon I}{\tau (1-\epsilon)} \right)^{1/\delta} \\
+\end{align}
+$$
+
+$B^*$ does neither depend on dynamics of the litter pool nor on $k_R$ (as time is not important for staedy state) nor
+on $g(B)$.
+
+With $g(B) = B/(k_M + B)$:
+$$
+\begin{align}
+R^* &=  \frac{\epsilon I}{k_R (1-\epsilon) g(B^*)}  
+    =  \frac{\epsilon I}{k_R (1-\epsilon)}  \frac{k_M+B^*}{B^*}
+    =  \frac{\epsilon I}{k_R (1-\epsilon)}  \left( k_M {B^*}^{-1} + 1\right) \\
+    &= \frac{\epsilon I}{k_R (1-\epsilon)}  \left( k_M \left( \frac{\epsilon I}{\tau (1-\epsilon)} \right)^{-1/\delta} + 1\right) \\
+    &= \frac{1}{k_R}  \left( k_M \tau^{1/\delta} \left( \frac{\epsilon I}{1-\epsilon} \right)^{1-1/\delta} + \frac{\epsilon I}{1-\epsilon}\right) \\
+\end{align}
+$$
+
+And with $f_L(L) = k_L L$:
+$$
+\begin{align}
+L^* &= f_L^{-1}\left( I / g(B^*) \right)    
+    = \frac{I}{k_L}  \frac{k_M+B^*}{B^*}
+    = \frac{I}{k_L}  ( k_M {B^*}^{-1} +1 ) \\
+    &= \frac{I}{k_L}  \left( k_M \left( \frac{\epsilon I}{\tau (1-\epsilon)} \right)^{-1/\delta} +1 \right) \\
+    &= \frac{I}{k_L}  \left( k_M \left( \frac{\tau (1-\epsilon)}{\epsilon I} \right)^{1/\delta} +1 \right) \\
+\end{align}
+$$
+With $1 \leq \delta \leq 2$ and $x > 1$, the term $x^{1-1/\delta}$ is usually smaller than $x^1$. 
+Hence the $R^*$ dynamics at high litter inputs is similar to the model without density 
+dependent turnover.
+
+On increasing $\epsilon$ the second input related term of $R^*$ increases. 
+For $\epsilon \to 0$, $B^* \to 0$ and
+residue steady state stocks decrease towards a minimumm, but the 
+litter stock will accumulate unlimited.
+For $\epsilon \to 1$, $B^* \to \infty$ but steady state stocks also
+increase unlimited, as there is no loss of carbon from the system.
+
+Hence with sufficient litter input residue stocks always decrease with decreasing CUE.
+The balance of total SOM stocks will depend on the balance of increasing 
+litter stock and decreasing residue stock. However, residue stocks and their
+changes are usually larger than changes in litter stocks. Moreover the balance
+between litter and residue is  also be strongly controlled by their stoichiometry, 
+e.g. their nitrogen contents.
+
+## Figures and numerical solution
+
+```{r include=FALSE}
+eps <- seq(0.1, 0.8, by = 0.05)
+I <- 100
+tau <- 12
+kR <- 1/5
+#delta <- 2; kL <- kR
+#delta <- 1.5; kL <- kR*5
+delta <- 1.2; kL <- 5
+B <- (eps*I/(tau*(1 - eps)))^(1/delta)
+kM <- as.numeric(quantile(B, 0.8))
+tkm <- tau*kM
+R <- R1 <- eps*I/(kR*(1 - eps))*(kM + B)/B
+R <- R2 <- 1/kR*(kM*tau^(1/delta)*(eps*I/(1 - eps))^(1 - 1/delta) + eps*I/(1 - eps))
+L <- L1 <- I/kL*(kM + B)/B
+L <- L2 <- I/kL*(kM*(tau*(1 - eps)/(eps*I))^(1/delta) + 1)
+ds <- data.frame(eps,L,B,R)
+ggplot(ds, aes(eps,B)) + geom_line() + geom_point() +
+  themeDefault
+ggplot(ds, aes(eps,R)) + geom_line() + geom_point() +
+  themeDefault
+```
+
+
+The following plots show the relatinship between residue steady states and CUE.
+The red square denotes the state of a simulation of the model over 100 years.
+The gray dashed line denotes the CUE for which SOM stocks are minimal.
+
+```{r echo=FALSE}
+p <- list(I = I, tau = tau, kR = kR, kL = kL, kM = kM, delta = delta, eps = 0.4)
+unlist(p)
+```
+
+```{r include=FALSE}
+require(deSolve)
+dMod2 <- function(t,x,p){
+  gB <- x["B"]/(p$kM + x["B"])
+  decR <- p$kR*x["R"] * gB
+  decL <- p$kL*x["L"] * gB
+  tvrB <- p$tau*x["B"]^p$delta
+  dL <- p$I - decL
+  dB <- p$eps*decL + p$eps*decR - tvrB
+  dR <- -decR + tvrB
+  list(setNames( c(dL, dB, dR), c("L","B","R")))
+}
+x0 <- c( L = 500, B = 14, R = 1800)
+ans0 <- dMod2(0, x0, p)
+times <- seq(0,500, length.out = 101)
+res <- as.data.frame(lsoda(x0, times, dMod2, p))
+xE <- unlist(tail(res,1)[-1])
+ggplot(res, aes(time,R)) + geom_line()
+```
+
+```{r echo=FALSE}
+dsSim <- cbind(eps = p$eps, as.data.frame(t(xE)))
+ggplot(ds, aes(eps,B)) + geom_line() + geom_point() +
+  geom_point(data = dsSim, col = "red", shape = 22) +
+  themeDefault
+ggplot(ds, aes(eps,R)) + geom_line() + geom_point() +
+  geom_point(data = dsSim, col = "red", shape = 22) +
+  themeDefault
+ggplot(ds, aes(eps,L)) + geom_line() + geom_point() +
+  geom_point(data = dsSim, col = "red", shape = 22) +
+  themeDefault
+ggplot(ds, aes(eps,L + B + R)) + geom_line() + geom_point() +
+  geom_point(data = dsSim, col = "red", shape = 22) +
+  themeDefault
+```
+
+The density-dependent turnover diminishes the effect of litter accumulation
+with low CUE.
+
+
+```{r}
+
+```
+
