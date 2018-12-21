@@ -52,8 +52,10 @@ derivSesam4a <- function(
   decNE <- tvrERecycling/cnE
   decNB <- tvrBOrg*(1 - cW)/cnBL
   uNOrg <- parms$nu*(decNLR + decNE + decNB)
-  #uNOrg <- parms$nu*(decL/cnL + decR/cnR + tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)
-  uPOrg <- parms$nuP*(decL/cpL + decR/cpR + tvrERecycling/cpE + tvrBOrg*(1 - cW)/cpBL)
+  #uNOrg <- parms$nu*(decL/cnL + decR/cnR + tvrERecycling/cnE +
+  #tvrBOrg*(1 - cW)/cnBL)
+  uPOrg <- parms$nuP*(decL/cpL + decR/cpR + tvrERecycling/cpE +
+                        tvrBOrg*(1 - cW)/cpBL)
   uC <- decL + decR + tvrERecycling + tvrBOrg*(1 - cW)
   CsynBC <- uC - rM - synE/parms$eps
   CsynBN <- cnB/parms$eps*(uNOrg + immoPot - synE/cnE)
@@ -96,7 +98,8 @@ derivSesam4a <- function(
   dAlpha <- (alphaTarget - alpha) * (synB + starvB + tvrB + tvrBPred)/B
   #
 
-  # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
+  # imbalance fluxes of microbes and predators
+  # (consuming part of microbial turnover)
   respO <- uC + starvB - (synE/parms$eps + synB + rG + rM)
   respTvr <- (1 - parms$epsP) * tvrBPred
   # assuming same cnRatio of predators to equal cn ratio of microbes
@@ -111,9 +114,11 @@ derivSesam4a <- function(
   tvrExC <- tvrExN <- tvrExP <- 0
   #
   leach <- parms$l*x["I"]
-  PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)
+  PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE +
+                            tvrBOrg*(1 - cW)/cnBL)
   leachP <- parms$lP*x["IP"]
-  PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE + tvrBOrg*(1 - cW)/cpBL)
+  PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE +
+                              tvrBOrg*(1 - cW)/cpBL)
   immoN <- max(0,-PhiB); minN <- max(0,PhiB)
   immoP <- max(0,-PhiPB); minP <- max(0,PhiPB)
   respB <- (synE)/parms$eps*(1 - parms$eps)  + rG + rM + respO
@@ -151,7 +156,7 @@ derivSesam4a <- function(
   }
   #
   resDeriv <- structure(as.numeric(
-    c( dB, dR, dRN, dRP, dL, dLN, dLP, dI, dIP, dAlpha, dResp, dLeachN, dLeachP))
+    c(dB, dR, dRN, dRP, dL, dLN, dLP, dI, dIP, dAlpha, dResp, dLeachN, dLeachP))
     ,names = c("BC","RC","RN","RP","LC","LN","LP","I","IP"
                , "alpha", "resp", "leachN", "leachP"))[names(x)]
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
@@ -160,18 +165,23 @@ derivSesam4a <- function(
   # parms$iR + tvrC -(decR + dR)
   #
   # checking the mass balance of fluxes
-  plantNUp <- plantPUp <- 0 # checked in mass balance but is not (any more) in model
+  # checked in mass balance but is not (any more) in model
+  plantNUp <- plantPUp <- 0
   # biomass mass balance
-  if (diff( unlist(c(uC = uC + starvB, usage = respB + synB + synE )))^2 > sqrEps )  stop(
+  if (diff( unlist(
+    c(uC = uC + starvB, usage = respB + synB + synE )))^2 > sqrEps )  stop(
     "biomass mass balance C error")
   if (diff( unlist(
-    c(uN = uNOrg + starvB/cnB, usage = synE/parms$cnE + synB/parms$cnB + PhiB )))^2 >
+    c(uN = uNOrg + starvB/cnB, usage = synE/parms$cnE
+      + synB/parms$cnB + PhiB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   if (diff( unlist(
-    c(uP = uPOrg + starvB/cpB, usage = synE/parms$cpE + synB/parms$cpB + PhiPB )))^2 >
+    c(uP = uPOrg + starvB/cpB, usage = synE/parms$cpE
+      + synB/parms$cpB + PhiPB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   # biomass turnover mass balance
-  if (diff( unlist(c(tvrB + tvrBPred, usage = respTvr + tvrBOrg )))^2 > sqrEps )  stop(
+  if (diff( unlist(
+    c(tvrB + tvrBPred, usage = respTvr + tvrBOrg )))^2 > sqrEps )  stop(
     "biomass turnover mass balance C error")
   if (diff( unlist(c(
     tvrB/cnB + tvrBPred/cnB
@@ -201,10 +211,12 @@ derivSesam4a <- function(
   }
   #
   # allowing scenarios with holding some pools fixed
-  if (isTRUE(parms$isFixedR)) { resDeriv["RC"] <- resDeriv["RN"] <- resDeriv["RP"] <- 0 }
-  if (isTRUE(parms$isFixedL)) { resDeriv["LC"] <- resDeriv["LN"] <- resDeriv["LP"] <- 0 }
-  if (isTRUE(parms$isFixedI)) { resDeriv["I"] <- 0   }
-  if (isTRUE(parms$isFixedIP)) { resDeriv["IP"]  <- 0   }
+  if (isTRUE(parms$isFixedR)) {
+    resDeriv["RC"] <- resDeriv["RN"] <- resDeriv["RP"] <- 0 }
+  if (isTRUE(parms$isFixedL)) {
+    resDeriv["LC"] <- resDeriv["LN"] <- resDeriv["LP"] <- 0 }
+  if (isTRUE(parms$isFixedI)) {resDeriv["I"] <- 0   }
+  if (isTRUE(parms$isFixedIP)) {resDeriv["IP"]  <- 0   }
   #
   # further computations just for output for tacking the system
   ER <- alpha * parms$aE * B / parms$kN
@@ -221,7 +233,8 @@ derivSesam4a <- function(
   PhiTotal <- PhiBU + PhiTvr
   # do not match in other limitation
   # c(alphaC, revRC/(revRC + revLC)); c(alphaN, revRN/(revRN + revLN))
-  # compute C available for biomass, this time without accounting immobilization flux
+  # compute C available for biomass, this time without accounting
+  # immobilization flux
   NsynBNSubstrate <- uNOrg - synE/cnE
   CsynBNSubstrate <- (NsynBNSubstrate*cnB)/parms$eps
   # N limited based on substrate uptake (without accounting for immobilization)
@@ -247,7 +260,8 @@ derivSesam4a <- function(
     , immoPPot = as.numeric(immoPPot)
     , resBalance$wELim
     , alphaTarget = as.numeric(alphaTarget)
-    , alphaC = as.numeric(alphaC), alphaN = as.numeric(alphaN), alphaP = as.numeric(alphaP)
+    , alphaC = as.numeric(alphaC), alphaN = as.numeric(alphaN)
+    , alphaP = as.numeric(alphaP)
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
     , cpR = as.numeric(cpR), cpL = as.numeric(cpL)
     , limER = as.numeric(limER), limEL = as.numeric(limEL)
