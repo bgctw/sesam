@@ -3,7 +3,9 @@ title: "SESAM Soil enzyme steady allocoation model"
 output: html_notebook
 ---
 
-The SEAM model explicitely tracks enzyme levels. In order to use the model at plot scale or in COMISSION, derive a simpler version, where enzyme levels are assumed to be in fast steady state with production and turnover.
+The SEAM model explicitely tracks enzyme levels. In order to use the model at 
+plot scale or in COMISSION, derive a simpler version, where enzyme levels are 
+assumed to be in fast steady state with production and turnover.
 
 Here, we explore instead of tracking enzymes, we track microbial community either
 attacking R or L litter, by modelling $\alpha$ as a state variable. The computation
@@ -17,6 +19,7 @@ $$
 ## Model versions
 - SEAM2: enzyme explicit (soil enzyme allocation model)
 - SESAM3s: enzyme in steady state but explicitely tracking $alpha$
+- SESAM3B: also microbial biomass in steady state
 
 ## Comparison using the FACE scenario
 ```{r, echo=FALSE, results='hide', message=FALSE}
@@ -40,7 +43,8 @@ themeDefault <- theme_classic()
 
 ```{r echo=FALSE, eval=FALSE, results='hide', message=FALSE, warning=FALSE}
 library(twDev)
-oldWd <- setwd("../.."); loadPkg()
+#oldWd <- setwd("../.."); loadPkg()
+library(sesam)
 ```
 
 
@@ -59,21 +63,25 @@ parmsModel <- list(
     # determined by kN
   ,kNB = 0.8     ##<< amount of recycling enzyme turnover by biomass (
     # added to assimilable, i.e. uptake instead of R)
-  ,kR = 1/(10)        ##<< 1/(x years)       # to demonstrate changes on short time scale
-  ,kL = 5        ##<< 1/(x years)     # formerly 1 year
+  ,kR = 1/(10)        ##<< 1/(x years) # to demonstrate changes on short time scale
+  ,kL = 5           ##<< 1/(x years)   # formerly 1 year
   ,aE = 0.001*365   ##<< C biomass allocated to enzymes 1/day /microbial biomass
-  ,m = 0.005*365    ##<< maintenance respiration rate   1/day /microbial biomass, Bogedom Fig. 1
+  ,m = 0.005*365    ##<< maintenance respiration rate   1/day /microbial biomass, 
+  ## Bogedom Fig. 1
   ,tau = 1/60*365  ##<< biomass turnover rate (12 days)
   ,eps = 0.5      ##<< carbon use efficiency for growth respiration
-  ,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (part by predators which respire and corresponding amount of N must be mineralized)
-  ,iB = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate (immoPot = iB I)
-  ,l = 0.96       #0.00262647*365       ##<< leaching rate of mineralN l I
-  ,nu = 0.9     # microbial N use efficiency accounting for apparent minceralization of N during uptake in heterogeneous soils
+  ,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (part by predators 
+  ## which respire and corresponding amount of N must be mineralized)
+  ,iB = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
+  ## (immoPot = iB I)
+  ,l = 0.96       #0.00262647*365     ##<< leaching rate of mineralN l I
+  ,nu = 0.9     # microbial N use efficiency accounting for apparent 
+  ## minceralization of N during uptake in heterogeneous soils
   , isEnzymeMassFlux = TRUE  ##<< compute enzyme mass fluxes
 )
 
 parmsModel <- within(parmsModel, {
-    kmkN <- km*kN     # Sesam2 only uses a lumped parameter
+    kmkN <- km*kN     # Sesam2 only uses a lumped parameter instead of km and kN
     kmR <- kmL <- km  # seam2 can accept parameters differing by substrate
     epsR <- epsL <- eps
     cnER <- cnEL <- cnE 
@@ -89,9 +97,11 @@ drivers <- list(
         iR = 0          ##<< input of residue litter
         ,iL = 400         # g/m2 input per year (half NPP)
         ,cnIR = 7       ##<< C/N ratio of the residue litter input
-        ,cnIL = 30      ##<< C/N ratio of the labile litter input: N poor substrate, here no inorganic N supply, 
+        ,cnIL = 30      ##<< C/N ratio of the labile litter input: 
+        ## N poor substrate, here no inorganic N supply, 
         ,plantNUp = 0   ##<< pland uptake of organic N
-        ,iP = 10.57 #0.0289652*365          ##<< plant uptake of inorganic N (I), currently as absolute flux
+        ,iP = 10.57 #0.0289652*365        ##<< plant uptake of inorganic N (I), 
+        ## currently as absolute flux
         ,iI = 0         ##<< input of mineral N
         ,kIPlant = 10.57 #0.0289652*365          ##<< plant uptake iP I
         ,iI = 0         ##<< input of mineral N
@@ -120,7 +130,6 @@ x0B <- x0SteadyA[setdiff(names(x0SteadyA),"B")]
 
 We store the information that differs between scenarios in a tibble.
 ```{r}
-#setwd("../..");loadPkg()  # reload function, may have inserted recover
 scenarios <- tibble::tibble(
   scenario = c("Explicit","Sesam3s","NeglectEnzFlux","Sesam3B")
   ,mod = c(derivSeam3a, derivSesam3s, derivSesam3s, derivSesam3B)
@@ -133,7 +142,9 @@ colScale <- scale_colour_manual(name = "Model variant",values = tmp )
 
 Next the simulation runs are performed.
 ```{r}
-runFaceSimulation <- function(scen, t1S =20, t2I = 50, t3S = 50, parms = parms0){
+runFaceSimulation <- function(
+  scen, t1S =20, t2I = 50, t3S = 50, parms = parms0
+){
   # spinup to steady state
   times <- seq(0,500, length.out = 101)
   #setwd("../..");loadPkg()
@@ -142,7 +153,8 @@ runFaceSimulation <- function(scen, t1S =20, t2I = 50, t3S = 50, parms = parms0)
   xE <- unlist(tail(res,1))
   #
   # t1S years of steady state recorded
-  res <- res1S <- as.data.frame(lsoda( xE[1:length(.$x0) + 1], 1:t1S, .$mod, parms = .$parms))
+  res <- res1S <- as.data.frame(lsoda( 
+    xE[1:length(.$x0) + 1], 1:t1S, .$mod, parms = .$parms))
   #
   # t2I years of increased input
   fInputInc = 1.2
@@ -151,13 +163,15 @@ runFaceSimulation <- function(scen, t1S =20, t2I = 50, t3S = 50, parms = parms0)
     cnIL <- cnIL*fInputInc
   }) 
   times <- seq(0,t2I, length.out = 2)
-  res <- res2I <- as.data.frame(lsoda( xE[1:length(.$x0) + 1], times, .$mod, parms = parmsC2))
+  res <- res2I <- as.data.frame(lsoda( 
+    xE[1:length(.$x0) + 1], times, .$mod, parms = parmsC2))
   res2I$time <- res2I$time + t1S 
   xE2 <- unlist(tail(res2I,1))
   #
   # t3S years of initial input
   times <- seq(0,t3S, length.out = 101)
-  res <- res3S <- as.data.frame(lsoda( xE2[1:length(.$x0) + 1], times, .$mod, parms = .$parms))
+  res <- res3S <- as.data.frame(lsoda( 
+    xE2[1:length(.$x0) + 1], times, .$mod, parms = .$parms))
   res3S$time <- res3S$time + t1S + t2I
   xE3 <- tail(res3S,1)
   resc <- rbind( res1S, res2I[-1,], res3S[-1,])
