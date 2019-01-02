@@ -108,8 +108,8 @@ derivSesam3s <- function(
   PhiTvr <- respTvr/parms$cnB
   #
   # tvr that feeds R pool, assume that N in SOM for resp (by epsTvr) is mineralized
-  tvrC <-  +parms$epsTvr*tvrB   + (1 - parms$kNB)*(tvrER  + tvrEL)
-  tvrN <-  +parms$epsTvr*tvrB/parms$cnB   + (1 - parms$kNB)*(tvrER  + tvrEL)/parms$cnE
+  tvrC <-  +parms$epsTvr*tvrB   + (1 - parms$kNB)*synE
+  tvrN <-  +parms$epsTvr*tvrB/parms$cnB   + (1 - parms$kNB)*synE/parms$cnE
   # fluxes leaving the system (will be set in scen where trv does not feed back)
   tvrExC <- tvrExN <- 0
   #
