@@ -222,7 +222,8 @@ sesam3BSteadyClim <- function(
   a <- -tem*alpha*(1 - alpha)*aE*aE
   b <- aE*aE*alpha*(1 - alpha)*(dL + dR) - tem*kmkN*aE
   c <- kmkN*aE*((1 - alpha)*dL + alpha*dR) - tem*kmkN*kmkN
-  B <- max(c(0,solveSquare(a,b,c)))
+  #B <- max(c(0,solveSquare(a,b,c)))
+  B <- max(c(1e-16,solveSquare(a,b,c))) # sustain minimal biomass
   #solveSquare(a,b,c)
 }
 .tmp.f <- function(){
