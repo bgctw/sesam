@@ -329,5 +329,39 @@ reality it stochastically depends on environmental fluctuations and the
 real dormancy behaviour.
 
 With SESAM3B there the chaotic pattern of pulses and dormancy phases disappear.
-Levels of fresh substrate and biomass stay on the tipping point positive and negative feedback of growth.
+Levels of fresh substrate and biomass stay on the point between
+positive and negative feedback of growth.
+
+## Test hypothesis of QSS as tipping point or attractor
+
+Initialize SESAM with the state from SESAM3B QSS and compare simulations with
+a slightly higher and a slighly lower initial biomass.
+
+```{r}
+x03 <- x03L <- x03H <- unlist(tail(res1B,1)[names(x0SteadyA)])
+x03L["B"] <- x03["B"] * 0.9999
+x03H["B"] <- x03["B"] * 1.0001
+x03L["B"] <- x03["B"] * 0.99
+x03H["B"] <- x03["B"] * 1.01
+timesMon <- seq(0,200, length.out = 2*365 + 1)
+res3L <- as.data.frame(lsoda( x03L, timesMon, derivSesam3s, parms = parmsFixedR))
+res3H <- as.data.frame(lsoda( x03H, timesMon, derivSesam3s, parms = parmsFixedR))
+res <- res3 <- rbind(
+  cbind(res3L, scen = "low biomass")
+  , cbind(res3H, scen = "high biomass")
+)
+```
+
+```{r twoTrajectoriesQSS, echo=FALSE}
+print(getGraph(res, columns = c("B","L")) + 
+        facet_wrap( ~ Pool, scales = "free") +
+        #ylim(x03["B"]*c(0.95,1.05)) +
+        c()
+      )
+```
+
+The QSS is not a tipping point but an attractor 
+around which the solutions oscillate.
+
+What does the time scale of oscillations depend on?
 
