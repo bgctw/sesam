@@ -28,6 +28,7 @@ library(reshape)  # melt
 library(RColorBrewer) # brewer.pal
 library(tidyr)
 library(dplyr)
+library(purrr)
 
 myColors <- brewer.pal(5,"Dark2")	
 .simpleCap <- function(s) {
@@ -40,16 +41,10 @@ sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
 themeDefault <- theme_classic()  
 ```
 
-```{r echo=FALSE, eval=FALSE, results='hide', message=FALSE, warning=FALSE}
-#library(twDev)
-#oldWd <- setwd("../.."); loadPkg()
-library(sesam)
-```
-
-
 ### Setup parameters and drivers
 Mass units are $gC/m^2$ or $gN/m^2$. Time unit is $yr$.
-Here we use the FACE scenario.
+Here, we prescribe a very low, i.e. trickling, input of fresh organic matter
+and a spinup, where microbial biomass and enzyme levels drop to a very low value.
 
 ```{r}
 require(sesam)
@@ -64,7 +59,7 @@ parmsModel <- list(
     # determined by kN
   ,kNB = 0.8     ##<< amount of recycling enzyme turnover by biomass (
     # added to assimilable, i.e. uptake instead of R)
-  ,kR = 1/(10)        ##<< 1/(x years) # to demonstrate changes on short time scale
+  ,kR = 1/(10)      ##<< 1/(x years) # to demonstrate changes on short time scale
   ,kL = 5           ##<< 1/(x years)   # formerly 1 year
   ,aE = 0.001*365   ##<< C biomass allocated to enzymes 1/day /microbial biomass
   ,m = 0.005*365    ##<< maintenance respiration rate   1/day /microbial biomass, 
@@ -106,11 +101,10 @@ drivers <- list(
         ## currently as absolute flux
         ,iI = 0         ##<< input of mineral N
         #,kIPlant = 10.57 #0.0289652*365          ##<< plant uptake iP I
-        ,iI = 0         ##<< input of mineral N
 )
 drivers$kIPlant = drivers$iL / drivers$cnIL # balancing N inputs by plant uptake
 parms0 <- c(parmsModel, drivers)
-parms0Noenz <- within(parms0, isEnzymeMassFlux <- FALSE)
+#parms0Noenz <- within(parms0, isEnzymeMassFlux <- FALSE)
 ```
 
 The initial pools must be specified. The Steady models do not have the enzyme pools as state variables.
@@ -120,12 +114,8 @@ x0 <- x0Explicit <- c( #aE = 0.001*365
         B = 0.8
         ,ER  = 2*parms0$km                  ##<< total enzyme pool
         ,EL  = 4*parms0$km                   ##<< total enzyme pool
-        #,R = 1100                ##<< N rich substrate
-        #,RN = 1100/parms0$cnIR   ##<< N rich substrate N pool
         ,R = 573.5                ##<< N rich substrate
         ,RN = 573.5/parms0$cnIR   ##<< N rich substrate N pool
-        #,L = 100                 ##<< N poor substrate
-        #,LN = 100/parms0$cnIL    ##<< N poor substrate N pool
         ,L = 31                 ##<< N poor substrate
         ,LN = 31/parms0$cnIL    ##<< N poor substrate N pool
         ,I =  0.4                ##<< inorganic pool gN/m2
@@ -139,12 +129,11 @@ x0B <- x0SteadyA[setdiff(names(x0SteadyA),"B")]
 We store the information that differs between scenarios in a tibble.
 ```{r}
 scenarios0 <- tibble::tibble(
-  scenario = c("Explicit","Sesam3s","NeglectEnzFlux","Sesam3B")
-  ,mod = c(derivSeam3a, derivSesam3s, derivSesam3s, derivSesam3B)
-  ,x0  = list(x0Explicit, x0SteadyA, x0SteadyA, x0B)
-  ,parms = list(parms0, parms0, parms0Noenz, parms0)
+  scenario = c("Explicit","Sesam3s","Sesam3B")
+  ,mod = c(derivSeam3a, derivSesam3s, derivSesam3B)
+  ,x0  = list(x0Explicit, x0SteadyA, x0B)
 )
-scenarios <- filter(scenarios0, scenario == "Explicit")
+scenarios <- scenarios0 #filter(scenarios0, scenario == "Explicit")
 tmp <- structure(myColors[1:nrow(scenarios)], names = scenarios$scenario)
 colScale <- scale_colour_manual(name = "Model variant",values = tmp )
 ```
@@ -156,77 +145,7 @@ times <- seq(0,200, length.out = 501)
 res <- res0 <- as.data.frame(lsoda( x0, times, derivSeam3a, parms = parms0))
 ```
 
-```{r, include=FALSE}
-ggplot( res, aes(time, B)) + geom_line()
-```
-```{r}
-if (is.null(res$scen)) res$scen <- "SEAM"
-dsp <- res %>% 
-  #filter(time <= 20) %>% 
-  select_(~time, ~scen, ~L, ~R, ~B, ~EL, ~alpha) %>% 
-  gather_("Pool","value", c("L","R","B","EL","alpha"))
-
-p2f <- ggplot( dsp, aes(x = time, y = value, col = scen, linetype = scen)) + geom_line(size = 1) +
-  facet_grid(Pool ~ .,scales = "free") + 
-  xlab("Time (yr)") + ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
-  themeDefault +
-  #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
-  theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
-  theme(panel.border = element_rect(colour = "black", fill = NA)) +
-  theme(strip.background = element_blank()) +			
-  theme(panel.grid.major.x = element_line(colour = "grey75")) +
-  c()
-#print(p2f + colScale)
-print(p2f)
-
-```
-
-Next, increase inputs:
-```{r}
-x1 <- unlist(tail(res0,1))
-# parms0$iL
-parms1 <- within(parms0, iL <- 12)
-#parms1 <- within(parms0, iL <- 10)
-times1 <- seq(0,20, length.out = 501)
-res <- res1 <- as.data.frame(lsoda( x1[1:length(x0) + 1], times1, derivSeam3a, parms = parms1))
-x2 <- x2L <- x2H <- unlist(tail(res1,1))
-```
-
-Microbial biomass increases slowly but it takes 2 years.
-Take initial state of substrate at the end of simulation, but microbial biomass
-at the start and at year 2.
-```{r}
-times2 <- seq(0,1/12, length.out = 501)
-res <- res2 <- as.data.frame(lsoda( x2[1:length(x0) + 1], times2, derivSeam3a, parms = parms1))
-colB <- c("B","EL","ER")
-x2L[colB] <- unlist(res1[res1$time == 0, colB])
-x2H[colB] <- unlist(res1[res1$time == 2.0, colB])
-res2L <- as.data.frame(lsoda( x2L[1:length(x0) + 1], times2, derivSeam3a, parms = parms1))
-res2H <- as.data.frame(lsoda( x2H[1:length(x0) + 1], times2, derivSeam3a, parms = parms1))
-res <- res2 <- rbind(
-  cbind(res2L, scen = "low biomass")
-  , cbind(res2H, scen = "high biomass")
-)
-
-```
-
-Microbial activity is sustained at levels of 0.8 and 1  but system develops
-to a common steady state. This is not a proper tipping point
-
-## Trickling fresh organic matter
-Next try starting from almost zero labile and very small increase
-```{r}
-x1 <- unlist(tail(res0,1))
-# parms0$iL
-parmsFixedR <- within(parms0, {iL <- 0.1; isFixedR <- TRUE})
-#parms1 <- within(parms0, iL <- 10)
-yearEnd <- 300
-times1 <- seq(0,yearEnd, length.out = yearEnd*12 + 1)
-res1 <- as.data.frame(lsoda( x1[1:length(x0) + 1], times1, derivSeam3a, parms = parmsFixedR)) 
-res <- res1 %>% filter(time >= 120.0)
-```
-
-```{r}
+```{r include=FALSE}
 getGraph <- function(res, columns = c("L","B","EL","R")){
   if (is.null(res$scen)) res$scen <- "SEAM"
   dsp <- res %>% 
@@ -248,31 +167,60 @@ getGraph <- function(res, columns = c("L","B","EL","R")){
 }
 ```
 
-```{r severalPulses}
-print(getGraph(
-  res1 %>% filter(time >= 120.0)
-  , columns = c("B","EL","L","R")))
+```{r include=FALSE}
+print(getGraph(filter(res, time < 20)))
 ```
 
-Microbial biomass grows in pulses. Time scale is too long.
+## Trickling fresh organic matter
+Starting from almost zero labile and very small increase.
+For simplicity, fix the R pool as it does not change very much.
 
-```{r singlePulse, include = FALSE}
+```{r}
+x1 <- unlist(tail(res0,1))
+# parms0$iL
+parmsFixedR <- within(parms0, {
+  iL <- 0.1
+  isFixedR <- TRUE
+  #fixedI anyway kIPlant <- iL / cnIL*2 # balancing N inputs by plant uptake
+  })
+#parms1 <- within(parms0, iL <- 10)
+yearEnd <- 300
+times1 <- seq(0,yearEnd, length.out = yearEnd*12 + 1)
+res1S <- as.data.frame(lsoda( x1[1:length(x0) + 1], times1, derivSeam3a, parms = parmsFixedR)) 
+res <- res1S %>% filter(time >= 120.0)
+```
+
+```{r severalPulses}
 print(getGraph(
-  res1 %>% filter(time >= 125.0 & time <= 140)
+  res1S %>% filter(time >= 120.0)
   , columns = c("B","EL","L")))
 ```
 
+Microbial biomass grows in pulses. Time scale is too long.
+During a pulse, the pool of enzymes is large and degrades the L pool
+beyond the quasi-steady state (QSS) with microbial biomass, 
+so that biomass starves below the point of is QSS.
+With dormant, i.e. very low, biomass, L pools recover until a point 
+where even the small enzyme levels sustain microbial growth.
+L pools with levels above the quasi-steady now support a positive feedback of
+growth of microbes, enzyme levels, and decomposition.
 
+```{r singlePulse, include = FALSE}
+print(getGraph(
+  res1S %>% filter(time >= 125.0 & time <= 140)
+  , columns = c("B","EL","L")))
+```
 
-Take enzyme levels one during biomass peak and one during low biomass phase
+Take enzyme levels, one set during biomass peak and 
+another set during low biomass phase
 for the same substrate levels (R is fixed anyway), and plot different 
 trajectories.
 
 ```{r}
 LTarget <- 32
-res1 %>% mutate(dAbsL = abs(L - LTarget)) %>% filter(time >= 125 & dAbsL < 1e-1) %>%  select("time","L", everything())
-resLH <- res1 %>% filter(abs(time - 131.6667) < 1e-3 | abs(time - 189.7500) < 1e-3 ) 
-resLH <- res1 %>% filter(abs(time - 130.8333) < 1e-3 | abs(time - 210.3333) < 1e-3 ) 
+#res1S %>% mutate(dAbsL = abs(L - LTarget)) %>% filter(time >= 125 & dAbsL < 1e-1) %>%  select("time","L", everything())
+resLH <- res1S %>% filter(abs(time - 131.6667) < 1e-3 | abs(time - 189.7500) < 1e-3 ) 
+resLH <- res1S %>% filter(abs(time - 130.8333) < 1e-3 | abs(time - 210.3333) < 1e-3 ) 
 #
 x2L <- unlist(resLH[2,])
 x2H <- unlist(resLH[1,])
@@ -296,13 +244,11 @@ For the same substrate levels, a higher biomass associated with higher
 sustained enzyme levels is increasing, while a low biomass associated with low 
 sustained enzyme levels cannot sustain growth.
 
-
-
 ## Simulate respiration from many pores
 
 Subsample initial states from trickling trajectory
 ```{r}
-x0Pop <- res1 %>% filter(time > 100) %>% select(1 + (1:length(x0)))
+x0Pop <- res1S %>% filter(time > 100) %>% select(1 + (1:length(x0)))
 #x0P <- x0Pop %>% slice(sample.int(nrow(x0Pop), nPore, replace = TRUE))
 respPop <- map_dbl(1:nrow(x0Pop), function(iRow){
   derivSeam3a(0, unlist(x0Pop[iRow,]), parms = parmsFixedR)[[2]]["resp"]
@@ -320,10 +266,68 @@ ans <- map_df(nPores, function(nPore){
   data.frame(nPore = nPore, resp = res)
 })
 ggplot(ans, aes(resp, color = as.factor(nPore))) + geom_density() +
-  xlab(expression(Respiration~(gCm^{-2}*yr^{-1})))
+  xlab(expression(Respiration~(gCm^{-2}*yr^{-1}))) +
   themeDefault
 ```
 The distribution gets more skewed, the fewer pores are contributing.
 
-## Check if dynamics is present in SESAM
+## Dynamics with in SESAM3 and SESAM3B
+```{r}
+parmsFixedR <- within(parms0, {
+  iL <- 0.1
+  isFixedR <- TRUE
+  #fixedI anyway kIPlant <- iL / cnIL*2 # balancing N inputs by plant uptake
+  })
+#parms1 <- within(parms0, iL <- 10)
+yearEnd <- 300
+times1 <- seq(0,yearEnd, length.out = yearEnd*12 + 1)
+
+runTrickleSimulation <- function(
+  scen, parms = parmsFixedR
+){
+  #setwd("../..");loadPkg()
+  . <- scen
+  res <- resc <- as.data.frame(lsoda( .$x0, times1, .$mod, parms = parms))
+  resc$scen <- scen$scenario
+  resc
+}
+.tmp.f <- function(){
+  scen <- unlist(filter(scenarios, scenario == "Explicit"), recursive = FALSE)
+  scen <- unlist(filter(scenarios, scenario == "Sesam3s"), recursive = FALSE)
+  scen <- unlist(filter(scenarios, scenario == "Sesam3B"), recursive = FALSE)
+  resScen <- runTrickleSimulation( scen )
+}
+resScen <- scenarios %>% rowwise() %>% do( runTrickleSimulation(.) )
+res1 <- resScen %>% filter(scen == "Sesam3s")
+res1B <- resScen %>% filter(scen == "Sesam3B")
+```
+
+```{r}
+#print(getGraph(filter(resScen), columns = c("L","B"))
+#print(getGraph(filter(resScen, time >= 2 & time <= 50), columns = c("L","B","resp","dB")))
+print(getGraph(filter(resScen, time >= 120), columns = c("L","B","resp")))
+```
+
+With SESAM patterns of alternating dormancy and exponential growth phases 
+are similar as with SEAM. 
+However, they occur at different times due to behaviour during spinup.
+In this case L pool recovered later with SEAM, 
+because it was initially more depleted because of 
+higher enzyme levels in prescribed with initial conditions than computed by 
+the QSS with SESAM.
+
+L pools start to recover again after biomass and enzyme levels are below QSS.
+
+The point at which L levels support microbial gwrowth again depends on the
+details of how a dormant microbial biomass is modelled. SESAM3 adopts the simple
+approach of a minimum microbial biomass pool of 1e-15 gC/m2. 
+(Specificall, if the ODE solver 
+computes a negative biomass, the model uses the minimum microbial biomass to
+compute fluxes derivatives.)
+In the model it hence, depends on numerical precision of the ODE solver. In
+reality it stochastically depends on environmental fluctuations and the 
+real dormancy behaviour.
+
+With SESAM3B there the chaotic pattern of pulses and dormancy phases disappear.
+Levels of fresh substrate and biomass stay on the tipping point positive and negative feedback of growth.
 
