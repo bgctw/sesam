@@ -7,7 +7,7 @@ derivSesam3a <- function(
   t,x,parms
 ){
   ##details<<
-  ## Simplified version of sesam3s
+  ## Simplified version of sesam3s (kmN instead of km and kN)
   ## model corresponding to Seam3 with enzyme levels computed by quasi steady state
   ## Alpha as an explicit state variable that changes with turnover
   ## Simplified computation of target based on current revenue based on current alpha
@@ -23,7 +23,7 @@ derivSesam3a <- function(
   alpha <- x["alpha"]
   B <- x["B"]
   aeB <- parms$aE*B        # aeB without associanted growth respiration
-  kmN <- parms$km*parms$kN
+  kmN <- parms$kmN #parms$km*parms$kN
   rM <- parms$m*B          # maintenance respiration
   tvrB <- parms$tau*B      # microbial turnover
   synE <- if (isTRUE(parms$isEnzymeMassFlux)) aeB else 0
@@ -183,3 +183,4 @@ derivSesam3a <- function(
   ))
 }
 
+get

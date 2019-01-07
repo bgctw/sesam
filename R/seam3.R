@@ -214,3 +214,29 @@ balanceAlphaBetweenCNLimitationsExp <- function(
   alpha
 }
 
+getKmKNParsFromKmN <- function(
+  ### get consistent parameters of the km and kN variant from SESAM kmN parameterization
+  p            ##<< parameter list
+  , kN = 60    ##<< turnover time of enzyme in 1/year
+){
+  pSeam <- within(p,{
+    # in Sesam kmN = km * kN
+    kN <- kNL <- kNR <- kN
+    km <- kmL <- kmR <- kmN/kN
+    kmN <- NULL
+  })
+  ##value<< parameter list with kmN replaced by components kNL, kNR, kmL, kmR
+}
+
+getSeamStateFromSesam <- function(
+  ### get consistent state of the SEAM model from SESAM parameterization
+  x0      ##<< state of SESAM
+  ,parms  ##<< parameter list with entries aE, kNL and kNR
+){
+  c(x0
+    , EL = unname((1 - x0["alpha"])*parms$aE*x0["B"]/parms$kNL)
+    , ER = unname((x0["alpha"])*parms$aE*x0["B"]/parms$kNR)
+    # make sure to have same order as derivative of Seam3
+  )[c("B","ER","EL","R","RN","L","LN","I","alpha")]
+  ##value<< SEAM3 state vector with ER and EL set to quasi steady state
+}

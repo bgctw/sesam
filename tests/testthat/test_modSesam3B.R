@@ -9,7 +9,7 @@ parms0 <- list(
   ,cnIR = 4.5     ##<< between micr and enzyme signal
   ,cnIL = 30      ##<< N poor substrate
   #,kN = 0.05     ##<< (per day) enzyme turnover
-  ,kN = 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
+  ##,kN = 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
   ,kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of R)
   #,kR = 0.2      ##<< substrate decomposition rate N-rich (here simulate large N stock)
   #,kL = 1        ##<< substrate decomposition rate N-poor
@@ -23,7 +23,7 @@ parms0 <- list(
   ,kL = 1/(1)     ##<< 1/(x years)
   #,aE = 0.003*365 ##<< C biomass allocated to enzymes gC/day /microbial biomass
   ,aE = 0.001*365 ##<< C biomass allocated to enzymes gC/day /microbial biomass
-  ,km = 0.3       ##<< enzyme half-saturation constant
+  ##,km = 0.3       ##<< enzyme half-saturation constant
   #,km = 0.03     ##<< enzyme half-saturation constant
   #,km = 14       ##<< enzyme half-saturation constant
   ,m = 0.02*365   ##<< maintenance respiration rate   gC/day /microbial biomass
@@ -42,12 +42,13 @@ parms0 <- list(
   ,nu = 0.9       ##<< microbial N use efficiency
   #, isEnzymeMassFlux = FALSE  ##<< steady state B solution neglects enyzme mass fluxes
   , isEnzymeMassFlux = TRUE  ##<< steady state B solution accounts for enyzme mass fluxes
+  , kmN = 0.3 * 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
 )
 parms0 <- within(parms0,{
-  kmR <- kmL <- km
-  eps1 <- eps2 <- eps
-  cnER <- cnEL <- cnE
-  kNR <- kNL <- kN
+  #kmR <- kmL <- km
+  #eps1 <- eps2 <- eps
+  #cnER <- cnEL <- cnE
+  #kNR <- kNL <- kN
   kIPlant <- iL / cnIL	# same litter input as plant uptake
   kIPlant <- 0			# no plant uptake
 })
@@ -65,14 +66,6 @@ x0 <- x0Orig <- c( #aE = 0.001*365
 )
 x <- x0
 
-# for SEAM model add enzyme state variables
-x0Seam3 <- c(x0
-             , ER  = 1.5*parms0$km                  ##<< total enzyme pool
-             , EL  = 1.5*parms0$km                   ##<< total enzyme pool
-             # make sure to have same order as derivative of Seam3
-)[c("B","ER","EL","R","RN","L","LN","I","alpha")]
-#x0Seam3
-
 x0Nlim <- c( #aE = 0.001*365
   B = 20                     ##<< microbial biomass
   , R = 1000                 ##<< N rich substrate
@@ -82,11 +75,6 @@ x0Nlim <- c( #aE = 0.001*365
   , I =  0                   ##<< inorganic pool
   , alpha = 0.5              ##<< initial community composition
 )
-x0NlimSeam3 <- c(x0Nlim
-                 , ER  = 1.5*parms0$km                  ##<< total enzyme pool
-                 , EL  = 1.5*parms0$km                   ##<< total enzyme pool
-                 # make sure to have same order as derivative of Seam3
-)[c("B","ER","EL","R","RN","L","LN","I","alpha")]
 
 test_that("sesam3BSteadyClim",{
   parms <- parms0
@@ -97,7 +85,7 @@ test_that("sesam3BSteadyClim",{
   B <- ans #max(ans)
   #B <- sesam:::.depr.sesam3BSteadyClim(dL, dR, alpha, parms = parms)
   aE = parms[["aE"]]
-  kmkN = parms[["km"]] * parms[["kN"]]
+  kmkN = parms$kmN #parms[["km"]] * parms[["kN"]]
   tau = parms[["tau"]]
   m = parms[["m"]]
   kappaE = parms[["kNB"]]
@@ -155,7 +143,7 @@ test_that("sesam3BSteadyNlim",{
   ans <- sesam3BSteadyNlim(dLN, dRN, alpha, parms = parms, immNPot = immNPot)
   B <- ans #Re(ans[2])
   aE = parms[["aE"]]
-  kmkN = parms[["km"]] * parms[["kN"]]
+  kmkN = parms$kmN #parms[["km"]] * parms[["kN"]]
   tau = parms[["tau"]]
   betaB <- parms[["cnB"]]
   betaE <- parms[["cnE"]]
@@ -193,7 +181,7 @@ test_that("same as sesam3s for fixed substrates", {
   #times <- seq(0,2100, length.out = 101)
   resTest <- as.data.frame(lsoda( x0[-1], times, derivSesam3B, parms = parmsFixedS))
   resExp <- as.data.frame(lsoda(
-    x0, times, derivSesam3s
+    x0, times, derivSesam3a
     , parms = parmsFixedS))
     #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
@@ -203,14 +191,14 @@ test_that("same as sesam3s for fixed substrates", {
   .tmp.f <- function(){
     derivSesam3B(0, xETest[c(2:7)], within(parmsFixedS, isRecover <- TRUE))
     derivSesam3B(0, xEExp[c(3:8)], within(parmsFixedS, isRecover <- TRUE))
-    derivSesam3s(0, xEExp[c(2:8)], within(parmsFixedS, isRecover <- TRUE))
+    derivSesam3a(0, xEExp[c(2:8)], within(parmsFixedS, isRecover <- TRUE))
   }
   #
   # N limitation
   #times <- seq(0,2100, length.out = 101)
   resTest <- as.data.frame(lsoda( x0Nlim[-1], times, derivSesam3B, parms = parmsFixedS))
   resExp <- as.data.frame(lsoda(
-    x0Nlim, times, derivSesam3s
+    x0Nlim, times, derivSesam3a
     , parms = parmsFixedS))
     #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
@@ -234,7 +222,7 @@ test_that("same as sesam3s with substrate feedbacks", {
   #
   resTest <- as.data.frame(lsoda( x0[-1], times, derivSesam3B, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
-    x0, times, derivSesam3s
+    x0, times, derivSesam3a
     , parms = parmsInit))
   #    , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
@@ -250,7 +238,7 @@ test_that("same as sesam3s with substrate feedbacks", {
   # N limitation
   resTest <- as.data.frame(lsoda( x0Nlim[-1], times, derivSesam3B, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
-    x0Nlim, times, derivSesam3s
+    x0Nlim, times, derivSesam3a
     , parms = parmsInit))
     #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
@@ -262,13 +250,12 @@ test_that("same as sesam3s with substrate feedbacks", {
   #
   # from C to N limitation
   x0CNLim <- x0; x0CNLim["I"] <- 0
-  x0CNLimSeam3 <- x0Seam3; x0CNLimSeam3["I"] <- 0
   times <- seq(0,1200, length.out = 2)
   #times <- seq(0,1200, length.out = 101)
   #times <- c(0,seq(140,220, length.out = 101))
   resTest <- as.data.frame(lsoda( x0CNLim[-1], times, derivSesam3B, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
-    x0CNLim, times, derivSesam3s
+    x0CNLim, times, derivSesam3a
     , parms = parmsInit))
     #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))

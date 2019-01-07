@@ -27,8 +27,8 @@ derivSesam3B <- function(
                      , alpha = alpha, parms = parms
                      , immNPot = immoPot
   )
-  aeB <- parms$aE*B        # aeB without associanted growth respiration
-  kmN <- parms$km*parms$kN
+  aeB <- synERev <- parms$aE*B        # aeB without associanted growth respiration
+  kmN <- parms$kmN  #parms$km*parms$kN
   rM <- parms$m*B          # maintenance respiration
   tvrB <- parms$tau*B      # microbial turnover
   synE <- if (isTRUE(parms$isEnzymeMassFlux)) aeB else 0
@@ -134,14 +134,21 @@ derivSesam3B <- function(
   if (isTRUE(parms$isFixedI)) { resDeriv["dI"] <-  0   }
   #
   # further computations just for output for tacking the system
-  ER <- alpha * parms$aE * B / parms$kN
-  EL <- (1 - alpha) * parms$aE * B / parms$kN
-  limER <- ER / (parms$kmR + ER)
-  limEL <- EL / (parms$kmL + EL)
-  revRC <- dRPot / (parms$km*parms$kN + alphaC*aeB)
-  revLC <- dLPot / (parms$km*parms$kN + (1 - alphaC)*aeB)
-  revRN <- dRPot/cnR / (parms$km*parms$kN + alphaN*aeB)
-  revLN <- dLPot/cnL / (parms$km*parms$kN + alphaN*aeB)
+  if (!is.null(parms$kN)) {
+    ER <- alpha * parms$aE * B / parms$kN
+    EL <- (1 - alpha) * parms$aE * B / parms$kN
+  } else {
+    kN = 60       ##<< /yr enzyme turnover 60 times a year, each 6 days
+    # for output of enzyme levels only
+    ER <- alpha * parms$aE * B / kN
+    EL <- (1 - alpha) * parms$aE * B / kN
+  }
+  limER <- alpha*synERev/(parms$kmN + alpha*synERev)
+  limEL <- (1 - alpha)*synERev/(parms$kmN + (1 - alpha)*synERev)
+  revRC <- dRPot / (parms$kmN + alphaC*aeB)
+  revLC <- dLPot / (parms$kmN + (1 - alphaC)*aeB)
+  revRN <- dRPot/cnR / (parms$kmN + alphaN*aeB)
+  revLN <- dLPot/cnL / (parms$kmN + alphaN*aeB)
   # net mic mineralization/immobilization when accounting uptake mineralization
   PhiBU <- PhiB + PhiU
   # total mineralization flux including microbial turnover
@@ -213,7 +220,7 @@ sesam3BSteadyClim <- function(
 ){
   aE = parms[["aE"]]
   eps = parms[["eps"]]
-  kmkN = parms[["km"]] * parms[["kN"]]
+  kmkN = parms$kmN #parms[["km"]] * parms[["kN"]]
   m = parms[["m"]]
   tau = parms[["tau"]]
   kappaE = parms[["kNB"]]
@@ -257,7 +264,7 @@ sesam3BSteadyNlim <- function(
   betaB <- parms[["cnB"]]
   aE = parms[["aE"]]
   aE2 <- aE*aE
-  kmkN = parms[["km"]] * parms[["kN"]]
+  kmkN = parms$kmN #parms[["km"]] * parms[["kN"]]
   tau = parms[["tau"]]
   nu = parms[["nu"]]  # N efficiency during DON uptake
   kappaE = parms[["kNB"]]

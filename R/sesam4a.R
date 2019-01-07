@@ -33,7 +33,7 @@ derivSesam4a <- function(
   alpha <- x["alpha"]
   B <- x["BC"]
   aeB <- parms$aE*B        # aeB without associanted growth respiration
-  kmN <- parms$km*parms$kN
+  kmN <- parms$kmN #parms$km*parms$kN
   rM <- parms$m*B          # maintenance respiration
   synE <- if (isTRUE(parms$isEnzymeMassFlux)) aeB else 0
   #

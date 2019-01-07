@@ -36,7 +36,7 @@ derivSesam4F <- function(
   immoPot <- parms$iB * x$tot["I"]
   immoPPot <- parms$iBP * x$tot["IP"]
   aeB <- parms$aE*B
-  kmN <- parms$km*parms$kN
+  kmN <- parms$kmN #parms$km*parms$kN
   rM <- parms$m*B          # maintenance respiration
   synE <- if (isTRUE(parms$isEnzymeMassFlux)) aeB else 0
   #

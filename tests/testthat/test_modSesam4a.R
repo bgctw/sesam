@@ -10,7 +10,8 @@ parms0 <- list(
   ,cnIR = 4.5     ##<< between micr and enzyme signal
   ,cnIL = 30      ##<< N poor substrate
   #,kN = 0.05     ##<< (per day) enzyme turnover
-  ,kN = 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
+  ##,kN = 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
+  , kmN = 0.3*0.01*365  ##<< /yr enzyme turnover 1% turning over each day
   ,kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of R)
   #,kR = 0.2      ##<< substrate decomposition rate N-rich (here simulate large N stock)
   #,kL = 1        ##<< substrate decomposition rate N-poor
@@ -24,7 +25,7 @@ parms0 <- list(
   ,kL = 1/(1)     ##<< 1/(x years)
   #,aE = 0.003*365 ##<< C biomass allocated to enzymes gC/day /microbial biomass
   ,aE = 0.001*365 ##<< C biomass allocated to enzymes gC/day /microbial biomass
-  ,km = 0.3       ##<< enzyme half-saturation constant
+  ##,km = 0.3       ##<< enzyme half-saturation constant
   #,km = 0.03     ##<< enzyme half-saturation constant
   #,km = 14       ##<< enzyme half-saturation constant
   ,m = 0.02*365   ##<< maintenance respiration rate   gC/day /microbial biomass
@@ -55,10 +56,10 @@ parms0 <- list(
   , tauP = 0.1 # slope of predation rate with biomass
 )
 parms0 <- within(parms0,{
-  kmR <- kmL <- km
-  eps1 <- eps2 <- eps
-  cnER <- cnEL <- cnE
-  kNR <- kNL <- kN
+  #kmR <- kmL <- km
+  #eps1 <- eps2 <- eps
+  #cnER <- cnEL <- cnE
+  #kNR <- kNL <- kN
   kIPlant <- iL / cnIL	# same litter input as plant uptake
   kIPlant <- 0			# no plant uptake
   lP <- l       # leaching rate of inorganic P equals that of N
@@ -97,7 +98,13 @@ x0 <- x0Orig <- c( #aE = 0.001*365
 )
 x <- x0
 
-mapValues <- function(x, from, to) {
+mapValues <- function(
+  ### replace some of the entries in a vector
+  x       ##<< vector where replacement takes place
+  , from  ##<< original values
+  , to    ##<< replacement values of the same order as in from
+) {
+  ##details<< only values in from are replaced that are found in x
   mapidx <- match(x, from)
   mapidxNA <- is.na(mapidx)
   from_found <- sort(unique(mapidx))
@@ -140,7 +147,7 @@ testParmsScen <- function(parmsInit){
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
   resExp <- as.data.frame(lsoda(
-    getX0NoP(getX0NoC(x0)), times, derivSesam3s
+    getX0NoP(getX0NoC(x0)), times, derivSesam3a
     , parms = within(parmsInit, {epsTvr <- epsPred})))
   #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xEExp <- unlist(tail(resExp,1))
@@ -160,7 +167,7 @@ testParmsScen <- function(parmsInit){
   # N limitation
   #times <- seq(0,2100, length.out = 101)
   resExp <- as.data.frame(lsoda(
-    getX0NoP(getX0NoC(x0Nlim)), times, derivSesam3s
+    getX0NoP(getX0NoC(x0Nlim)), times, derivSesam3a
     , parms = within(parmsInit, {epsTvr <- epsPred})))
   #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xEExp <- unlist(tail(resExp,1))
@@ -178,7 +185,7 @@ testParmsScen <- function(parmsInit){
   parmsInitPlim <- within(parmsInit, cpIL <- 160)
   #times <- seq(0,2100, length.out = 101)
   resExp <- as.data.frame(lsoda(
-    getX0NoP(getX0NoC(x0Plim)), times, derivSesam3s
+    getX0NoP(getX0NoC(x0Plim)), times, derivSesam3a
     , parms = within(parmsInitPlim, {epsTvr <- epsPred})))
   #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xEExp <- unlist(tail(resExp,1))
@@ -197,7 +204,7 @@ testParmsScen <- function(parmsInit){
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
   resExp <- as.data.frame(lsoda(
-    getX0NoP(getX0NoC(x0Starv)), times, derivSesam3s
+    getX0NoP(getX0NoC(x0Starv)), times, derivSesam3a
     , parms = within(parmsInit, {epsTvr <- epsPred})))
   #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xEExp <- unlist(tail(resExp,1))
@@ -273,7 +280,7 @@ test_that("same as sesam2 with substrate feedbacks", {
   #times <- seq(0,2100, length.out = 2)
   times <- seq(0,2100, length.out = 101)
   resExp <- as.data.frame(lsoda(
-    getX0NoP(x0CNLim), times, derivSesam3s
+    getX0NoP(x0CNLim), times, derivSesam3a
     , parms = within(parmsInit, {epsTvr <- epsPred})))
   #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xEExp <- unlist(tail(resExp,1))
