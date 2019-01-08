@@ -6,14 +6,18 @@ output: html_notebook
 This is a prev-version of SteadyEnzyme3B, that neglects enzyme mass fluxes.
 
 
-The SEAM model explicitely tracks enzyme levels. In order to use the model at plot scale or in COMISSION, derive a simpler version, where enzyme levels are assumed to be in fast steady state with production and turnover. 
+The SEAM model explicitely tracks enzyme levels. In order to use the model at 
+plot scale or in COMISSION, derive a simpler version, where enzyme levels are 
+assumed to be in fast steady state with production and turnover. 
 
 SESAM3s implements quasi-steady state for enzyme levels, but tracks microbial 
 community composition $\alpha$ as state variable.
 
 Here we derive equations for microbial biomass in quasi steady state.
 
-For simplicity, we neglect mass fluxes form biomass to DOM and R by enzyme production and turnover. However, investments into enzyme production are still part of the compution
+For simplicity, we neglect mass fluxes form biomass to DOM and R by enzyme 
+production and turnover. However, investments into enzyme production are still 
+part of the compution
 of revenu of enzyme investments.
 
 Start with setting $dB=0$: 
@@ -22,13 +26,13 @@ Start with setting $dB=0$:
 
 Carbon available for biomass synthesis, $\operatorname{syn}_{B}$, however, 
 is the minimum for each elementat limitation, either by 
-C or by N. Here, we compute the steady state biomass for all limitations and then take 
-the minimum.
+C or by N. Here, we compute the steady state biomass for all limitations and 
+then take the minimum.
 
 ## C limitation
-For C limitation, all terms involve microbial biomass, so that it cancels once.,A 
-quadratic equation results, whose one solution is 0 and the other is the required
-steady state biomass.
+For C limitation, all terms involve microbial biomass, so that it cancels once.
+A quadratic equation results, whose one solution is 0 and the other is the 
+required steady state biomass.
 
 $$
 \begin{align}
@@ -51,7 +55,8 @@ c_1 &= (k_{mN} + (1-\alpha) a_E B)(k_{mN} + \alpha a_E B) \\
 \end{align}
 $$
 
-This results in square equation. If there is no real positive solution, biomass cannot be sustained,
+This results in square equation. If there is no real positive solution, 
+biomass cannot be sustained,
 otherwise the maximum of the two roots gives the required steady state biomass. 
 $$
 \begin{align}
@@ -61,6 +66,7 @@ b &= a_E^2 \alpha (1-\alpha)(d_L + d_R) -\tau_{\epsilon m} k_{mN} a_E\\
 c &= k_{mN} a_E \left[ (1-\alpha) d_L + \alpha d_R \right] - \tau_{\epsilon m} k_{mN}^2
 \end{align}
 $$
+
 ## N limitation
 For N limitation, the potential immobilization flux does not cancel, and a complex
 cubed polinomial equations results, that cannot be solved by sympy in reasonable time.
@@ -88,7 +94,8 @@ c_1 &= (k_{mN} + (1-\alpha) a_E B)(k_{mN} + \alpha a_E B)
 \end{align}
 $$
 
-This results in cubic equation. Its second root is real and  gives the steady state biomass.
+This results in cubic equation. Its second root is real and  gives the 
+steady state biomass.
 $$
 \begin{align}
 0 &= a B^3 + b B^2 + c B + d  \\

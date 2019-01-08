@@ -55,12 +55,19 @@ $$
 \beta_L &= \frac{\beta_B  - c_w \beta_W}{ (1 - c_w)} \\
 \end{align}
 $$
+
 # Pool composition of uptake
 
 In quasi steady state for enzymes, a fraction of the produced enzymes are added
-to DOM and uptake, $u_C$, again. The composition of respiration and enzymes, $r_{ui}$ is that
-of the composition of a mix of uptake, $r_{uC}$ and composition of internal microbial recycling due to starvation, $r_i$. Hence the composition of uptake depends by enzyme turnover on the composition of uptake.
-Hence, there is a more involved formula to compute the composition of the uptake flux.
+to DOM and uptake, $u_C$, again. The composition of respiration and enzymes, $r_{ui}$ 
+(with assuming no fractionarion) is that
+of the composition of a mix of uptake, $r_{uC}$ and composition of internal microbial 
+recycling due to starvation, $r_i$, because the snythesizing substrate, is the 
+sum of uptake and internal recycling: $u_i = u_c + i$. 
+Hence the composition of uptake depends by enzyme turnover on the composition 
+of uptake.
+Hence, there is a more involved formula to compute the composition of the 
+uptake flux.
 
 ## Carbon 
 $$

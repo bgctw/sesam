@@ -1,0 +1,39 @@
+---
+title: "SESAM3 sensitivity analysis"
+output: html_notebook
+---
+
+Analysis of SOM stock change with FACE.
+
+## Comparison using the FACE scenario
+```{r, echo=FALSE, results='hide', message=FALSE}
+library(ggplot2)
+library(grid)   #unit
+library(reshape)  # melt
+library(RColorBrewer) # brewer.pal
+library(tidyr)
+library(dplyr)
+
+myColors <- brewer.pal(5,"Dark2")	
+.simpleCap <- function(s) {
+    paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
+}
+colScale <- scale_colour_manual(name = "Variant",values = myColors)
+.treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
+sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
+
+themeDefault <- theme_classic()  
+```
+
+## setup distribution of parameters
+
+## get design matrix with sobolXXX
+
+## compute and store complete model outputs
+
+## tell the sensitivity object
+
+## compute scalar sensitivity measure
+
+## Inspect outputs
+

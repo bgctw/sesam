@@ -191,7 +191,7 @@ test_that("balanceAlphaBetweenElementLimitations",{
   expect_equal(alphaBalanced$alpha, as.numeric(alpha[1]), tolerance = 1e-2)
 })
 
-test_that("same as sesam3s for fixed substrates", {
+test_that("same as sesam3a for fixed substrates", {
   parmsFixedS <- within(parms0,{
     isFixedS <- TRUE
   })
@@ -204,7 +204,7 @@ test_that("same as sesam3s for fixed substrates", {
   #times <- seq(0,2100, length.out = 101)
   resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsFixedS))
   resExp <- as.data.frame(lsoda(
-    getX0NoP(x0), times, derivSesam3s
+    getX0NoP(x0), times, derivSesam3a
     , parms = parmsFixedS))
     #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
@@ -215,7 +215,7 @@ test_that("same as sesam3s for fixed substrates", {
   .tmp.f <- function(){
     derivSesam3P(0, xETest[c(2:11)], within(parmsFixedS, isRecover <- TRUE))
     derivSesam3P(0, x0EExp2, within(parmsFixedS, isRecover <- TRUE))
-    derivSesam3s(0, xEExp[c(2:8)], within(parmsFixedS, isRecover <- TRUE))
+    derivSesam3a(0, xEExp[c(2:8)], within(parmsFixedS, isRecover <- TRUE))
   }
   #
   # N limitation
@@ -223,7 +223,7 @@ test_that("same as sesam3s for fixed substrates", {
   times <- seq(0, 8100, length.out = 2)
   resTest <- as.data.frame(lsoda( x0Nlim, times, derivSesam3P, parms = parmsFixedS))
   resExp <- as.data.frame(lsoda(
-    getX0NoP(x0Nlim), times, derivSesam3s
+    getX0NoP(x0Nlim), times, derivSesam3a
     , parms = parmsFixedS))
     #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
@@ -238,7 +238,7 @@ test_that("same as sesam3s for fixed substrates", {
   #times <- seq(0,2100, length.out = 101)
   resTest <- as.data.frame(lsoda( x0Plim, times, derivSesam3P, parms = parmsFixedS))
   resExp <- as.data.frame(lsoda(
-    getX0NoP(x0Plim), times, derivSesam3s
+    getX0NoP(x0Plim), times, derivSesam3a
     , parms = parmsFixedS))
   #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
@@ -250,7 +250,7 @@ test_that("same as sesam3s for fixed substrates", {
   #expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
 })
 
-test_that("same as sesam2 with substrate feedbacks", {
+test_that("same as sesam3a with substrate feedbacks", {
   parmsInit <- within(parms0, {isFixedI <- TRUE})
   ans0 <- derivSesam3P(0, x0, parms = parmsInit)
   times <- seq(0,800, length.out = 2)
@@ -262,7 +262,7 @@ test_that("same as sesam2 with substrate feedbacks", {
   #
   resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
-    getX0NoP(x0), times, derivSesam3s
+    getX0NoP(x0), times, derivSesam3a
     , parms = parmsInit))
   #    , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
@@ -278,7 +278,7 @@ test_that("same as sesam2 with substrate feedbacks", {
   # N limitation
   resTest <- as.data.frame(lsoda( x0Nlim, times, derivSesam3P, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
-    getX0NoP(x0Nlim), times, derivSesam3s
+    getX0NoP(x0Nlim), times, derivSesam3a
     , parms = parmsInit))
     #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))
@@ -295,7 +295,7 @@ test_that("same as sesam2 with substrate feedbacks", {
   #times <- c(0,seq(140,220, length.out = 101))
   resTest <- as.data.frame(lsoda( x0CNLim, times, derivSesam3P, parms = parmsInit))
   resExp <- as.data.frame(lsoda(
-    getX0NoP(x0CNLim), times, derivSesam3s
+    getX0NoP(x0CNLim), times, derivSesam3a
     , parms = parmsInit))
     #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
   xETest <- unlist(tail(resTest,1))

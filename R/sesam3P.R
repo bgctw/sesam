@@ -28,7 +28,7 @@ derivSesam3P <- function(
   alpha <- x["alpha"]
   B <- x["B"]
   aeB <- parms$aE*B        # aeB without associanted growth respiration
-  kmN <- parms$km*parms$kN
+  kmN <- parms$kmN #parms$km*parms$kN
   rM <- parms$m*B          # maintenance respiration
   tvrB <- parms$tau*B      # microbial turnover
   synE <- if (isTRUE(parms$isEnzymeMassFlux)) aeB else 0

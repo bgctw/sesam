@@ -77,10 +77,10 @@ parmsModel <- list(
 )
 
 parmsModel <- within(parmsModel, {
-    kmkN <- km*kN     # Sesam2 only uses a lumped parameter instead of km and kN
+    kmN <- km*kN     # Sesam2 only uses a lumped parameter instead of km and kN
     kmR <- kmL <- km  # seam2 can accept parameters differing by substrate
-    epsR <- epsL <- eps
-    cnER <- cnEL <- cnE 
+    #epsR <- epsL <- eps
+    #cnER <- cnEL <- cnE 
     kNR <- kNL <- kN    
     isFixedI <- TRUE  # in this demonstration keep inorganic pool fixed
 })
@@ -129,8 +129,8 @@ x0B <- x0SteadyA[setdiff(names(x0SteadyA),"B")]
 We store the information that differs between scenarios in a tibble.
 ```{r}
 scenarios0 <- tibble::tibble(
-  scenario = c("Explicit","Sesam3s","Sesam3B")
-  ,mod = c(derivSeam3a, derivSesam3s, derivSesam3B)
+  scenario = c("Explicit","Sesam3a","Sesam3B")
+  ,mod = c(derivSeam3a, derivSesam3a, derivSesam3B)
   ,x0  = list(x0Explicit, x0SteadyA, x0B)
 )
 scenarios <- scenarios0 #filter(scenarios0, scenario == "Explicit")
@@ -143,10 +143,11 @@ First, run into steady state with small inputs.
 ```{r}
 times <- seq(0,200, length.out = 501)
 res <- res0 <- as.data.frame(lsoda( x0, times, derivSeam3a, parms = parms0))
+#res <- res0 <- as.data.frame(lsoda( x0SteadyA, times, derivSesam3a, parms = parms0))
 ```
 
 ```{r include=FALSE}
-getGraph <- function(res, columns = c("L","B","EL","R")){
+getGraph <- function(res, columns = c("L","B","R")){
   if (is.null(res$scen)) res$scen <- "SEAM"
   dsp <- res %>% 
     select(one_of(c("time","scen", columns))) %>% 
@@ -344,8 +345,8 @@ x03H["B"] <- x03["B"] * 1.0001
 x03L["B"] <- x03["B"] * 0.99
 x03H["B"] <- x03["B"] * 1.01
 timesMon <- seq(0,200, length.out = 2*365 + 1)
-res3L <- as.data.frame(lsoda( x03L, timesMon, derivSesam3s, parms = parmsFixedR))
-res3H <- as.data.frame(lsoda( x03H, timesMon, derivSesam3s, parms = parmsFixedR))
+res3L <- as.data.frame(lsoda( x03L, timesMon, derivSesam3a, parms = parmsFixedR))
+res3H <- as.data.frame(lsoda( x03H, timesMon, derivSesam3a, parms = parmsFixedR))
 res <- res3 <- rbind(
   cbind(res3L, scen = "low biomass")
   , cbind(res3H, scen = "high biomass")

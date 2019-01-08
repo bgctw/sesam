@@ -5,24 +5,7 @@ output:
     df_print: paged
 ---
 
-The SEAM model explicitely tracks enzyme levels. In order to use the model at 
-plot scale or in COMISSION, derive a simpler version, where enzyme levels are 
-assumed to be in fast steady state with production and turnover.
-
-Here, we explore instead of tracking enzymes, we track microbial community either
-attacking R or L litter, by modelling $\alpha$ as a state variable. The computation
-of $\alpha_{Target}$ is based on current revenue, and hence current $\alpha$.
-
-Microbial community can only change as fast as microbial turnover.
-$$
-\frac{d\alpha}{dt} = \tau (\alpha_{Target} - \alpha) 
-$$
-
-## Model versions
-- SEAM2: enzyme explicit (soil enzyme allocation model)
-- SESAM3a: enzyme in steady state but explicitely tracking $\alpha$
-    - SESAM3s: deprecated predecessor with still using parameters km and kN
-- SESAM3B: also microbial biomass in steady state
+Start from Sesam3Overview.
 
 ## Comparison using the FACE scenario
 ```{r, echo=FALSE, results='hide', message=FALSE}
@@ -44,17 +27,10 @@ sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
 themeDefault <- theme_classic()  
 ```
 
-```{r echo=FALSE, eval=FALSE, results='hide', message=FALSE, warning=FALSE}
-library(twDev)
-#oldWd <- setwd("../.."); loadPkg()
-library(sesam)
-```
-
-
 ### Setup parameters and drivers
 Mass units are $gC/m^2$ or $gN/m^2$. Time unit is $yr$.
 ```{r}
-require(sesam)
+require(sesam, quietly = TRUE)
 
 parmsModel <- list(
   cnB = 11

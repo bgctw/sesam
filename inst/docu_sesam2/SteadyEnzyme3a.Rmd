@@ -7,7 +7,7 @@ The SEAM model explicitely tracks enzyme levels. In order to use the model at
 plot scale or in COMISSION, derive a simpler version, where enzyme levels are
 assumed to be in fast steady state with production and turnover.
 
-SESAM3s implements quasi-steady state for enzyme levels, but tracks microbial
+SESAM3a and SESAM3s implement quasi-steady state for enzyme levels, but tracks microbial
 community composition $\alpha$ as state variable. SESAM3a is a the same, where
 some equations have been simplified and computaiton of some intermediate
 variables have been skipped.
