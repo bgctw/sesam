@@ -1,8 +1,6 @@
 ---
 title: "SESAM Soil enzyme steady allocoation model"
-output:
-  html_document:
-    df_print: paged
+output: html_notebook
 ---
 
 The SEAM model explicitely tracks enzyme levels. In order to use the model at 
@@ -54,7 +52,7 @@ library(sesam)
 ### Setup parameters and drivers
 Mass units are $gC/m^2$ or $gN/m^2$. Time unit is $yr$.
 ```{r}
-require(sesam)
+require(sesam, quietly = TRUE)
 
 parmsModel <- list(
   cnB = 11
@@ -84,32 +82,34 @@ parmsModel <- list(
   ,nu = 0.9     # microbial N use efficiency accounting for apparent 
   ## minceralization of N during uptake in heterogeneous soils
   , isEnzymeMassFlux = TRUE  ##<< compute enzyme mass fluxes
+  ,kIPlant = 10.57 #0.0289652*365     ##<< plant uptake rate first order of I
 )
 
 parmsModel <- within(parmsModel, {
-    kmN <- km*kN     # Sesam2 only uses a lumped parameter instead of km and kN
-    kmR <- kmL <- km  # seam2 can accept parameters differing by substrate
-    cnER <- cnEL <- cnE 
-    kNR <- kNL <- kN    
-    #isFixedI <- TRUE  # in this demonstration keep inorganic pool fixed
+  kmN <- km*kN     # Sesam2 only uses a lumped parameter instead of km and kN
+  kmR <- kmL <- km  # seam2 can accept parameters differing by substrate
+  cnER <- cnEL <- cnE 
+  kNR <- kNL <- kN    
+  #isFixedI <- TRUE  # in this demonstration keep inorganic pool fixed
 })
 ```
 
 For simplicity model drivers currently are prescibed as constant parameters.
 ```{r}
 drivers <- list(
-        iR = 0          ##<< input of residue litter
-        ,iL = 400         # g/m2 input per year (half NPP)
-        ,cnIR = 7       ##<< C/N ratio of the residue litter input
-        ,cnIL = 30      ##<< C/N ratio of the labile litter input: 
-        ## N poor substrate, here no inorganic N supply, 
-        ,plantNUp = 0   ##<< pland uptake of organic N
-        ## currently as absolute flux
-        ,iI = 0         ##<< input of mineral N
-        ,kIPlant = 10.57 #0.0289652*365          ##<< plant uptake iP I
+  iR = 0          ##<< input of residue litter
+  ,iL = 400         # g/m2 input per year (half NPP)
+  ,cnIR = 7       ##<< C/N ratio of the residue litter input
+  ,cnIL = 30      ##<< C/N ratio of the labile litter input: 
+  ## N poor substrate, here no inorganic N supply, 
+  ,plantNUp = 0   ##<< pland uptake of organic N
+  ## currently as absolute flux
+  ,iI = 0         ##<< input of mineral N
 )
-drivers <- within(drivers, kiPlant <- iL/cnIL) # plant uptake matches litter
-parms0 <- c(parmsModel, drivers)
+parms0 <- within( c(parmsModel, drivers), {
+  kIPlant <- 0
+  plantNUpAbs <- iL/cnIL
+})
 parms0Noenz <- within(parms0, isEnzymeMassFlux <- FALSE)
 ```
 

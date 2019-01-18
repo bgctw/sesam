@@ -42,16 +42,16 @@ require(sesam)
 
 parms0 <- list(
   cnB = 8.3       ##<< Cleveland07, grassland
-  , cnBW = 8.4    ##<< C/N ratio of cell material that go to R (cell walls) NRSOM Tipping 16
+  , cnBW = 8.4    ##<< C/N ratio of cell material that go to RC  (cell walls) NRSOM Tipping 16
   , cnE = 3.2     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
   , cnIR = 4.5     ##<< between micr and enzyme signal
   , cnIL = 30      ##<< N litter OM
-  , kN = 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
-  , kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of R)
+  , kmN = 0.3*0.01*365  ##<< /yr enzyme turnover 1% turning over each day
+  , kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of RC )
   , kR = 1/(50)    ##<< 1/(x years)
   , kL = 1/(1)     ##<< 1/(x years)
   , aE = 0.001*365 ##<< C biomass allocated to enzymes gC/day /microbial biomass
-  , km = 0.3       ##<< enzyme half-saturation constant
+  #, km = 0.3       ##<< enzyme half-saturation constant
   , m = 0.02*365   ##<< maintenance respiration rate   gC/day /microbial biomass
   , tau = 1/60*365 ##<< biomass turnover rate (12 days)
   , eps = 0.5      ##<< carbon use efficiency
@@ -65,7 +65,7 @@ parms0 <- list(
   , iI = 0         ##<< input of mineral N
   , l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I
   , nu = 0.9       ##<< microbial N use efficiency
-  , isEnzymeMassFlux = TRUE  ##<< steady state B solution accounts for enyzme mass fluxes
+  , isEnzymeMassFlux = TRUE  ##<< steady state BC solution accounts for enyzme mass fluxes
   , nuP = 0.3      ##<< microbial uptake of depolymerized P, (1-nuP) is mineralized
   , cpE = 100     ##<< Sterner02, protein with no P
   , cpB = 47.3    ##<< Cleveland07, grassland
@@ -79,19 +79,15 @@ parms0 <- list(
   , nuP = 0.01 # DOP almost all mineralized before taken up
 )
 parms0 <- within(parms0,{
-  kmR <- kmL <- km
-  eps1 <- eps2 <- eps
-  cnER <- cnEL <- cnE
-  kNR <- kNL <- kN
-  kIPlant <- iL / cnIL	# same litter input as plant uptake
-  kIPlant <- 0			# no plant uptake
   lP <- l       # leaching rate of inorganic P equals that of N
+  kiPlant <- 0  # no plant uptake
   kIPPlant <- kIPlant  # plant uptake rate of P equals that of N
   iIP <- l      # assume no P inputs compensate for leaching
 })
 # assure no P-limitation
 parms0 <- within(parms0,{
-  lP <- kIPlant <- 0    # no leading of P
+  plantNUpAbs <- iL/cnIL
+  lP <- kIPlant <- 0    # no leaching of P
   iBP <- 1e6            # no limit of P immobilization flux
 })
 # neglect influence of inorganic pools (keep them at fixed initial values)
@@ -116,11 +112,11 @@ parms0 <- c(parms0[setdiff(names(parms0),names(drivers))], drivers)
 The initial pools must be specified. 
 ```{r}
 x0 <- c( #aE = 0.001*365
-  B = 17                    ##<< microbial biomass in C units
-  , R = 1100                ##<< C residue OM
+  BC = 17                    ##<< microbial biomass in C units
+  , RC = 1100                ##<< C residue OM
   , RN = 1100/parms0$cnIR   ##<< N residue OM 
   , RP = 1100/parms0$cpIR   ##<< P residue OM 
-  , L = 100                 ##<< C litter OM
+  , LC = 100                 ##<< C litter OM
   , LN = 100/parms0$cnIL    ##<< N litter OM 
   , LP = 100/parms0$cpIL    ##<< P litter OM 
   , I =  0.1               ##<< inorganic N pool 
@@ -141,8 +137,8 @@ The first simulation runs to steady state for given parameters.
 Plot approaching the steady state.
 ```{r echo=FALSE}
 resC <- res %>% filter(time <= 300)  %>% cueSesam # constrained period
-ggplot( resC, aes(time, L)) + geom_line()
-ggplot( resC, aes(time, R)) + geom_line()
+ggplot( resC, aes(time, LC)) + geom_line()
+ggplot( resC, aes(time, RC )) + geom_line()
 # microbial turnover
 resAgg <- resC %>% select(time, tvrB, tvrBPred) %>% gather(key = "variable", "value", -time)
 ggplot( resAgg, aes(time, value, color = variable)) + geom_line()
@@ -166,8 +162,8 @@ ggplot( resAgg, aes(time, value, color = variable, linetype = variable)) + geom_
 resAgg <- resC %>% select(time, cueDef, cueSyn) %>% gather(key = "variable", "value", -time)
 ggplot( resAgg, aes(time, value, color = variable, linetype = variable)) + geom_line()
 
-ggplot( resC, aes(time, B)) + geom_line()
-ggplot( resC, aes(time, L + R + B)) + geom_line()
+ggplot( resC, aes(time, BC)) + geom_line()
+ggplot( resC, aes(time, LC + RC  + BC)) + geom_line()
 ```
 
 # CN scenarios
@@ -199,9 +195,9 @@ xEs <- map_dfr(cnILs, function(cnILi){
 
 Plotting steady state against C:N of litter input.
 ```{r echo=FALSE}
-ggplot(xEs, aes(cnIL, L)) + geom_point()
-ggplot(xEs, aes(cnIL, R)) + geom_point()
-ggplot(xEs, aes(cnIL, B)) + geom_point()
+ggplot(xEs, aes(cnIL, LC)) + geom_point()
+ggplot(xEs, aes(cnIL, RC )) + geom_point()
+ggplot(xEs, aes(cnIL, BC)) + geom_point()
 # elemental limitations
 resAgg <- xEs %>% select(cnIL, limC, limN, limP) %>% gather(key = "variable", "value", -cnIL)
 ggplot( resAgg, aes(cnIL, value, color = variable, linetype = variable)) + geom_line()
@@ -216,7 +212,7 @@ ggplot( resAgg, aes(cnIL, value, color = variable, linetype = variable)) + geom_
 resAgg <- xEs %>% mutate(tvrBTotal = tvrB + tvrBPred) %>% select(cnIL, tvrBTotal, tvrB, tvrBPred) %>% gather(key = "variable", "value", -cnIL)
 ggplot( resAgg, aes(cnIL, value, color = variable, linetype = variable)) + geom_line()
 
-ggplot(xEs, aes(cnIL, L + R + B)) + geom_point()
+ggplot(xEs, aes(cnIL, LC + RC  + BC)) + geom_point()
 ```
 
 ```{r echo=FALSE}

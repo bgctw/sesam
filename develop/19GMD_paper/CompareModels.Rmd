@@ -1,8 +1,6 @@
 ---
 title: "SESAM Soil enzyme steady allocoation model"
-output:
-  html_document:
-    df_print: paged
+output: html_notebook
 ---
 
 Start from Sesam3Overview.
@@ -60,6 +58,7 @@ parmsModel <- list(
   ,nu = 0.9     # microbial N use efficiency accounting for apparent 
   ## minceralization of N during uptake in heterogeneous soils
   , isEnzymeMassFlux = TRUE  ##<< compute enzyme mass fluxes
+  , kIPlant = 10.57 #0.0289652*365          ##<< plant uptake iP I
 )
 
 parmsModel <- within(parmsModel, {
@@ -82,10 +81,11 @@ drivers <- list(
         ,plantNUp = 0   ##<< pland uptake of organic N
         ## currently as absolute flux
         ,iI = 0         ##<< input of mineral N
-        ,kIPlant = 10.57 #0.0289652*365          ##<< plant uptake iP I
 )
-drivers <- within(drivers, kiPlant <- iL/cnIL) # plant uptake matches litter
-parms0 <- c(parmsModel, drivers)
+parms0 <- within( c(parmsModel, drivers), {
+  kIPlant <- 0
+  plantNUpAbs <- iL/cnIL  # plants take out as much as returned by litter
+})
 parms0Noenz <- within(parms0, isEnzymeMassFlux <- FALSE)
 ```
 

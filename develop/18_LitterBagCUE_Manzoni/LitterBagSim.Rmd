@@ -37,18 +37,18 @@ require(sesam)
 
 parms0 <- list(
   cnB = 8.3       ##<< Cleveland07, grassland
-  , cnBW = 8.4    ##<< C/N ratio of cell material that go to R (cell walls) NRSOM Tipping 16
+  , cnBW = 8.4    ##<< C/N ratio of cell material that go to RC (cell walls) NRSOM Tipping 16
   , cnE = 3.2     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
   , cnIR = 4.5     ##<< between micr and enzyme signal
   , cnIL = 30      ##<< N litter OM
-  , kN = 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
-  , kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of R)
+  , kmN = 0.3*0.01*365  ##<< /yr enzyme turnover 1% turning over each day
+  , kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of RC)
   , kR = 1/(50)    ##<< 1/(x years)
   #, kL = 1/(1)     ##<< 1/(x years)
   , kL = 1/(5/365)     ##<< 1/(5 days) # for the priming study
   #, kL = 1/(2/12)  ##<< two months # for the litter bag decomposition
   , aE = 0.001*365 ##<< C biomass allocated to enzymes gC/day /microbial biomass
-  , km = 0.3       ##<< enzyme half-saturation constant
+  #, km = 0.3       ##<< enzyme half-saturation constant
   , m = 0.02*365   ##<< maintenance respiration rate   gC/day /microbial biomass
   , tau = 1/60*365/5 ##<< biomass turnover rate (12 days), devided by 5 without predation
   , eps = 0.5      ##<< carbon use efficiency
@@ -62,7 +62,7 @@ parms0 <- list(
   , iI = 0         ##<< input of mineral N
   , l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I
   , nu = 0.9       ##<< microbial N use efficiency
-  , isEnzymeMassFlux = TRUE  ##<< steady state B solution accounts for enyzme mass fluxes
+  , isEnzymeMassFlux = TRUE  ##<< steady state BC solution accounts for enyzme mass fluxes
   , nuP = 0.3      ##<< microbial uptake of depolymerized P, (1-nuP) is mineralized
   , cpE = 100     ##<< Sterner02, protein with no P
   , cpB = 47.3    ##<< Cleveland07, grassland
@@ -77,12 +77,7 @@ parms0 <- list(
   , nuP = 0.01 # DOP almost all mineralized before taken up
 )
 parms0 <- within(parms0,{
-  kmR <- kmL <- km
-  eps1 <- eps2 <- eps
-  cnER <- cnEL <- cnE
-  kNR <- kNL <- kN
-  kIPlant <- iL / cnIL	# same litter input as plant uptake
-  kIPlant <- 0			# no plant uptake
+  kIPlant <- plantNUpAbs <- 0			# no plant uptake
   lP <- l       # leaching rate of inorganic P equals that of N
   kIPPlant <- kIPlant  # plant uptake rate of P equals that of N
   iIP <- l      # assume no P inputs compensate for leaching
@@ -120,11 +115,11 @@ parms0 <- c(parms0[setdiff(names(parms0),names(drivers))], drivers)
 The initial pools must be specified. 
 ```{r}
 x0 <- c( #aE = 0.001*365
-  B = 85                    ##<< microbial biomass in C units
-  , R = 1                   ##<< C residue OM
+  BC = 85                    ##<< microbial biomass in C units
+  , RC = 1                   ##<< C residue OM
   , RN = 1/parms0$cnIR      ##<< N residue OM 
   , RP = 1/parms0$cpIR      ##<< P residue OM 
-  , L = 1000                ##<< C litter OM
+  , LC = 1000                ##<< C litter OM
   , LN = 1000/parms0$cnIL   ##<< N litter OM 
   , LP = 1000/parms0$cpIL   ##<< P litter OM 
   , I =  0.01               ##<< inorganic pool 
@@ -145,8 +140,8 @@ Plot time course.
 ```{r echo=FALSE}
 resC <- res %>% filter(time <= 1/12 * (1/(5/365))/parms0$kL )  %>% cueSesam %>% # constrained period
   mutate(timeDay = time*365)
-ggplot( resC, aes(timeDay, L)) + geom_line()
-#ggplot( resC, aes(timeDay, R)) + geom_line()
+ggplot( resC, aes(timeDay, LC)) + geom_line()
+#ggplot( resC, aes(timeDay, RC)) + geom_line()
 # microbial turnover
 resAgg <- resC %>% select(timeDay, tvrB, tvrBPred) %>% gather(key = "variable", "value", -timeDay)
 ggplot( resAgg, aes(timeDay, value, color = variable, linetype = variable)) + geom_line()
@@ -160,13 +155,13 @@ ggplot( resAgg, aes(timeDay, value, color = variable, linetype = variable)) + ge
 resAgg <- resC %>% select(timeDay, uptakeC, synB, respB, respO, respTvr) %>% gather(key = "variable", "value", -timeDay)
 ggplot( resAgg, aes(timeDay, value, color = variable, linetype = variable)) + geom_line()
 
-ggplot( resC, aes(timeDay, B)) + geom_line()
+ggplot( resC, aes(timeDay, BC)) + geom_line()
 ```
 
 ## Inspecting C/N ratios and CUE
 Microbial community changes take longer.
 ```{r echo=FALSE}
-resC <- res1 %>% filter(time <= 1* (1/(5/365))/parms0$kL)  %>% cueSesam %>% # constrained period
+resC <- res1 %>% filter(time <= 1*(1/(5/365))/parms0$kL)  %>% cueSesam %>% # constrained period
   mutate(timeDay = time*365)
 # CUE
 resAgg <- resC %>% select(timeDay, cueDef, cueSyn) %>% gather(key = "variable", "value", -timeDay)
@@ -189,8 +184,8 @@ course of C:N relative to initial values
  ggplot( resAgg, aes(time, value, color = variable, linetype = variable)) + geom_line()
 # CN
 resCM <- res1 %>% 
-  mutate(betaL = LN/L, betaR = RN/R, OM = L + R + B
-         , OMN = LN + RN + B/parms0$cnB, betaOM = OMN/OM
+  mutate(betaL = LN/LC, betaR = RN/RC, OM = LC + RC + BC
+         , OMN = LN + RN + BC/parms0$cnB, betaOM = OMN/OM
          , x = OM/OM[1], y = OMN/OMN[1]         )
 ggplot( resCM, aes(x, y)) + geom_point()
 #
@@ -212,7 +207,7 @@ For inferring CUE from litterbags, C0 should be only the first removal of a litt
 instead of the initial litter concentrations.
 
 For the studied litter decomposition, the system stabilized after about 1 yr, but then
-it consists almost solely of residue pool R, and assumed trickling inputs into the 
+it consists almost solely of residue pool RC, and assumed trickling inputs into the 
 fresh pool.
 
 The initial missing N accumulation which is ascribed to lower CUE in Manzoni17,
@@ -226,7 +221,7 @@ TODO: show a simulation with limited immobilization flux.
 There are curious oscillarions.
 ```{r echo=FALSE}
 resC <- res1 %>% filter(time >= 2/12 * (1/(5/365))/parms0$kL & time <= 5 * (1/(5/365))/parms0$kL)  %>% cueSesam # constrained period
-ggplot( resC, aes(time, B)) + geom_line()
+ggplot( resC, aes(time, BC)) + geom_line()
 # CUE
 resAgg <- resC %>% select(time, cueDef, cueSyn) %>% gather(key = "variable", "value", -time)
 ggplot( resAgg, aes(time, value, color = variable, linetype = variable)) + geom_line()
@@ -239,17 +234,17 @@ biomass is low and turnover is also low. They are stronger if labile pool
 has a slower turnover rate.
 Here it was set to a very small value for the priming study.
 
-The L is not depleted yet, but cannot deliver enough carbon to sustain biomass.
+The LC is not depleted yet, but cannot deliver enough carbon to sustain biomass.
 
 # Priming spike 
 Simulate a spike of fresh litter on exhausted biomass.
 ```{r}
 x02 <- x0S
-L <- 200
-x02["B"] <- 1e-8
-x02["L"] <- L
-x02["LN"] <- L/parms0$cnIL
-x02["LP"] <- L/parms0$cpIL
+LC <- 200
+x02["BC"] <- 1e-8
+x02["LC"] <- LC
+x02["LN"] <- LC/parms0$cnIL
+x02["LP"] <- LC/parms0$cpIL
   times1 <- c(seq(0,1/12, length.out = 51), seq(1/12,1, length.out = 51)[-1])
   res <- res2 <- as.data.frame(lsoda( x02, times1, derivSesam4a, parms = parms0))
   xE2 <-  unlist(tail(res,1)) # final state
@@ -262,8 +257,8 @@ resC1 <- res %>% mutate(timeDay = time*365) %>%
   filter(timeDay <= 365)  %>%  # constrained period
   cueSesam 
 resC <- resC1 %>% filter(timeDay <= 40)
-ggplot( resC, aes(timeDay, L)) + geom_line()
-#ggplot( resC, aes(timeDay, R)) + geom_line()
+ggplot( resC, aes(timeDay, LC)) + geom_line()
+#ggplot( resC, aes(timeDay, RC)) + geom_line()
 # microbial turnover
 resAgg <- resC %>% select(timeDay, tvrB, tvrBPred) %>% gather(key = "variable", "value", -timeDay)
 ggplot( resAgg, aes(timeDay, value, color = variable)) + geom_line()
@@ -278,7 +273,7 @@ resAgg <- resC %>% select(timeDay, uptakeC, synB, respB, respO, respTvr) %>%
   gather(key = "variable", "value", -timeDay)
 ggplot( resAgg, aes(timeDay, value, color = variable, linetype = variable)) + geom_line()
 
-ggplot( resC, aes(timeDay, B)) + geom_line()
+ggplot( resC, aes(timeDay, BC)) + geom_line()
 ```
 
 ```{r}

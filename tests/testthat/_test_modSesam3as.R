@@ -51,8 +51,8 @@ parms0 <- within(parms0,{
   cnER <- cnEL <- cnE
   kNR <- kNL <- kN
   kmN <- km * kN
-  kIPlant <- iL / cnIL	# same litter input as plant uptake
-  kIPlant <- 0			# no plant uptake
+  plantNUpAbs <- iL / cnIL	# same litter input as plant uptake
+  kIPlant <- plantNUpAbs <- 0			# no plant uptake
 })
 
 parms <- parms0

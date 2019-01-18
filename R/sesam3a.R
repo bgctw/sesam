@@ -74,6 +74,8 @@ derivSesam3a <- function(
   tvrExC <- tvrExN <- 0
   #
   leach <- parms$l*x["I"]
+  plantNup <- parms$kIPlant*x["I"]
+  if (!is.null(parms$plantNUpAbs)) plantNup <- plantNup + parms$plantNUpAbs
   PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE)
   #
   dB <- synB - tvrB
@@ -82,7 +84,7 @@ derivSesam3a <- function(
   dR <- -decR  + parms$iR  + tvrC
   dRN <- -decR/cnR  + parms$iR/parms$cnIR  + tvrN
   # here plant uptake as absolute parameter
-  dI <-  +parms$iI  - parms$kIPlant  - leach  + PhiU  + PhiB  + PhiTvr
+  dI <-  +parms$iI  - plantNup  - leach  + PhiU  + PhiB  + PhiTvr
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
@@ -119,7 +121,7 @@ derivSesam3a <- function(
     if (diff(unlist(
       c( dB/parms$cnB  + dRN + dLN + dI + tvrExN
          , parms$iR/parms$cnIR  + parms$iL/parms$cnIL - plantNUp  + parms$iI -
-         parms$kIPlant - parms$l*x["I"])))^2 >
+         plantNup - parms$l*x["I"])))^2 >
       .Machine$double.eps )  stop("mass balance dN error")
   }
   #

@@ -41,14 +41,14 @@ parms0 <- list(
   , cnE = 3.2     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
   , cnIR = 4.5     ##<< between micr and enzyme signal
   , cnIL = 30      ##<< N litter OM
-  , kN = 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
+  , kmN = 0.3*0.01*365  ##<< /yr enzyme turnover 1% turning over each day
   , kNB = 0.8      ##<< amount of recycling enzyme turnover by biomass (added to uptake instead of R)
   , kR = 1/(50)    ##<< 1/(x years)
   #, kL = 1/(1)     ##<< 1/(x years)
   #, kL = 1/(5/365)     ##<< 1/(5 days) # for the priming study
   , kL = 1/(4/12)  ##<< X months # for the litter bag decomposition
   , aE = 0.001*365 ##<< C biomass allocated to enzymes gC/day /microbial biomass
-  , km = 0.3       ##<< enzyme half-saturation constant
+  #, km = 0.3       ##<< enzyme half-saturation constant
   , m = 0.02*365   ##<< maintenance respiration rate   gC/day /microbial biomass
   , tau = 1/60*365/5 ##<< biomass turnover rate (12 days), devided by 5 without predation
   , eps = 0.5      ##<< carbon use efficiency
@@ -62,7 +62,7 @@ parms0 <- list(
   , iI = 0         ##<< input of mineral N
   , l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I
   , nu = 0.9       ##<< microbial N use efficiency
-  , isEnzymeMassFlux = TRUE  ##<< steady state B solution accounts for enyzme mass fluxes
+  , isEnzymeMassFlux = TRUE  ##<< steady state BC solution accounts for enyzme mass fluxes
   , nuP = 0.3      ##<< microbial uptake of depolymerized P, (1-nuP) is mineralized
   , cpE = 100     ##<< Sterner02, protein with no P
   , cpB = 47.3    ##<< Cleveland07, grassland
@@ -77,12 +77,8 @@ parms0 <- list(
   , nuP = 0.01 # DOP almost all mineralized before taken up
 )
 parms0 <- within(parms0,{
-  kmR <- kmL <- km
-  eps1 <- eps2 <- eps
-  cnER <- cnEL <- cnE
-  kNR <- kNL <- kN
   kIPlant <- iL / cnIL	# same litter input as plant uptake
-  kIPlant <- 0			# no plant uptake
+  kIPlant <- plantNUpAbs <- 0			# no plant uptake
   lP <- l       # leaching rate of inorganic P equals that of N
   kIPPlant <- kIPlant  # plant uptake rate of P equals that of N
   iIP <- l      # assume no P inputs compensate for leaching
@@ -268,7 +264,7 @@ then declines together with available substrate with microbial N immobilization
 but overall (including uptake and turnover) N mineralization.
 
 At very late decomposition states when L amendment is finished (about 2 years) 
-and microbial biomass, $B$, declines into its steady state 
+and microbial biomass, $BC$, declines into its steady state 
 with given continuous litter inputs, then CUE values decrease towards their steady
 state values.
 Afterwards stocks increase by building R from continuous litter inputs.

@@ -34,8 +34,8 @@ parms0 <- list(
   ,epsPred = 0.3  ##<< carbon use efficiency of microbial tvr (predators respire)
   ,iR = 0         ##<< input modelled explicitely
   ,iL = 300       ##<< g/m2 input per year (half NPP)
-  #,plantNUp = 300/70*1/4  ##<< plant N uptake balancing N inputs
-  ,plantNUp = 0   ##<< plant N uptake balancing N inputs
+  #,plantNUpAbs = 300/70*1/4  ##<< plant N uptake balancing N inputs
+  ,plantNUpAbs = 0   ##<< plant N uptake balancing N inputs
   ,useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
   ,kIPlant = 10.57 #0.0289652*365         ##<< plant uptake iP I
   ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
@@ -75,8 +75,8 @@ parms0 <- within(parms0,{
   #eps1 <- eps2 <- eps
   #cnER <- cnEL <- cnE
   #kNR <- kNL <- kN
-  kIPlant <- iL / cnIL	# same litter input as plant uptake
-  kIPlant <- 0			# no plant uptake
+  plantNUpAbs <- iL / cnIL	# same litter input as plant uptake
+  kIPlant <- plantNUpAbs <- 0			# no plant uptake
   lP <- l       # leaching rate of inorganic P equals that of N
   nuP <- nu     # mineralization of P during decomposiition equals that of N
   kIPPlant <- kIPlant  # plant uptake rate of P equals that of N

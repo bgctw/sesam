@@ -189,11 +189,11 @@ derivSesam4F <- function(
   dRP <- -decR/cpR*x$rel[["RP"]]  + parms$iR/parms$cpIR*parms$relIR$P  + tvrP
   # here plant uptake as absolute parameter
   dITot <-  +parms$iI + sum(fracPhiU*x$units$N) + minN + PhiTvr -
-    (parms$kIPlant + leach + immoN)
+    (parms$kIPlant*x$tot["I"] + leach + immoN)
   dI <-  +parms$iI*parms$relII + fracPhiU  + minN*relSN + PhiTvr*x$rel[["BN"]] -
-    (parms$kIPlant + leach + immoN)*x$rel[["I"]]
+    (parms$kIPlant*x$tot["I"] + leach + immoN)*x$rel[["I"]]
   dIP <-  +parms$iIP*parms$relIIP + fracPhiPU + minP*relSP + PhiPTvr*x$rel[["BP"]] -
-    (parms$kIPPlant + leachP + immoP)*x$rel[["IP"]]
+    (parms$kIPPlant*x$tot["IP"] + leachP + immoP)*x$rel[["IP"]]
   dResp <- respB*relSC + respTvr*x$rel[["BC"]]
   dLeachN <- leach*x$rel[["I"]]
   dLeachP <- leachP*x$rel[["IP"]]
@@ -266,12 +266,12 @@ derivSesam4F <- function(
     if (any(abs(
       (dBN  + dRN + dLN + dI + tvrExN) -
       (parms$iR/parms$cnIR*parms$relIR$N  + parms$iL/parms$cnIL*parms$relIL$N +
-       parms$iI*parms$relII - parms$kIPlant*x$rel[["I"]] - dLeachN)
+       parms$iI*parms$relII - parms$kIPlant*x$tot["I"]*x$rel[["I"]] - dLeachN)
     ) > sqrEps))  stop("mass balance dN error")
     if (any(abs(
       (dBP  + dRP + dLP + dIP + tvrExP) -
       (parms$iR/parms$cpIR*parms$relIR$P  + parms$iL/parms$cpIL*parms$relIL$P +
-       parms$iIP*parms$relIIP - parms$kIPPlant*x$rel[["IP"]] - dLeachP)
+       parms$iIP*parms$relIIP - parms$kIPPlant*x$tot["IP"]*x$rel[["IP"]] - dLeachP)
     ) > sqrEps))  stop("mass balance dP error")
   }
   #

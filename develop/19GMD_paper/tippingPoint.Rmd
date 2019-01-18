@@ -47,7 +47,7 @@ Here, we prescribe a very low, i.e. trickling, input of fresh organic matter
 and a spinup, where microbial biomass and enzyme levels drop to a very low value.
 
 ```{r}
-require(sesam)
+require(sesam, quietly = TRUE)
 
 parmsModel <- list(
   cnB = 11
@@ -74,6 +74,7 @@ parmsModel <- list(
   ,nu = 0.9     # microbial N use efficiency accounting for apparent 
   ## minceralization of N during uptake in heterogeneous soils
   , isEnzymeMassFlux = TRUE  ##<< compute enzyme mass fluxes
+  , kIPlant = 10.57 #0.0289652*365          ##<< plant uptake iP I
 )
 
 parmsModel <- within(parmsModel, {
@@ -100,10 +101,11 @@ drivers <- list(
         ,iP = 10.57 #0.0289652*365        ##<< plant uptake of inorganic N (I), 
         ## currently as absolute flux
         ,iI = 0         ##<< input of mineral N
-        #,kIPlant = 10.57 #0.0289652*365          ##<< plant uptake iP I
 )
-drivers$kIPlant = drivers$iL / drivers$cnIL # balancing N inputs by plant uptake
-parms0 <- c(parmsModel, drivers)
+parms0 <- within( c(parmsModel, drivers), {
+  kIPlant <- 0
+  plantNUpAbs <- iL/cnIL
+})
 #parms0Noenz <- within(parms0, isEnzymeMassFlux <- FALSE)
 ```
 
@@ -182,7 +184,7 @@ x1 <- unlist(tail(res0,1))
 parmsFixedR <- within(parms0, {
   iL <- 0.1
   isFixedR <- TRUE
-  #fixedI anyway kIPlant <- iL / cnIL*2 # balancing N inputs by plant uptake
+  #fixedI anyway plantNUpAbs <- iL / cnIL*2 # balancing N inputs by plant uptake
   })
 #parms1 <- within(parms0, iL <- 10)
 yearEnd <- 300
@@ -277,7 +279,7 @@ The distribution gets more skewed, the fewer pores are contributing.
 parmsFixedR <- within(parms0, {
   iL <- 0.1
   isFixedR <- TRUE
-  #fixedI anyway kIPlant <- iL / cnIL*2 # balancing N inputs by plant uptake
+  #fixedI anyway plantNUpAbs # balancing N inputs by plant uptake
   })
 #parms1 <- within(parms0, iL <- 10)
 yearEnd <- 300

@@ -57,8 +57,8 @@ parms0 <- within(parms0,{
  # eps1 <- eps2 <- eps
   #cnER <- cnEL <- cnE
   #kNR <- kNL <- kN
-  kIPlant <- iL / cnIL	# same litter input as plant uptake
-  kIPlant <- 0			# no plant uptake
+  plantNUpAbs <- iL / cnIL	# same litter input as plant uptake
+  kIPlant <- plantNUpAbs <- 0			# no plant uptake
   lP <- l       # leaching rate of inorganic P equals that of N
   nuP <- nu     # mineralization of P during decomposiition equals that of N
   kIPPlant <- kIPlant  # plant uptake rate of P equals that of N

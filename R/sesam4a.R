@@ -114,6 +114,8 @@ derivSesam4a <- function(
   tvrExC <- tvrExN <- tvrExP <- 0
   #
   leach <- parms$l*x["I"]
+  plantNup <- parms$kIPlant*x["I"]
+  if (!is.null(parms$plantNUpAbs)) plantNup <- plantNup + parms$plantNUpAbs
   PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE +
                             tvrBOrg*(1 - cW)/cnBL)
   leachP <- parms$lP*x["IP"]
@@ -136,8 +138,8 @@ derivSesam4a <- function(
   dRN <- -decR/cnR  + parms$iR/parms$cnIR  + tvrN
   dRP <- -decR/cpR  + parms$iR/parms$cpIR  + tvrP
   # here plant uptake as absolute parameter
-  dI <-  +parms$iI  - parms$kIPlant  - leach  + PhiU  + PhiB  + PhiTvr
-  dIP <-  +parms$iIP  - parms$kIPPlant  - leachP  + PhiPU  + PhiPB  + PhiPTvr
+  dI <-  +parms$iI  - plantNup  - leach  + PhiU  + PhiB  + PhiTvr
+  dIP <-  +parms$iIP  - parms$kIPPlant*x["IP"]  - leachP  + PhiPU  + PhiPB  + PhiPTvr
   dResp <- resp
   dLeachN <- leach
   dLeachP <- leachP
@@ -201,12 +203,12 @@ derivSesam4a <- function(
     if (diff(unlist(
       c( dB/parms$cnB  + dRN + dLN + dI + tvrExN
          , parms$iR/parms$cnIR  + parms$iL/parms$cnIL - plantNUp  + parms$iI -
-         parms$kIPlant - dLeachN)
+         plantNup - dLeachN)
       ))^2 > .Machine$double.eps )  stop("mass balance dN error")
     if (diff(unlist(
       c( dB/parms$cpB  + dRP + dLP + dIP + tvrExP
          , parms$iR/parms$cpIR  + parms$iL/parms$cpIL - plantPUp  + parms$iIP -
-         parms$kIPPlant - dLeachP)))^2 >
+         parms$kIPPlant*x["IP"] - dLeachP)))^2 >
       .Machine$double.eps )  stop("mass balance dP error")
   }
   #
