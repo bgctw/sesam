@@ -1,0 +1,203 @@
+---
+title: "SESAM Soil enzyme steady allocoation model in matrix form"
+output: html_notebook
+---
+
+## General model
+Sierra and Müller 2015 proposed a general framework of SOM models (eq. 19).
+
+$$
+\frac{dC}{dt} = I(t) + T(C,t) N(C,t) C 
+$$
+where $T$ are transfer coefficients, and $N$ are instant decomposition rates.
+
+SESAM not only models Carbon, but also Nitrogen fluxes and community composition
+$\alpha$. While the subvector of Carbon pools is compartmental, and the subvector
+of Nitrogen pools is compartmental, $\alpha$ is a pool not connected any other pool
+and has no mass balance constraint.
+
+## Carbon compartment
+### State variables
+$$
+(L, R, B)
+$$
+
+### Inputs
+Here labile organic pool.
+$$
+i_{L}(t)
+$$
+
+### Outfluxes of pools 
+L decomposition
+$$
+\operatorname{dec}_L = k_L l_L B \, L 
+\\
+\operatorname{dec}_R = k_R l_R B \, R
+\\
+\operatorname{out}_B = (\tau +m +m_E +r_G +r_O) \, B 
+$$
+where $\tau$ is microbial turnover rate, $m$ is maintenance rate, 
+$a_E$ is enzyme synthesis investment rate, and 
+$$
+l_L = f(B, \alpha, a_E, k_{mN}) = \frac{(1-\alpha) a_E}{k_{mN} + (1-\alpha) a_E B}
+\\
+l_R = f(B, \alpha, a_E, k_{mN}) = \frac{\alpha a_E}{k_{mN} + \alpha a_E B}
+$$
+
+are enzyme limitation of decomposition devided by $B$, and
+$$
+m_E = f(a_E, \epsilon, \kappa_E) = a_E (1/\epsilon - \kappa_E)
+$$
+
+is the difference between enzyme investments and uptake of enzyme turnover, 
+devided by $B$. $\epsilon$ is the anabolic carbon use efficiency ($1-\epsilon$)
+of the uptake is catabolic respiration necessary for synthesizing given biomass),
+and $\kappa_E$ is the fraction of enzyme turnover (=production) 
+that goes into the DOM pool and uptake.
+
+$$
+\begin{align}
+r_G &= \begin{cases}
+  \epsilon \, C_{\operatorname{synB}},  & \text{if } C_{\operatorname{synB}} >
+  0\\
+  0, & \text{otherwise}
+\end{cases} 
+\\  
+r_O &= C_{\operatorname{synBC}} - C_{\operatorname{synB}}
+\end{align}
+$$
+
+are growth respiration and overflow respiration devided by $B$. $C_{\operatorname{synB}}$ is the carbon flux available for biosynthesis
+devided by $B$. Its the minimum of the fluxes constrained by element $E \in \{C,N\}$.
+
+$$
+\begin{align}
+C_{\operatorname{synB}} &= \min_E(C_{\operatorname{synBE}})
+\\  
+C_{\operatorname{synBC}} &= k_L l_L L + k_R l_R R -m_E
+\end{align}
+$$
+
+### Transfer of product
+Respiration carries the signal of uptake of decomposition 
+or if bimass is decreasing a mixture of uptake and 
+microbial biomass. 
+
+However in sum of the sum of respiration we can treat it all leaving
+the biomass pool.
+Hemce, all decomposition fluxes go to DOM and by quasis steady state to $B$. 
+Part of the turnover of microbial biomass and turnover of enzymes goes to $R$.
+
+$$
+T_{L \to B} = T_{R \to B} = 1
+\\
+T_{B \to R} = \frac{(\epsilon_{Tvr} \tau + (1-\kappa_E) a_E)B}{\operatorname{out}_B} 
+  = \frac{\epsilon_{Tvr} \tau + (1-\kappa_E) a_E}{\tau +m +m_E +r_G +r_O}
+$$
+
+
+## Nitrogen compartment
+### State variables
+$$
+(L_N, R_N, B_N, I)
+$$
+In the model code $B_N = \beta_B B$ is not explicitly tracked.
+
+### Inputs
+To labile OM pool and to inorganic pool:
+$$
+i_{L_N}(t) = i_L(t) \beta_{iL}
+\\
+i_I(t)
+$$
+
+
+### Outfluxes of the pools
+$$
+\begin{align}
+\operatorname{dec}_{L_N} &= k_L l_L B \, L_N 
+\\
+\operatorname{dec}_{R_N} &= k_R l_R B \, R_N
+\\
+\operatorname{out}_{I} &= (k_{IP}+ l + i_B) I 
+\\
+\operatorname{out}_{B_N} &= (\tau +a_E \beta_B/\beta_E (1-\kappa_E) + M_{\operatorname{Imb}})\, B_N 
+\end{align}
+$$
+where $k_{IP}$ is plant uptake rate, $l$ is leaching rate, and $i_B$ is 
+maximum immobilization rate. 
+Although SESAM3 does not model gross immobilizationa and gross mineralization
+here we describe the models as a maxium immobilization flux, $i_B I$
+leaving the $I$ pool to $B$, and parts of it later return as imbalance flux.
+
+The imbalance per microbioal biomass N, $B_N$, is
+
+$$
+M_{\operatorname{Imb}} = N_{\operatorname{synBE}} - C_{\operatorname{synB}}/\beta_B
+\\
+N_{\operatorname{synBE}} = u_N - a_E \beta_B/\beta_E
+\\
+u_N = \nu (k_L l_L L_N  +  k_R l_R R_N 
+  + \kappa_E a_E /\beta_E) \beta_B
+  + i_B I/B_N 
+$$
+
+The uptake, also, is expressed per microbial biomass N.
+The limitation of decomposition fluxes $l$ and enzyme investment $a_E$
+need to be multiplied by $B = \beta_B B_N$ instead of $B_N$. 
+Thats why the $\beta_B$ occurs as multiplicator.
+
+The biomass synthesis constraint per microbial Biomass due to N is
+$$
+\begin{align}
+C_{\operatorname{synBE}} &= N_{\operatorname{synBE}} B_N/B 
+  = N_{\operatorname{synBE}} / \beta_B
+  \\
+  &= \nu (k_L l_L L_N  +  k_R l_R R_N 
+  + \kappa_E a_E /\beta_E) 
+  + i_B I/B 
+  - a_E/\beta_E
+\end{align}  
+$$
+
+
+### Transfer coefficients
+
+Part $\nu$ of the decomposition is mineralized.
+Since always $B_N = B / \beta_B$, it is not explicitly tracked as state 
+variable, but part of the model matrix form description.
+$$
+T_{L_N \to B_N} = T_{R_N \to B_N} = 1 - \nu
+\\
+T_{L_N \to I} = T_{R_N \to I} = \nu
+$$
+
+SESAM3 does not compute gross mineralization and gross immobilization, but
+only the net flux. 
+For convenience, however, we describe the maximum flux from $I$ to $B$, and
+the flux from $B$ to $I$ as the imbalance between the maximum 
+gross immobilization plus organic N uptake and microbial demand.
+$$
+T_{I \to B_N} = \frac{i_B I}{\operatorname{out}_{I}} = \frac{i_B}{k_{IP}+ l + i_B}
+\\
+T_{B_N \to I} = \frac{M_{\operatorname{Imb}} B_N}{\operatorname{out}_{B_N}}
+$$
+
+## Community composition
+Community composition is not compartmental.
+It has no exchange with other pools nor inputs nor outputs 
+and only influences the rates of other pools.
+It implements a time lag behind a target composition.
+
+$$
+\frac{d\alpha}{dt} = (\alpha_{\operatorname{Target}} - \alpha)
+  ( \tau + C_{\operatorname{synB}} - r_G) 
+$$
+With $\alpha_{\operatorname{Target}}$ described in appendix A4.
+
+Note that here, $C_{\operatorname{synB}}$ and $r_G$ are expressed per
+microbial biomass, differently from Appendix A in Wutzler 2019.
+
+
+
