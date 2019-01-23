@@ -201,16 +201,17 @@ balanceAlphaBetweenCNLimitationsExp <- function(
   ### compute balance between alphaC and alphaN based on C and N based biomass synthesis
   alphaC, alphaN, CsynBN, CsynBC, ..., delta = 20, tauB
 ){
-  ##details<< if there is only small potential of immobilizalization, do a smooth
+  ##details<< if there is only small potential of immobilizalization,
+  ## do a smooth
   ## transition between alphaC and alphaN.
   ## The formulation based on e^difference instead of the ratio
   ## also works for negative biomass synthesis
   ## but requires a scaling factor, tauB.
   ##seealso<< \code{\link{balanceAlphaBetweenCNLimitations}}
   # # min to avoid  + Inf
-  wCLim = min( .Machine$double.xmax,
+  wCLim = pmin( .Machine$double.xmax,
                exp( delta/tauB*(CsynBN - CsynBC)))
-  wNLim = min( .Machine$double.xmax,
+  wNLim = pmin( .Machine$double.xmax,
                exp( delta/tauB*(CsynBC - CsynBN)))
   alpha <- (wCLim*alphaC + wNLim*alphaN) / (wCLim + wNLim)
   alpha

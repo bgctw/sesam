@@ -20,6 +20,7 @@ $$
 - SEAM2: enzyme explicit (soil enzyme allocation model)
 - SESAM3a: enzyme in steady state but explicitely tracking $\alpha$
     - SESAM3s: deprecated predecessor with still using parameters km and kN
+    - SESAM3aM: variant of matrix formulation of the model
 - SESAM3B: also microbial biomass in steady state
 
 ## Comparison using the FACE scenario
