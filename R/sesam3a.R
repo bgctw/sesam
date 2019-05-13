@@ -11,6 +11,8 @@ derivSesam3a <- function(
   ## model corresponding to Seam3 with enzyme levels computed by quasi steady state
   ## Alpha as an explicit state variable that changes with turnover
   ## Simplified computation of target based on current revenue based on current alpha
+  if (!length(names(x))) names(x) <- c(
+    "B", "R", "RN", "L", "LN", "I", "alpha")
   x <- pmax(unlist(x),1e-16)      # no negative masses
   # compute steady state enzyme levels for N and for C limitation
   dRPot <- parms$kR * x["R"]
@@ -130,6 +132,7 @@ derivSesam3a <- function(
   if (isTRUE(parms$isFixedR)) { resDeriv["dR"] <- resDeriv["dRN"] <-  0   }
   if (isTRUE(parms$isFixedL)) { resDeriv["dL"] <- resDeriv["dLN"] <-  0   }
   if (isTRUE(parms$isFixedI)) { resDeriv["dI"] <-  0   }
+  if (isTRUE(parms$isFixedAlpha)) { resDeriv["dAlpha"] <-  0   }
   #
   # further computations just for output for tacking the system
   ER <- alpha * parms$aE * x["B"] / parms$kN
@@ -182,7 +185,7 @@ derivSesam3a <- function(
     #, NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
     #, dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)
     #, dI = as.numeric(dI)
-    #, uC = as.numeric(uC), synB = as.numeric(synB)
+    , uC = as.numeric(uC), synB = as.numeric(synB)
     #, decN = as.numeric(decN)
   ))
 }
@@ -306,6 +309,9 @@ computeOutputsSesam3 <- function(
   if (isTRUE(parms$isFixedR)) { resDeriv[,"dR"] <- resDeriv[,"dRN"] <-  0   }
   if (isTRUE(parms$isFixedL)) { resDeriv[,"dL"] <- resDeriv[,"dLN"] <-  0   }
   if (isTRUE(parms$isFixedI)) { resDeriv[,"dI"] <-  0   }
+  if (isTRUE(parms$isFixedAlpha)) {
+    resDeriv[,"dAlpha"] <-  0
+    }
   #
   # further computations just for output for tacking the system
   ER <- alpha * parms$aE * x[,"B"] / parms$kN

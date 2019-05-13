@@ -1,0 +1,278 @@
+---
+title: "SESAM CUE in substrate pulse"
+output: html_notebook
+---
+
+## Purpose
+Kaiser14 showed emergent CUE stabilized during substrate pulse by
+microbial competition.
+Here we simulate a similar scenario using Sesam3a
+
+```{r, echo=FALSE, results='hide', message=FALSE}
+library(ggplot2)
+library(grid)   #unit
+library(reshape)  # melt
+library(RColorBrewer) # brewer.pal
+library(tidyr)
+library(dplyr)
+library(knitr)
+
+myColors <- brewer.pal(5,"Dark2")	
+.simpleCap <- function(s) {
+    paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
+}
+colScale <- scale_colour_manual(name = "Variant",values = myColors)
+.treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
+sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
+
+themeTw <- theme_bw(base_size = 10) + theme(axis.title = element_text(size = 9))
+#themeTw <- theme_bw(base_size = 11) + theme(axis.title = element_text(size = 10))
+figWidthPage <- 18/2.54; figHeightPage <- figWidthPage/1.6 
+#, fig.height=4.43, fig.width=7.1
+figWidthWide <- 12/2.54; figHeightWide <- figWidthWide/1.6
+#, fig.height=2.95, fig.width=4.72
+figWidthCol <- 8.3/2.54; figHeightCol <- figWidthCol/1.6
+#, fig.height=2.04, fig.width=3.27
+opts_chunk$set(
+   # out.extra='style="display:block; margin: auto"'
+    #, fig.align="center"
+    #, fig.width=4.6, fig.height=3.2
+    #fig.width = 6, fig.height = 3.75 #goldener Schnitt 1.6
+    #fig.width = figWidthWide, fig.height = figHeightWide #goldener Schnitt 1.6 #GI single column
+    fig.width = figWidthPage, fig.height = figHeightPage #goldener Schnitt 1.6 #GI single column
+    #, dev.args = list(pointsize = 11)
+    , dev = c('pdf','png')
+    , echo = FALSE
+    )
+knit_hooks$set(spar  =  function(before, options, envir) {
+    if (before) {
+        par( las = 1 )                   #also y axis labels horizontal
+        par(mar = c(2.0,3.3,0,0) + 0.3 )  #margins
+        par(tck = 0.02 )                          #axe-tick length inside plots             
+        par(mgp = c(1.1,0.2,0) )  #positioning of axis title, axis labels, axis
+    }
+})
+
+themeDefault <- themeTw#theme_classic()  
+themePres <- theme_classic()
+```
+
+
+### Setup parameters and drivers
+Mass units are $gC/m^2$ or $gN/m^2$. Time unit is $yr$.
+```{r}
+require(sesam, quietly = TRUE)
+
+parmsModel <- list(
+  cnB = 11
+  ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P) need 
+    # to have low C/N for CO2 increase scenario
+  ,kN = 60       ##<< /yr enzyme turnover 60 times a year, each 6 days -> fast 
+    # priming pulses
+  ,km = 0.05     ##<< enzyme half-saturation constant, in magnitude of enzymes, 
+    # determined by kN
+  ,kNB = 0.8     ##<< amount of recycling enzyme turnover by biomass (
+    # added to assimilable, i.e. uptake instead of R)
+  #,kR = 1/(10)        ##<< 1/(x years) # to demonstrate changes on short time scale
+  ,kR = 1/(20)        ##<< 1/(x years) # to demonstrate changes on short time scale
+  ,kL = 5           ##<< 1/(x years)   # formerly 1 year
+  ,aE = 0.001*365   ##<< C biomass allocated to enzymes 1/day /microbial biomass
+  ,m = 0.005*365    ##<< maintenance respiration rate   1/day /microbial biomass, 
+  ## Bogedom Fig. 1
+  ,tau = 1/60*365  ##<< biomass turnover rate (12 days)
+  ,eps = 0.5      ##<< carbon use efficiency for growth respiration
+  #,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (part by predators 
+  ,epsTvr = 0.45   ##<< carbon use efficiency of microbial tvr (part by predators 
+  ## which respire and corresponding amount of N must be mineralized)
+  #,iB = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
+  ,iB = 0.4 ##<< potential immobilization flux rate 
+  ## (immoPot = iB I)
+  ,l = 0.96       #0.00262647*365     ##<< leaching rate of mineralN l I
+  ,nu = 0.9     # microbial N use efficiency accounting for apparent 
+  ## minceralization of N during uptake in heterogeneous soils
+  , isEnzymeMassFlux = TRUE  ##<< compute enzyme mass fluxes
+  ,kIPlant = 10.57 #0.0289652*365     ##<< plant uptake rate first order of I
+)
+
+parmsModel <- within(parmsModel, {
+  kmN <- km*kN     # Sesam2 only uses a lumped parameter instead of km and kN
+  kmR <- kmL <- km  # seam2 can accept parameters differing by substrate
+  cnER <- cnEL <- cnE 
+  kNR <- kNL <- kN    
+  #isFixedI <- TRUE  # in this demonstration keep inorganic pool fixed
+})
+```
+
+For simplicity model drivers currently are prescibed as constant parameters.
+```{r}
+drivers <- list(
+  iR = 0          ##<< input of residue litter
+  ,iL = 40 #400         # g/m2 input per year (half NPP)
+  ,cnIR = 7       ##<< C/N ratio of the residue litter input
+  ,cnIL = 30      ##<< C/N ratio of the labile litter input: 
+  ## N poor substrate, here no inorganic N supply, 
+  ,plantNUp = 0   ##<< pland uptake of organic N
+  ## currently as absolute flux
+  ,iI = 0         ##<< input of mineral N
+)
+parms0 <- within( c(parmsModel, drivers), {
+  # change inorganic pool only by mobilization/immobilization flux
+  kIPlant <- 0
+  plantNUpAbs <- 0#iL/cnIL
+  l <- 0 
+  #isFixedI <- TRUE
+})
+parms0Noenz <- within(parms0, isEnzymeMassFlux <- FALSE)
+
+parmsFixedAlpha <- within(parms0, isFixedAlpha <- TRUE)
+```
+
+The initial pools must be specified. The Steady models do not have the enzyme pools as state variables.
+```{r}
+x0 <- x0Explicit <- c( #aE = 0.001*365
+        B = 17                     ##<< microbial biomass 
+        ,ER  = 2*parms0$km                  ##<< total enzyme pool
+        ,EL  = 4*parms0$km                   ##<< total enzyme pool
+        ,R = 1100                ##<< N rich substrate
+        ,RN = 1100/parms0$cnIR   ##<< N rich substrate N pool
+        ,L = 10#100                 ##<< N poor substrate
+        ,LN = 10/parms0$cnIL #100/parms0$cnIL    ##<< N poor substrate N pool
+        ,I =  0.04                ##<< inorganic pool gN/m2
+        , alpha = 0.5            ##<< microbial community partitioning [0,1]
+)
+x0Steady <- x0Explicit[c("B","R","RN","L","LN","I")]
+x0SteadyA <- c(x0Steady,alpha = 0.5)
+x0B <- x0SteadyA[setdiff(names(x0SteadyA),"B")]
+```
+
+Simulate steady state with low L inputs and then L pulse by changed L state.
+```{r}
+simLPulse <- function(x0, parms, cn0=75){
+  # # spinup to steady state at low substrate inputs
+  # times <- seq(0,2000, length.out = 2)
+  # #times <- c(0,exp(seq(log(0.02),log(2000), length.out=100)))
+  # #setwd("../..");loadPkg()
+  # res <- res1 <- as.data.frame(lsoda( x0, times, derivSesam3a, parms = parms))
+  # #plot(R~time, res)
+  # xE <- unlist(tail(res,1))
+  # #xE["I"] <- 0.04  # decrease I pool # does not help filled up by mircobial tvr
+  #
+  # increase L, no L input any more
+  parms$iL <- 0
+  x0P = x0 #xE[1:length(x0) + 1]
+  x0P["B"] <- .3
+  x0P["L"] <- 100
+  x0P["LN"] <- 100/cn0
+  x0P["R"] <- 1200
+  x0P["RN"] <- 1200/parms$cnB
+  x0P["I"] <- 1
+  timesP <- c(0,exp(seq(log(0.002),log(10), length.out = 200)))
+  res <- resP <- as.data.frame(lsoda( x0P, timesP, derivSesam3a, parms = parms))
+}
+resVarAlpha <- simLPulse(x0SteadyA, parms0, cn0 = 50)
+resVarAlphaCN60 <- simLPulse(x0SteadyA, parms0, cn0 = 70)
+resVarAlphaCN90 <- simLPulse(x0SteadyA, parms0, cn0 = 90)
+x0FixedAlpha <- x0SteadyA; x0FixedAlpha["alpha"] <- 0.3
+resAlpha30  <- simLPulse(x0FixedAlpha, parmsFixedAlpha, cn0 = 50)
+resAlpha30CN60  <- simLPulse(x0FixedAlpha, parmsFixedAlpha, cn0 = 70)
+resAlpha30CN90  <- simLPulse(x0FixedAlpha, parmsFixedAlpha, cn0 = 90)
+# x0Alpha10 <- x0SteadyA; x0Alpha10["alpha"] <- 0.1
+# resAlpha10  <- simLPulse(x0Alpha10, parmsFixedAlpha)
+# x0Alpha90 <- x0SteadyA; x0Alpha90["alpha"] <- 0.6
+# resAlpha90  <- simLPulse(x0Alpha90, parmsFixedAlpha)
+resP <- rbind(
+  cbind(scen = "adaptable", cn0 = 50, resVarAlpha)
+  ,cbind(scen = "fixed community", cn0 = 50, resAlpha30)
+  ,cbind(scen = "adaptable", cn0 = 70, resVarAlphaCN60)
+  ,cbind(scen = "fixed community", cn0 = 70, resAlpha30CN60)
+  ,cbind(scen = "adaptable", cn0 = 90, resVarAlphaCN90)
+  ,cbind(scen = "fixed community", cn0 = 90, resAlpha30CN90)
+  #,cbind(scen = "alpha=0.1", resAlpha10)
+  #,cbind(scen = "alpha=0.9", resAlpha90)
+)
+```
+
+
+```{r}
+vars <- c("L","R","alpha","B", "cueDef", "cueSyn") 
+#vars <- c("L","R","alpha","B", "I","cueDef", "cueSyn") 
+#vars <- c("L","R","alpha","B","RL","cnRL") 
+#vars <- c("alpha","B", "cnL", "PhiB","PhiTotal","immoPot", "CsynBC","CsynBN") 
+dsp0 <- resP %>% #filter(.data$time < 5) %>%  
+  rename(uptakeC = uC, respTotal = resp) %>% mutate(tvrBPred = 0.0) %>% 
+  cueSesam() %>% 
+  mutate(cn0 = as.factor(cn0)) %>% 
+  mutate(S = R + L, cnS = (R + L)/(RN + LN)) %>% 
+  mutate(relS = S/S[1], relL = L/L[1], fracDecomp = 1 - relL) %>% 
+  #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
+  select(one_of(c("time","relS","relL","fracDecomp","scen","cn0", vars))) 
+dsp <- dsp0 %>% gather("Pool","value", vars)
+p2f <- ggplot( dsp, aes(x = time, y = value, col = cn0, linetype = cn0)) + geom_line(size = 1) +
+  facet_grid(Pool ~ scen,scales = "free") + 
+  xlab("Time (yr)") + 
+  #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
+  #xlab("Fraction C decomposed") +
+  #ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
+  themeDefault +
+  #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
+  theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
+  theme(panel.border = element_rect(colour = "black", fill = NA)) +
+  theme(strip.background = element_blank()) +			
+  theme(panel.grid.major.x = element_line(colour = "grey75")) +
+  c()
+#print(p2f + colScale)
+print(p2f)
+```
+
+```{r}
+#vars2 <- c("cueDef", "cueSyn") 
+vars2 <- c("cueDef") 
+dsp2 <- dsp0 %>% select(one_of(c("time","relS","relL","fracDecomp","scen","cn0", vars2))) %>% gather("Pool","value", vars2)
+p2 <- ggplot( dsp2, aes(x = fracDecomp, y = value, col = cn0, linetype = cn0)) + 
+#p2 <- ggplot( dsp2, aes(x = fracDecomp, y = value, col = cn0, linetype = cn0)) + 
+  geom_line(size = 1) +
+  facet_grid(~ scen) + #,scales = "free") + 
+  #xlab("Time (yr)") + 
+  #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
+  xlab("Fraction C decomposed") +
+  ylab("Carbon use efficiency") +
+  expand_limits(y = 0.1) +
+  #themeDefault +
+  theme_classic(base_size = 18) + # presentation
+  #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
+  #theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
+  theme(legend.position = c(0.95,0.05), legend.justification = c(1,0)) +
+  theme(panel.border = element_rect(colour = "black", fill = NA)) +
+  theme(strip.background = element_blank()) +			
+  #theme(panel.grid.major.x = element_line(colour = "grey75")) +
+  c()
+#print(p2f + colScale)
+print(p2)
+```
+
+```{r}
+#vars2 <- c("cueDef", "cueSyn") 
+vars2 <- c("cueDef") 
+dsp2 <- dsp0 %>% select(one_of(c("time","relS","relL","fracDecomp","scen","cn0", vars2))) %>% gather("Pool","value", vars2)
+p2 <- dsp2 %>% filter(time <= 3) %>% 
+  ggplot( aes(x = time, y = value, col = cn0, linetype = cn0)) + 
+#p2 <- ggplot( dsp2, aes(x = fracDecomp, y = value, col = cn0, linetype = cn0)) + 
+  geom_line(size = 1) +
+  facet_grid(~ scen) + #,scales = "free") + 
+  #xlab("Time (yr)") + 
+  #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
+  xlab("Time (yr)") +
+  ylab("Carbon use efficiency") +
+  expand_limits(y = 0.1) +
+  #themeDefault +
+  theme_classic(base_size = 18) + # presentation
+  #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
+  #theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
+  theme(legend.position = c(0.95,0.05), legend.justification = c(1,0)) +
+  theme(panel.border = element_rect(colour = "black", fill = NA)) +
+  theme(strip.background = element_blank()) +			
+  #theme(panel.grid.major.x = element_line(colour = "grey75")) +
+  c()
+#print(p2f + colScale)
+print(p2)
+```
