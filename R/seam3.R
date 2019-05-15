@@ -40,7 +40,8 @@ derivSeam3a <- function(
   # Nitrogen balance
   decN <- decR/cnR + decL/cnL + tvrERecycling/parms$cnE
   # plants get at maximum half of the decomposed organic N
-  plantNUpOrg <- pmin(parms$plantNUpOrg, decN/2)
+  plantNUpOrg <- if (!is.null(parms$plantNUpOrg))
+    pmin(parms$plantNUpOrg, decN/2) else 0
   # mineralization due to soil heterogeneity (Manzoni 08)
   PhiU <- (1 - parms$nu) * (decN - plantNUpOrg)
   # immobilization flux

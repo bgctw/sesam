@@ -31,10 +31,9 @@ parms0 <- list(
   ,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (predators respire)
   ,iR = 0         ##<< input modelled explicitely
   ,iL = 300       ##<< g/m2 input per year (half NPP)
-  #,plantNUp = 300/70*1/4  ##<< plant N uptake balancing N inputs
-  ,plantNUp = 0   ##<< plant N uptake balancing N inputs
   ,useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
   ,kIPlant = 10.57 #0.0289652*365         ##<< plant uptake iP I
+  ,plantNUpAbs = Inf   ##<< no absolute limit of plant uptake
   ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
   ,iI = 0         ##<< input of mineral N
   ,l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I

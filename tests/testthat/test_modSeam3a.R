@@ -46,7 +46,8 @@ parms0 <- within(parms0,{
   eps1 <- eps2 <- eps
   cnER <- cnEL <- cnE
   kNR <- kNL <- kN
-  plantNUpAbs <- iL / cnIL	# same litter input as plant uptake
+  plantNUpOrg <- 0 # no organic N uptake
+  plantNUpAbs <- iL / cnIL	# inorganic plant N uptake same litter input
   kIPlant <- 1000  # high number -> constrain by plantNUpAbs
   kIPlant <- plantNUpAbs <- 0			# no plant uptake
 })

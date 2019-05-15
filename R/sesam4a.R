@@ -114,8 +114,12 @@ derivSesam4a <- function(
   tvrExC <- tvrExN <- tvrExP <- 0
   #
   leach <- parms$l*x["I"]
-  plantNup <- parms$kIPlant*x["I"]
-  if (!is.null(parms$plantNUpAbs)) plantNup <- plantNup + parms$plantNUpAbs
+  plantNUpPot <- parms$kIPlant*x["I"]
+  plantNUp <- if (!is.null(parms$plantNUpAbs)) {
+    min(parms$plantNUpAbs, plantNUpPot)
+  } else {
+    plantNUpPot
+  }
   PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE +
                             tvrBOrg*(1 - cW)/cnBL)
   leachP <- parms$lP*x["IP"]
@@ -138,7 +142,7 @@ derivSesam4a <- function(
   dRN <- -decR/cnR  + parms$iR/parms$cnIR  + tvrN
   dRP <- -decR/cpR  + parms$iR/parms$cpIR  + tvrP
   # here plant uptake as absolute parameter
-  dI <-  +parms$iI  - plantNup  - leach  + PhiU  + PhiB  + PhiTvr
+  dI <-  +parms$iI  - plantNUp  - leach  + PhiU  + PhiB  + PhiTvr
   dIP <-  +parms$iIP  - parms$kIPPlant*x["IP"]  - leachP  + PhiPU  + PhiPB  + PhiPTvr
   dResp <- resp
   dLeachN <- leach
@@ -167,8 +171,6 @@ derivSesam4a <- function(
   # parms$iR + tvrC -(decR + dR)
   #
   # checking the mass balance of fluxes
-  # checked in mass balance but is not (any more) in model
-  plantNUp <- plantPUp <- 0
   # biomass mass balance
   if (diff( unlist(
     c(uC = uC + starvB, usage = respB + synB + synE )))^2 > sqrEps )  stop(
@@ -202,12 +204,12 @@ derivSesam4a <- function(
       sqrEps )  stop("mass balance dC error")
     if (diff(unlist(
       c( dB/parms$cnB  + dRN + dLN + dI + tvrExN
-         , parms$iR/parms$cnIR  + parms$iL/parms$cnIL - plantNUp  + parms$iI -
-         plantNup - dLeachN)
+         , parms$iR/parms$cnIR  + parms$iL/parms$cnIL + parms$iI -
+         plantNUp - dLeachN)
       ))^2 > .Machine$double.eps )  stop("mass balance dN error")
     if (diff(unlist(
       c( dB/parms$cpB  + dRP + dLP + dIP + tvrExP
-         , parms$iR/parms$cpIR  + parms$iL/parms$cpIL - plantPUp  + parms$iIP -
+         , parms$iR/parms$cpIR  + parms$iL/parms$cpIL + parms$iIP -
          parms$kIPPlant*x["IP"] - dLeachP)))^2 >
       .Machine$double.eps )  stop("mass balance dP error")
   }

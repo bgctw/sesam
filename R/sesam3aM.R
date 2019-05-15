@@ -36,12 +36,13 @@ derivSesam3aM <- function(
   #-- N fluxes
   outLN <- outL
   outRN <- outR
-  outI <- parms$kIP + parms$l + parms$iB
+  # plant N uptake can have an upper absolute limit, compute rate per I
+  outI <- min(parms$kIP, parms$plantNUpAbs/x["I"]) + parms$l + parms$iB
   #
   uN <- parms$nu*(decL*x["LN"] + decR*x["RN"] + kappaE*parms$aE/cnE)*cnB +
     parms$iB*x["I"]/(B/cnB)
   NsynBN <- uN - parms$aE*cnB/cnE
-  CsynBN <- if(NsynBN > 0) NsynBN/parms$eps else NsynBN  #NsynBN/cnB
+  CsynBN <- if (NsynBN > 0) NsynBN/parms$eps else NsynBN  #NsynBN/cnB
   #
   #-- depending on CsynB both C anc N
   CsynB <- min(CsynBC, CsynBN)

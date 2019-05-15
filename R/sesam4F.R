@@ -228,7 +228,6 @@ derivSesam4F <- function(
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   #
   # checking the mass balance of fluxes
-  plantNUp <- plantPUp <- 0 # checked in mass balance but is not (any more) in model
   # biomass mass balance
   if (diff( unlist(c(uC = uC + starvB, usage = respB + synB + synE )))^2 > sqrEps )  stop(
     "biomass mass balance C error")
