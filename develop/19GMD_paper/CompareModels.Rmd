@@ -1,6 +1,9 @@
 ---
 title: "SESAM Soil enzyme steady allocoation model"
-output: html_notebook
+output:
+  pdf_document:
+    keep_tex: true
+  html_notebook: default
 ---
 
 Start from Sesam3Overview.
@@ -23,6 +26,7 @@ colScale <- scale_colour_manual(name = "Variant",values = myColors)
 sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
 
 themeDefault <- theme_classic()  
+themePaper <- theme_classic(base_size = 10)  
 ```
 
 ### Setup parameters and drivers
@@ -77,14 +81,14 @@ drivers <- list(
         ,iL = 400         # g/m2 input per year (half NPP)
         ,cnIR = 7       ##<< C/N ratio of the residue litter input
         ,cnIL = 30      ##<< C/N ratio of the labile litter input: 
-        ## N poor substrate, here no inorganic N supply, 
-        ,plantNUp = 0   ##<< pland uptake of organic N
         ## currently as absolute flux
         ,iI = 0         ##<< input of mineral N
+        ,plantNUpOrg = 0 ##<< no organic N uptake by plants
 )
 parms0 <- within( c(parmsModel, drivers), {
-  kIPlant <- 0
+  kIPlant <- 1000.0
   plantNUpAbs <- iL/cnIL  # plants take out as much as returned by litter
+  l <- 0 # no leaching
 })
 parms0Noenz <- within(parms0, isEnzymeMassFlux <- FALSE)
 ```
@@ -99,7 +103,7 @@ x0 <- x0Explicit <- c( #aE = 0.001*365
         ,RN = 1100/parms0$cnIR   ##<< N rich substrate N pool
         ,L = 100                 ##<< N poor substrate
         ,LN = 100/parms0$cnIL    ##<< N poor substrate N pool
-        ,I =  0.04                ##<< inorganic pool gN/m2
+        ,I =  0.04 #150 #0.04                ##<< inorganic pool gN/m2
         , alpha = 0.5            ##<< microbial community partitioning [0,1]
 )
 x0Steady <- x0Explicit[c("B","R","RN","L","LN","I")]
@@ -122,17 +126,20 @@ colScale <- scale_colour_manual(name = "Model variant",values = tmp )
 Next the simulation runs are performed.
 ```{r}
 runFaceSimulation <- function(
-  scen, t1S =20, t2I = 50, t3S = 50, parms = parms0
+  scen, t1S =20, t2I = 40, t3S = 70, parms = parms0
 ){
   # spinup to steady state
   times <- seq(0,500, length.out = 2)
+  #times <- seq(0,5, length.out = 500)
   #setwd("../..");loadPkg()
   . <- scen
   res <- res1 <- as.data.frame(lsoda( .$x0, times, .$mod, parms = .$parms))
+  #ggplot(res, aes(time, I)) + geom_line()
   xE <- unlist(tail(res,1))
   #xE["I"] <- 0.04  # decrease I pool # does not help filled up by mircobial tvr
   #
   # t1S years of steady state recorded
+  #derivSesam3a(0, xE, .$parms)
   res <- res1S <- as.data.frame(lsoda( 
     xE[1:length(.$x0) + 1], 1:t1S, .$mod, parms = .$parms))
   #
@@ -172,11 +179,13 @@ resScen <- scenarios %>%
 
 ```{r}
 vars <- c("L","R","alpha","RL") 
-#vars <- c("L","R","alpha","B","RL","cnRL") 
+vars <- c("L","R","alpha","B","RL","cnRL","I") 
 #vars <- c("alpha","B", "cnL", "PhiB","PhiTotal","immoPot", "CsynBC","CsynBN") 
-dsp <- resScen %>% mutate_(RL = ~(R+L), cnRL = ~((R+L)/(RN+LN))) %>% 
+dsp <- resScen %>% 
+  #filter(scen != "NeglectEnzFlux") %>% 
+  mutate(RL = R + L, cnRL = (R + L)/(RN + LN)) %>% 
   #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
-  select(one_of(c("time","scen",vars))) %>% gather_("Pool","value", vars)
+  select(one_of(c("time","scen",vars))) %>% gather("Pool","value", vars)
 p2f <- ggplot( dsp, aes(x = time, y = value, col = scen, linetype = scen)) + geom_line(size = 1) +
   facet_grid(Pool ~ .,scales = "free") + 
   xlab("Time (yr)") + ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
@@ -190,12 +199,65 @@ p2f <- ggplot( dsp, aes(x = time, y = value, col = scen, linetype = scen)) + geo
 #print(p2f + colScale)
 print(p2f)
 ```
+Why is Sesam3B differnt at the end of FACE?
+```{r}
+dst <- filter(resScen, scen %in% c("Sesam3a","Sesam3B"), time %in% c(20,60))
+#total N balance
+dst <- dst %>% mutate(NSys = B/parms0$cnB + LN + RN + I)
+select(dst, scen, time, NSys, I)
+
+dst <- filter(resScen, scen %in% c("Sesam3a","Sesam3B"), time >= 20, time <= 60)
+ggplot(dst, aes(time, I, color = scen)) + geom_line()
+```
+There is a slight increase of N in the systme due to change
+in N in microbial biomass is not accounted in N balance.
+
+
+## Result
 
 Model Sesam3a matches the dynamics of the explicit SEAM model at this time scale.
 When neglecting enzyme mass fluxes, the dynamcis is similar, but the steady state 
 , expecially for R, is slightly lower.
 
 The model with steady state microbial biomass, Sesam3B, captures the same dynamics.
+
+```{r simIncreasedC, fig.height=3, fig.width=3.27, fig.height=3.2, fig.width=4.72}
+# produce figure for paper without alpha, ... 
+vars <- c("L","R","SOM") 
+#vars <- c("L","R","SOM","cnRL") 
+#vars <- c("L","R","alpha","B","RL","cnRL") 
+#vars <- c("alpha","B", "cnL", "PhiB","PhiTotal","immoPot", "CsynBC","CsynBN") 
+dsp <- ungroup(resScen) %>% mutate(SOM = R + L, cnRL = (R + L)/(RN + LN)) %>% 
+  #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL")) %>% 
+  mutate(Model = recode_factor(
+    as.factor(scen)
+    , Explicit = "Seam3"
+    , Sesam3a = "Sesam3"
+    , Sesam3B = "Sesam3_SteadyB"
+    , NeglectEnzFlux = "Sesam3_NoEnzFlux"
+    )
+    # delete CNRL of EnzFlux because at other scale
+    ,cnRL = ifelse(scen == "NeglectEnzFlux", NA, cnRL)
+    ) %>% 
+  #recode_factor(vars, Explicit = "Seam3") %>% 
+  select(one_of(c("time","Model",vars))) %>% 
+  gather("Pool","value", vars) 
+p2f <- ggplot( dsp, aes(x = time, y = value, col = Model, linetype = Model)) + geom_line(size = 1) +
+  facet_grid(Pool ~ .,scales = "free") + 
+  xlab("Time (yr)") + ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
+  themePaper +
+  #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
+  #theme(legend.position = c(0.8,0.9), legend.justification = c(1,1)) +
+  theme(legend.position = c(0.98,0.02), legend.justification = c(1,0)) +
+  theme(panel.border = element_rect(colour = "black", fill = NA)) +
+  theme(strip.background = element_blank()) +			
+  theme(panel.grid.major.x = element_line(colour = "grey75")) +
+  c()
+#print(p2f + colScale)
+print(p2f)
+
+
+```
 ```{r}
 
 ```

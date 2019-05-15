@@ -1,6 +1,9 @@
 ---
 title: "SESAM CUE in substrate pulse"
-output: html_notebook
+output: 
+  pdf_document:
+    keep_tex: true
+  html_notebook: default
 ---
 
 ## Purpose
@@ -263,7 +266,6 @@ p2 <- dsp2 %>% filter(time <= 3) %>%
   #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
   xlab("Time (yr)") +
   ylab("Carbon use efficiency") +
-  expand_limits(y = 0.1) +
   #themeDefault +
   theme_classic(base_size = 18) + # presentation
   #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
@@ -274,5 +276,19 @@ p2 <- dsp2 %>% filter(time <= 3) %>%
   #theme(panel.grid.major.x = element_line(colour = "grey75")) +
   c()
 #print(p2f + colScale)
-print(p2)
+print(p2 + expand_limits(y = 0.1))
 ```
+
+
+```{r simPulse, fig.height=2, fig.width=3.27}
+p2p <- p2 + 
+  expand_limits(y = 0.1) +
+  theme_classic(base_size = 10) +
+  theme(legend.position = c(0.98,0.02), legend.justification = c(1,0)) +
+  theme(panel.border = element_rect(colour = "black", fill = NA)) +
+  theme(strip.background = element_blank()) +	
+  theme(legend.title = element_blank()) +
+  c()  
+print(p2p)
+```
+

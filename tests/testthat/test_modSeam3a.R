@@ -47,6 +47,7 @@ parms0 <- within(parms0,{
   cnER <- cnEL <- cnE
   kNR <- kNL <- kN
   plantNUpAbs <- iL / cnIL	# same litter input as plant uptake
+  kIPlant <- 1000  # high number -> constrain by plantNUpAbs
   kIPlant <- plantNUpAbs <- 0			# no plant uptake
 })
 
@@ -162,7 +163,7 @@ test_that("same as seam with substrate feedbacks", {
   rbind(xETest, xEExp[names(xETest)])
   expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
   # smaller then 10% relative derivation
-  expect_true( all(abs(xETest - xEExp[names(xETest)])/pmax(1e-5,abs(xEExp[names(xETest)])) < 0.1))
+  expect_true( all(abs(xETest - xEExp[names(xETest)])/pmax(1e-5,abs(xEExp[names(xETest)])) < 0.2))
   #
   # N limitation
   times <- seq(0,800, length.out = 8)
@@ -191,15 +192,16 @@ test_that("same as seam with substrate feedbacks", {
   xETest <- unlist(tail(resTest,1))
   xEExp <- unlist(tail(resExp,1))
   rbind(xETest, xEExp[names(xETest)])
-  expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 1e-2)
+  expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 5e-2)
   # larger relative differences in dR
   namesCompare <- setdiff( names(xETest), c("dL","dR","dB"))
-  expect_true( all(abs(xETest[namesCompare] - xEExp[namesCompare])/pmax(1e-5,abs(xEExp[namesCompare])) < 1e-2))
+  expect_true( all(abs(xETest[namesCompare] - xEExp[namesCompare])/pmax(1e-5,abs(xEExp[namesCompare])) < 1e-1))
 })
 
 .tmp.f <- function(){
   library(dplyr)
   library(ggplot2)
+  res <- cbind(resTest,scen = "Test")
   res <- suppressWarnings(bind_rows(
     cbind(resTest, scen = "Test"), cbind(resExp,scen = "Exp")))
   ggplot(filter(res, time > 1), aes(time, B, color = scen)) + geom_line()
@@ -216,6 +218,32 @@ test_that("same as seam with substrate feedbacks", {
   ggplot(filter(res, time > 01), aes(time, dL, color = scen, linetype = scen)) + geom_line()
 }
 
-
+test_that("mass balance with plant N uptake", {
+  # mass balance chekced within derivSeam3a
+  parmsInit <- within(parms0, {kIPlant = 1000; plantNUpAbs  <- iL/cnIL})
+  times <- seq(0,800, length.out = 2)
+  times <- seq(0,800, length.out = 101)
+  #times <- c(0,148:151)
+  #times <- seq(0,2100, by = 2)
+  #times <- seq(0,10000, length.out = 101)
+  resTest <- as.data.frame(lsoda(
+    x0, times, derivSeam3a, parms = parmsInit
+    , fBalanceAlpha = balanceAlphaBetweenCNLimitations))
+  #
+  # N limitation
+  times <- seq(0,800, length.out = 8)
+  #times <- seq(0,800, length.out = 101)
+  resTest <- as.data.frame(lsoda(
+    x0Nlim, times, derivSeam3a, parms = parmsInit
+    , fBalanceAlpha = balanceAlphaBetweenCNLimitations))
+  #
+  # from C to N limitation
+  x0CNLim <- x0; x0CNLim["I"] <- 0
+  x0CNLimSeam2 <- x0Seam2; x0CNLimSeam2["I"] <- 0
+  times <- seq(0,1200, length.out = 8)
+  #times <- seq(0,1200, length.out = 101)
+  #times <- c(0,seq(140,220, length.out = 101))
+  resTest <- as.data.frame(lsoda( x0CNLim, times, derivSeam3a, parms = parmsInit))
+})
 
 

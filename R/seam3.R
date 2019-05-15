@@ -40,12 +40,12 @@ derivSeam3a <- function(
   # Nitrogen balance
   decN <- decR/cnR + decL/cnL + tvrERecycling/parms$cnE
   # plants get at maximum half of the decomposed organic N
-  plantNUp <- pmin(parms$plantNUp, decN/2)
+  plantNUpOrg <- pmin(parms$plantNUpOrg, decN/2)
   # mineralization due to soil heterogeneity (Manzoni 08)
-  PhiU <- (1 - parms$nu) * (decN - plantNUp)
+  PhiU <- (1 - parms$nu) * (decN - plantNUpOrg)
   # immobilization flux
   immoPot <- parms$iB * x["I"]
-  uNSubstrate <- (decN - plantNUp - PhiU)    # plant uptake also of organic N
+  uNSubstrate <- (decN - plantNUpOrg - PhiU)    # plant uptake also of organic N
   uNPot <-  immoPot + uNSubstrate
   NsynBN <- uNPot - synE/cnE
   # C required for biomass growth and growth respiration under N limitation
@@ -110,8 +110,12 @@ derivSeam3a <- function(
   tvrExN <- 0
   #
   leach <- parms$l*x["I"]
-  plantNup <- parms$kIPlant*x["I"]
-  if (!is.null(parms$plantNUpAbs)) plantNup <- plantNup + parms$plantNUpAbs
+  plantNUpPot <- parms$kIPlant*x["I"]
+  plantNUp <- if (!is.null(parms$plantNUpAbs)) {
+    min(parms$plantNUpAbs, plantNUpPot)
+  } else {
+    plantNUpPot
+  }
   #
   dB <- synB - tvrB
   dER <- +alpha*synE  - tvrER
@@ -122,7 +126,7 @@ derivSeam3a <- function(
   dRN <- -decR/cnR + parms$iR/parms$cnIR + tvrN
   #dI <- +parms$iI +MmB +PhiTvr -(parms$kIPlant+parms$l)*x["I"]
   # plant uptake as absolute parameter
-  dI <- +parms$iI - plantNup - leach + PhiB + PhiU + PhiTvr
+  dI <- +parms$iI - plantNUp - leach + PhiB + PhiU + PhiTvr
   #if (dI > 0.01 ) recover()
   #
   if (isTRUE(parms$isFixedS)) {
@@ -157,8 +161,8 @@ derivSeam3a <- function(
       sqrEps )  stop("mass balance C error")
     if (diff(unlist(
       c( dB/parms$cnB  + (dER + dEL)/parms$cnE  + dRN + dLN + dI + tvrExN
-         , parms$iR/parms$cnIR  + parms$iL/parms$cnIL - plantNUp  + parms$iI -
-         plantNup - parms$l*x["I"])))^2 >
+         , parms$iR/parms$cnIR  + parms$iL/parms$cnIL + parms$iI -
+         plantNUp - plantNUpOrg - parms$l*x["I"])))^2 >
       .Machine$double.eps )  stop("mass balance dN error")
   }
   # keeping R,L, or I constant

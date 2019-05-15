@@ -77,8 +77,12 @@ derivSesam3a <- function(
   tvrExC <- tvrExN <- 0
   #
   leach <- parms$l*x["I"]
-  plantNup <- parms$kIPlant*x["I"]
-  if (!is.null(parms$plantNUpAbs)) plantNup <- plantNup + parms$plantNUpAbs
+  plantNUpPot <- parms$kIPlant*x["I"]
+  plantNUp <- if (!is.null(parms$plantNUpAbs)) {
+    min(parms$plantNUpAbs, plantNUpPot)
+  } else {
+    plantNUpPot
+  }
   PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE)
   #
   dB <- synB - tvrB
@@ -87,7 +91,7 @@ derivSesam3a <- function(
   dR <- -decR  + parms$iR  + tvrC
   dRN <- -decR/cnR  + parms$iR/parms$cnIR  + tvrN
   # here plant uptake as absolute parameter
-  dI <-  +parms$iI  - plantNup  - leach  + PhiU  + PhiB  + PhiTvr
+  dI <-  +parms$iI  - plantNUp  - leach  + PhiU  + PhiB  + PhiTvr
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
@@ -109,7 +113,6 @@ derivSesam3a <- function(
   # parms$iR + tvrC -(decR + dR)
   #
   # checking the mass balance of fluxes
-  plantNUp <- 0 # checked in mass balance but is not (any more) in model
   respB <- (synE)/parms$eps*(1 - parms$eps)  + rG + rM + respO
   resp <- respB + respTvr
   if (diff( unlist(c(uC = uC, usage = respB + synB + synE )))^2 > sqrEps )  stop(
@@ -123,8 +126,8 @@ derivSesam3a <- function(
       sqrEps )  stop("mass balance C error")
     if (diff(unlist(
       c( dB/parms$cnB  + dRN + dLN + dI + tvrExN
-         , parms$iR/parms$cnIR  + parms$iL/parms$cnIL - plantNUp  + parms$iI -
-         plantNup - parms$l*x["I"])))^2 >
+         , parms$iR/parms$cnIR  + parms$iL/parms$cnIL + parms$iI -
+         plantNUp - parms$l*x["I"])))^2 >
       .Machine$double.eps )  stop("mass balance dN error")
   }
   #
@@ -255,8 +258,12 @@ computeOutputsSesam3 <- function(
   tvrExC <- tvrExN <- 0
   #
   leach <- parms$l*x[,"I"]
-  plantNup <- parms$kIPlant*x[,"I"]
-  if (!is.null(parms$plantNUpAbs)) plantNup <- plantNup + parms$plantNUpAbs
+  plantNUpPot <- parms$kIPlant*x[,"I"]
+  if (!is.null(parms$plantNUpAbs)) {
+    plantNUp <- min(plantNUpPot, parms$plantNUpAbs)
+  } else {
+    plantNUp <- plantNUpPot
+  }
   PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE)
   #
   dB <- synB - tvrB
@@ -265,7 +272,7 @@ computeOutputsSesam3 <- function(
   dR <- -decR  + parms$iR  + tvrC
   dRN <- -decR/cnR  + parms$iR/parms$cnIR  + tvrN
   # here plant uptake as absolute parameter
-  dI <-  +parms$iI  - plantNup  - leach  + PhiU  + PhiB  + PhiTvr
+  dI <-  +parms$iI  - plantNUp  - leach  + PhiU  + PhiB  + PhiTvr
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
@@ -301,7 +308,7 @@ computeOutputsSesam3 <- function(
     if (any(
       ((dB/parms$cnB  + dRN + dLN + dI + tvrExN) -
          (parms$iR/parms$cnIR  + parms$iL/parms$cnIL - plantNUp  + parms$iI -
-         plantNup - parms$l*x[,"I"]))^2 >
+         plantNUp - parms$l*x[,"I"]))^2 >
       .Machine$double.eps ))  stop("mass balance dN error")
   }
   #
