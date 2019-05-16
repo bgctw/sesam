@@ -190,6 +190,7 @@ derivSesam3a <- function(
     #, dI = as.numeric(dI)
     , uC = as.numeric(uC), synB = as.numeric(synB)
     #, decN = as.numeric(decN)
+    , plantNUp = plantNUp
   ))
 }
 
@@ -366,6 +367,7 @@ computeOutputsSesam3 <- function(
     , CsynB = as.numeric(CsynB)
     , CsynBC = as.numeric(CsynBC)
     , CsynBN = as.numeric(CsynBN)
+    , plantNUp = plantNUp # inorganic N taken up by plant
     #, pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) )
     #, NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
     #, dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)

@@ -198,6 +198,7 @@ derivSesam3B <- function(
     #, dI = as.numeric(dI)
     #, uC = as.numeric(uC), synB = as.numeric(synB)
     #, decN = as.numeric(decN)
+    , plantNUp = plantNUp
   ))
 }
 

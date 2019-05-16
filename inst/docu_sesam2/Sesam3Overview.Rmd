@@ -102,13 +102,11 @@ drivers <- list(
   ,iL = 400         # g/m2 input per year (half NPP)
   ,cnIR = 7       ##<< C/N ratio of the residue litter input
   ,cnIL = 30      ##<< C/N ratio of the labile litter input: 
-  ## N poor substrate, here no inorganic N supply, 
-  ,plantNUp = 0   ##<< pland uptake of organic N
   ## currently as absolute flux
   ,iI = 0         ##<< input of mineral N
 )
 parms0 <- within( c(parmsModel, drivers), {
-  kIPlant <- 0
+  kIPlant <- 1000  # high value to be constrained by plantNUpAbs
   plantNUpAbs <- iL/cnIL
 })
 parms0Noenz <- within(parms0, isEnzymeMassFlux <- FALSE)
@@ -155,6 +153,7 @@ runFaceSimulation <- function(
   . <- scen
   res <- res1 <- as.data.frame(lsoda( .$x0, times, .$mod, parms = .$parms))
   xE <- unlist(tail(res,1))
+  #derivSesam3a(0, xE, .$parms)
   #xE["I"] <- 0.04  # decrease I pool # does not help filled up by mircobial tvr
   #
   # t1S years of steady state recorded
@@ -196,12 +195,12 @@ resScen <- scenarios %>%
 
 
 ```{r}
-vars <- c("L","R","alpha","RL") 
+vars <- c("L","R","alpha","RL","I") 
 #vars <- c("L","R","alpha","B","RL","cnRL") 
 #vars <- c("alpha","B", "cnL", "PhiB","PhiTotal","immoPot", "CsynBC","CsynBN") 
-dsp <- resScen %>% mutate_(RL = ~(R+L), cnRL = ~((R+L)/(RN+LN))) %>% 
+dsp <- resScen %>% mutate(RL = (R + L), cnRL = ((R + L)/(RN + LN))) %>% 
   #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
-  select(one_of(c("time","scen",vars))) %>% gather_("Pool","value", vars)
+  select(one_of(c("time","scen",vars))) %>% gather("Pool","value", vars)
 p2f <- ggplot( dsp, aes(x = time, y = value, col = scen, linetype = scen)) + geom_line(size = 1) +
   facet_grid(Pool ~ .,scales = "free") + 
   xlab("Time (yr)") + ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +

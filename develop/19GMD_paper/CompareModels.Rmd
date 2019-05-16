@@ -57,6 +57,7 @@ parmsModel <- list(
   ## which respire and corresponding amount of N must be mineralized)
   #,iB = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
   ,iB = 0.4 ##<< potential immobilization flux rate 
+  #,iB = 1/12*(24*365) # tvr of I of 12 hours
   ## (immoPot = iB I)
   ,l = 0.96       #0.00262647*365     ##<< leaching rate of mineralN l I
   ,nu = 0.9     # microbial N use efficiency accounting for apparent 
@@ -81,14 +82,15 @@ drivers <- list(
         ,iL = 400         # g/m2 input per year (half NPP)
         ,cnIR = 7       ##<< C/N ratio of the residue litter input
         ,cnIL = 30      ##<< C/N ratio of the labile litter input: 
-        ## currently as absolute flux
         ,iI = 0         ##<< input of mineral N
-        ,plantNUpOrg = 0 ##<< no organic N uptake by plants
 )
 parms0 <- within( c(parmsModel, drivers), {
-  kIPlant <- 1000.0
-  plantNUpAbs <- iL/cnIL  # plants take out as much as returned by litter
-  l <- 0 # no leaching
+  iI <- iL/cnIL/200    # assume a fractionof 1/10 of annual litter production
+  kIPlant <- 1/5*365 # tvr of 5 days
+  plantNUpAbs <- iL/cnIL + iI # plants take maximum out as much as returned by litter
+  # plus inorganic input, difference is grazed
+  # keep leaching as otherwise it accumulates during priming
+  #l <- 0 # no leaching
 })
 parms0Noenz <- within(parms0, isEnzymeMassFlux <- FALSE)
 ```
@@ -149,6 +151,7 @@ runFaceSimulation <- function(
     iL <- iL*fInputInc
     cnIL <- cnIL*fInputInc
   }) 
+  derivSesam3a(0, xE, parmsC2)
   times <- seq(0,t2I, length.out = t2I*6 + 1)# record bymonthly
   res <- res2I <- as.data.frame(lsoda( 
     xE[1:length(.$x0) + 1], times, .$mod, parms = parmsC2))
@@ -179,10 +182,13 @@ resScen <- scenarios %>%
 
 ```{r}
 vars <- c("L","R","alpha","RL") 
-vars <- c("L","R","alpha","B","RL","cnRL","I") 
+vars <- c("L","R","alpha","B","RL","I") 
+vars <- c("L","R","alpha","B","RL","I","plantNUp","PhiTotal") 
 #vars <- c("alpha","B", "cnL", "PhiB","PhiTotal","immoPot", "CsynBC","CsynBN") 
 dsp <- resScen %>% 
-  #filter(scen != "NeglectEnzFlux") %>% 
+  filter(scen != "NeglectEnzFlux") %>% 
+  #filter(scen == "Sesam3a") %>% 
+  #filter(time >= 20, time <= 40) %>% 
   mutate(RL = R + L, cnRL = (R + L)/(RN + LN)) %>% 
   #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
   select(one_of(c("time","scen",vars))) %>% gather("Pool","value", vars)
@@ -212,6 +218,10 @@ ggplot(dst, aes(time, I, color = scen)) + geom_line()
 There is a slight increase of N in the systme due to change
 in N in microbial biomass is not accounted in N balance.
 
+Why do I need such a low iB?
+The potential immobilization must be low to shift the community to N limitation.
+If its increased (observed I turnovertime of within a day) microbes never
+become N limited. Is this reasonable?
 
 ## Result
 
