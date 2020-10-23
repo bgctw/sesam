@@ -48,10 +48,11 @@ parmsModel <- list(
   ,kR = 1/(20)        ##<< 1/(x years) # to demonstrate changes on short time scale
   ,kL = 5           ##<< 1/(x years)   # formerly 1 year
   ,aE = 0.001*365   ##<< C biomass allocated to enzymes 1/day /microbial biomass
-  ,m = 0.005*365    ##<< maintenance respiration rate   1/day /microbial biomass, 
+  ,m = 0.016*365    ##<< maintenance respiration rate   1/day /microbial biomass, 
   ## Bogedom Fig. 1
   ,tau = 1/60*365  ##<< biomass turnover rate (12 days)
-  ,eps = 0.5      ##<< carbon use efficiency for growth respiration
+  ,eps = 0.68      ##<< carbon use efficiency for growth respiration
+  #,eps = 0.5      ##<< carbon use efficiency for growth respiration
   #,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (part by predators 
   ,epsTvr = 0.45   ##<< carbon use efficiency of microbial tvr (part by predators 
   ## which respire and corresponding amount of N must be mineralized)
@@ -131,7 +132,7 @@ runFaceSimulation <- function(
   scen, t1S =20, t2I = 40, t3S = 70, parms = parms0
 ){
   # spinup to steady state
-  times <- seq(0,500, length.out = 2)
+  times <- seq(0,1000, length.out = 2)
   #times <- seq(0,5, length.out = 500)
   #setwd("../..");loadPkg()
   . <- scen
@@ -183,7 +184,7 @@ resScen <- scenarios %>%
 ```{r}
 vars <- c("L","R","alpha","RL") 
 vars <- c("L","R","alpha","B","RL","I") 
-vars <- c("L","R","alpha","B","RL","I","plantNUp","PhiTotal") 
+vars <- c("L","R","alpha","B","RL","I","plantNUp","PhiB","PhiTotal") 
 #vars <- c("alpha","B", "cnL", "PhiB","PhiTotal","immoPot", "CsynBC","CsynBN") 
 dsp <- resScen %>% 
   filter(scen != "NeglectEnzFlux") %>% 
