@@ -7,10 +7,7 @@ derivSesam3P <- function(
   t,x,parms
 ){
   ##details<<
-  ## Simplified version of sesam3s
-  ## model corresponding to Seam3 with enzyme levels computed by quasi steady state
-  ## Alpha as an explicit state variable that changes with turnover
-  ## Simplified computation of target based on current revenue based on current alpha
+  ## Sesam3a extended by Phosphorous
   x <- pmax(unlist(x),1e-16)      # no negative masses
   # compute steady state enzyme levels for N and for C limitation
   dRPot <- parms$kR * x["R"]
@@ -99,6 +96,12 @@ derivSesam3P <- function(
   } else {
     plantNUpPot
   }
+  plantPUpPot <- parms$kIPPlant*x["IP"]
+  plantPUp <- if (!is.null(parms$plantPUpAbs)) {
+    min(parms$plantPUpAbs, plantPUpPot)
+  } else {
+    plantPUpPot
+  }
   PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE)
   leachP <- parms$lP*x["IP"]
   PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE)
@@ -112,7 +115,7 @@ derivSesam3P <- function(
   dRP <- -decR/cpR  + parms$iR/parms$cpIR  + tvrP
   # here plant uptake as absolute parameter
   dI <-  +parms$iI  - plantNUp  - leach  + PhiU  + PhiB  + PhiTvr
-  dIP <-  +parms$iIP  - parms$kIPPlant*x["IP"]  - leachP  + PhiPU  + PhiPB  + PhiPTvr
+  dIP <-  +parms$iIP  - plantPUp  - leachP  + PhiPU  + PhiPB  + PhiPTvr
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
@@ -145,7 +148,7 @@ derivSesam3P <- function(
     .Machine$double.eps)  stop("biomass mass balance N error")
   if (diff( unlist(
     c(uP = uPOrg, usage = synE/parms$cpE + synB/parms$cpB + PhiPB )))^2 >
-    .Machine$double.eps)  stop("biomass mass balance N error")
+    .Machine$double.eps)  stop("biomass mass balance P error")
   if (!isTRUE(parms$isFixedS)) {
     if (diff(unlist(
       c(dB + dR + dL + tvrExC + resp,    parms$iR + parms$iL )))^2 >
@@ -158,8 +161,8 @@ derivSesam3P <- function(
     if (diff(unlist(
       c( dB/parms$cpB  + dRP + dLP + dIP + tvrExP
          , parms$iR/parms$cpIR  + parms$iL/parms$cpIL + parms$iIP -
-         parms$kIPPlant*x["IP"] - parms$lP*x["IP"])))^2 >
-      .Machine$double.eps )  stop("mass balance dN error")
+         plantPUp - parms$lP*x["IP"])))^2 >
+      .Machine$double.eps )  stop("mass balance dP error")
   }
   #
   # allowing scenarios with holding some pools fixed
@@ -176,6 +179,8 @@ derivSesam3P <- function(
   revLC <- dLPot / (parms$km*parms$kN + (1 - alphaC)*aeB)
   revRN <- dRPot/cnR / (parms$km*parms$kN + alphaN*aeB)
   revLN <- dLPot/cnL / (parms$km*parms$kN + alphaN*aeB)
+  revRP <- dRPot/cpR / (parms$km*parms$kN + alphaP*aeB)
+  revLP <- dLPot/cpL / (parms$km*parms$kN + alphaP*aeB)
   # net mic mineralization/immobilization when accounting uptake mineralization
   PhiBU <- PhiB + PhiU
   # total mineralization flux including microbial turnover
@@ -206,7 +211,7 @@ derivSesam3P <- function(
     , PhiPTvr = as.numeric(PhiPTvr)
     , PhiPBU = as.numeric(PhiPB + PhiPU)
     , immoPPot = as.numeric(immoPPot)
-    , resBalance$wELim
+    , structure(resBalance$wELim, names = paste0("lim",names(resBalance$wELim)))
     , alphaTarget = as.numeric(alphaTarget)
     , alphaC = as.numeric(alphaC), alphaN = as.numeric(alphaN), alphaP = as.numeric(alphaP)
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
@@ -216,10 +221,13 @@ derivSesam3P <- function(
     , tvrB = as.numeric(tvrB)
     , revRC = as.numeric(revRC), revLC = as.numeric(revLC)
     , revRN = as.numeric(revRN)
+    , revRP = as.numeric(revRP)
     , revLN = as.numeric(revLN)
+    , revLP = as.numeric(revLP)
     , CsynB = as.numeric(CsynB)
     , CsynBC = as.numeric(CsynBC)
     , CsynBN = as.numeric(CsynBN)
+    , CsynBP = as.numeric(CsynBP)
     #, pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) )
     #, NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
     #, dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)
@@ -229,56 +237,11 @@ derivSesam3P <- function(
   ))
 }
 
-.depr.balanceAlphaBetweenElementLimitations <- function(
-  ### compute balance between alphas of different element limitations
-  alpha    ##<< numeric vector of allocation coefficients for different elements
-  , CsynBE ##<< numeric vector of carbon availale for biomass synthesis
-  ## for each based on element limitaiton, first is carbon
-  , ce     ##<< numeric vector for C to E microbial biomass ratios
-  ## The first entry C to C is not considered.
-  , eps    ##<< numeric scalar: intrinsic carbon use eff. for biomass synthesis
-  , delta = 200  ##<< scalar smoothing factor
-  #, alphaC, alphaN, CsynBN, CsynBC, NsynBC, NsynBN
-){
-  ##details<< Select the alpha corresponding to the smallest CsynBE.
-  ## However, if elemental limitations are close,
-  ## do a smooth transition between corresponding alpha values
-  wCLim = min( .Machine$double.xmax, (min(CsynBE[-1]/CsynBE[1]))^delta )
-  NSynBE <- eps*CsynBE[2]/ce[2]
-  wNLim = min( .Machine$double.xmax, (min(CsynBE[-2]/CsynBE[2]))^delta )
-  ce[1] <- 1/eps  # so that EsynBE equals CSynBE for first component
-  wELim <- sapply( seq_along(CsynBE), function(iE){
-    EsynBE <- eps*CsynBE/ce[iE]  # available mass of E for biomass synthesis
-    # min to avoid  + Inf
-    wELimi <- min( .Machine$double.xmax, (min(EsynBE[-iE]/EsynBE[iE]))^delta )
-  })
-  #alpha <- (wCLim*alphaC + wNLim*alphaN) / (wCLim + wNLim)
-  alphaBalanced <- sum(wELim * alpha)/sum(wELim)
-  alphaBalanced
-}
-
-.depr.balanceAlphaBetweenElementLimitations <- function(
-  ### compute balance between alphas of different element limitations
-  alpha    ##<< numeric vector of allocation coefficients for different elements
-  , CsynBE ##<< numeric vector of carbon availale for biomass synthesis
-  , delta = 200  ##<< scalar smoothing factor
-){
-  ##details<< Select the alpha corresponding to the smallest CsynBE.
-  ## However, if elemental limitations are close,
-  ## do a smooth transition between corresponding alpha values
-  wELim <- sapply( seq_along(CsynBE), function(iE){
-    # min to avoid  + Inf
-    wELimi <- min( .Machine$double.xmax, (min(CsynBE[-iE]/CsynBE[iE]))^delta )
-  })
-  alphaBalanced <- sum(wELim * alpha)/sum(wELim)
-  alphaBalanced
-}
-
 balanceAlphaBetweenElementLimitations <- function(
   ### compute balance between alphas of different element limitations
   alpha    ##<< numeric vector of allocation coefficients for different elements
-  , CsynBE ##<< numeric vector of carbon availale for biomass synthesis
-  , tauB   ##<< scakar typical microbial turnover flux for scaling
+  , CsynBE ##<< numeric vector of carbon available for biomass synthesis
+  , tauB   ##<< scalar typical microbial turnover flux for scaling
   , delta = 10  ##<< scalar smoothing factor, the higher, the steeper the transition
 ){
   ##details<< Select the alpha corresponding to the smallest CsynBE.
