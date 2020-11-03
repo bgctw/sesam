@@ -120,8 +120,7 @@ x0 <- x0Steady <- c( #aE = 0.001*365
         ,LP = 100/parms0$cpIL    ##<< N poor substrate N pool
         ,I =  0.04               ##<< inorganic pool gN/m2
         ,IP =  0.04              ##<< inorganic pool gN/m2 
-        ,alphaR = 0.3            ##<< microbial community partitioning enzymes R
-        ,alphaP = 0.5            ##<< microbial community peroxidase enzymes attacking R but only cleaving P from it
+        , alpha = 0.5            ##<< microbial community partitioning [0,1]
 )
 ```
 
