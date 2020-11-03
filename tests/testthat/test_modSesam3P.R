@@ -1,4 +1,6 @@
-#require(testthat)
+-tmp.f <- function(){
+  require(testthat)
+}
 #test_file("tests/testthat/test_modSesam3P.R")
 context("modSesam3P")
 
@@ -51,6 +53,7 @@ parms0 <- list(
   , cpIR = 40
   , cpIL = 40*3
   , iBP = 0.38 * 10.57 # start with same as N
+  , kSP = 1/30 # 1/x years
 )
 parms0 <- within(parms0,{
 #  kmR <- kmL <- km
@@ -63,6 +66,7 @@ parms0 <- within(parms0,{
   iIP <- l      # assume no P inputs compensate for leaching
   plantNUpAbs <- iL / cnIL	# same litter input as plant uptake
   kIPlant <- plantNUpAbs <- 0			# no plant uptake
+  kLP <- kRP <- kSP
 })
 # for compatibility set C:N:P ratio of cell walls to that of biomass
 parms0 <- within(parms0,{
@@ -101,94 +105,150 @@ x0Nlim <- c( #aE = 0.001*365
   , alpha = 0.5              ##<< initial community composition
 )
 
-test_that("balanceAlphaBetweenElementLimitations",{
-  #balanceAlphaBetweenCNLimitations()
+test_that("computeSesam3PAllocationPartitioning carbon limited",{
+  # allocate only few to R (and most to L)
+  cnL <- x["L"]/x["LN"]
+  cnR <- x["R"]/x["RN"]
+  cpL <- x["L"]/x["LP"]
+  cpR <- x["R"]/x["RP"]
+  # with nearly pure C limitation, should match with old partitioning
+  wELim <- c(C = 1, N = 1e-5, P = 1e-5)
+  alpha0 <- c(L = 0.6, R = 0.4, LP = 1e-5, RP = 1e-5)
+  wELim <- wELim/sum(wELim); alpha0 <- alpha0/sum(alpha0)
+  alphaCLim <- computeSesam3PAllocationPartitioning(
+    dS = cbind(R = parms$kR*x["R"], L = parms$kL*x["L"]) [1,]
+    ,dSP = cbind(R = parms$kRP*x["R"], L = parms$kLP*x["L"])[1,]
+    , B = x["B"]
+    ,kmkN = parms$km*parms$kN, aE =  parms$aE
+    ,alpha = alpha0
+    ,wELim = wELim
+    ,beta = cbind(L = cnL, R = cpR, E = parms$cnE)[1,]
+    ,gamma = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
+  )
+  expect_equal(names(alpha), c("L", "R", "LP", "RP"))
+  expect_equal(sum(alpha),1)
+  alphaC <- structure(computeSesam3sAllocationPartitioning(
+    parms$kR*x["R"], parms$kL*x["L"],B = x["B"]
+    ,kmkN = parms$km*parms$kN, aE =  parms$aE
+    ,alpha = alpha0["R"]
+  ), names = "R")
+  expect_equal(alphaCLim["R"], alphaC, tolerance = 0.05 )
+})
+
+test_that("computeSesam3PAllocationPartitioning nitrogen limited",{
+  # allocate only few to R (and most to L)
+  cnL <- x["L"]/x["LN"]
+  cnR <- x["R"]/x["RN"]
+  cpL <- x["L"]/x["LP"]
+  cpR <- x["R"]/x["RP"]
+  # with nearly pure N limitation, should match with old partitioning
+  wELim <- c(C = 1e-5, N = 1, P = 1e-5)
+  alpha0 <- c(L = 0.6, R = 0.4, LP = 1e-5, RP = 1e-5)
+  wELim <- wELim/sum(wELim); alpha0 <- alpha0/sum(alpha0)
+  alphaNLim <- computeSesam3PAllocationPartitioning(
+    dS = cbind(R = parms$kR*x["R"], L = parms$kL*x["L"]) [1,]
+    ,dSP = cbind(R = parms$kRP*x["R"], L = parms$kLP*x["L"])[1,]
+    , B = x["B"]
+    ,kmkN = parms$km*parms$kN, aE =  parms$aE
+    ,alpha = alpha0
+    ,wELim = wELim
+    ,beta = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
+    ,gamma = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
+  )
+  expect_equal(names(alpha), c("L", "R", "LP", "RP"))
+  expect_equal(sum(alpha),1)
+  alphaN <- structure(computeSesam3sAllocationPartitioning(
+    parms$kR*x["R"]/cnR, parms$kL*x["L"]/cnL,B = x["B"]
+    ,kmkN = parms$km*parms$kN, aE =  parms$aE
+    ,alpha = alpha0["R"]
+  ), names = "R")
+  expect_equal(alphaNLim["R"], alphaN, tolerance = 0.05 )
+})
+
+
+
+test_that("computeElementLimitations",{
+  #computeElementLimitations()
   scen <- "C - limited"
-  alpha <- c(alphaC = 0.2, alphaN = 0.6, alphaP = 0.8)
-  CsynBE <- c(CsynBC = 40, CsynBN = 6000, CSynBP = 6000)
-  ce <- c(ccB = NA, cnB = 8, cnP = 8*8)
-  eps <- 0.5
-  alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE, tauB = 1)#, ce, eps  )
-  expect_equal(alphaBalanced$alpha, as.numeric(alpha[1]), tolerance = 1e-2)
+  CsynBE <- c(C = 40, N = 6000, P = 6000)
+  limE <- computeElementLimitations(
+     CsynBE, tauB = 1)#, ce, eps  )
+  expect_equal(names(limE), names(CsynBE))
+  expect_equal(limE["C"], c(C = 1), tolerance = 1e-2)
   #
   scen <- "N - limited"
-  CsynBE <- c(CsynBC = 6000, CsynBN = 40, CSynBP = 6000)
-  alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE, tauB = 1)#, ce, eps  )
-  expect_equal(alphaBalanced$alpha, as.numeric(alpha[2]), tolerance = 1e-2)
+  CsynBE <- c(C = 6000, N = 40, P = 6000)
+  limE <- computeElementLimitations(
+    CsynBE, tauB = 1)#, ce, eps  )
+  expect_equal(limE["N"], c(N = 1), tolerance = 1e-2)
   #
   scen <- "P - limited"
-  CsynBE <- c(CsynBC = 6000, CsynBN = 6000, CSynBP = 40)
-  alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE, tauB = 1)#, ce, eps  )
-  expect_equal(alphaBalanced$alpha, as.numeric(alpha[3]), tolerance = 1e-2)
+  CsynBE <- c(C = 6000, N = 6000, P = 40)
+  limE <- computeElementLimitations(
+    CsynBE, tauB = 1)#, ce, eps  )
+  expect_equal(limE["P"], c(P = 1), tolerance = 1e-2)
   #
   scen <- "CN - limited"
-  CsynBE <- c(CsynBC = 40, CsynBN = 40, CSynBP = 6000)
-  alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE, tauB = 1)#, ce, eps  )
-  expect_equal(alphaBalanced$alpha, as.numeric(mean(alpha[1:2])), tolerance = 1e-2)
+  CsynBE <- c(C = 40, N = 40, P = 6000)
+  limE <- computeElementLimitations(
+    CsynBE, tauB = 1)#, ce, eps  )
+  expect_equivalent(sum(limE[c("C","N")]), 1, tolerance = 1e-2)
+  expect_equivalent(limE["C"], limE["N"], tolerance = 1e-2)
   #
   scen <- "CN - limited, slightly more N limted"
-  CsynBE <- c(CsynBC = 40, CsynBN = 40 - 1e-1, CSynBP = 6000)
-  alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE, tauB = 1)#, ce, eps  )
-  alphaBalanced
-  expect_true(alphaBalanced$alpha > alpha[1] & alphaBalanced$alpha < alpha[2])
+  CsynBE <- c(C = 40, N = 40 - 1e-1, P = 6000)
+  limE <- computeElementLimitations(
+    CsynBE, tauB = 1)#, ce, eps  )
+  limE
+  expect_equivalent(sum(limE[c("C","N")]), 1, tolerance = 1e-2)
+  expect_true(limE["N"] > limE["C"])
   #
   scen <- "NP - limited"
-  CsynBE <- c(CsynBC = 6000, CsynBN = 40, CSynBP = 40)
-  alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE, tauB = 1)#, ce, eps  )
-  expect_equal(alphaBalanced$alpha, as.numeric(mean(alpha[2:3])), tolerance = 1e-2)
-  #
-  scen <- "NP - limited"
-  CsynBE <- c(CsynBC = 6000, CsynBN = 40, CSynBP = 40)
-  alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE, tauB = 1)#, ce, eps  )
-  expect_equal(alphaBalanced$alpha, as.numeric(mean(alpha[2:3])), tolerance = 1e-2)
+  CsynBE <- c(C = 6000, N = 40, P = 40)
+  limE <- computeElementLimitations(
+    CsynBE, tauB = 1)#, ce, eps  )
+  expect_equivalent(sum(limE[c("N","P")]), 1, tolerance = 1e-2)
+  expect_equivalent(limE["P"], limE["N"], tolerance = 1e-2)
   #
   scen <- "equal co-limitation"
-  CsynBE <- c(CsynBC = 40, CsynBN = 40, CSynBP = 40)
-  alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE, tauB = 1)#, ce, eps  )
-  expect_equal(alphaBalanced$alpha, as.numeric(mean(alpha)), tolerance = 1e-2)
+  CsynBE <- c(C = 40, N = 40, P = 40)
+  limE <- computeElementLimitations(
+    CsynBE, tauB = 1)#, ce, eps  )
+  expect_equivalent(limE["C"], limE["N"], tolerance = 1e-2)
+  expect_equivalent(limE["C"], limE["P"], tolerance = 1e-2)
+  expect_equivalent(sum(limE), 1, tolerance = 1e-2)
   #
   .tmp.f <- function(){
      epsNs <- seq(-0.4,+0.4, length.out = 51)
-     alphaBs <- sapply(epsNs, function(epsN){
-       CsynBE <- c(CsynBC = 40, CsynBN = 40 - epsN, CSynBP = 6000)
-       alphaBalanced <- balanceAlphaBetweenElementLimitations(
-         alpha, CsynBE, tauB = 1, delta = 5)$alpha
-         #alpha, CsynBE, tauB = 1)#, ce, eps  )
+     limN <- sapply(epsNs, function(epsN){
+       CsynBE <- c(C = 40, N = 40 - epsN, P = 6000)
+       alphaBalanced <- computeElementLimitations(
+         CsynBE, tauB = 1, delta = 5)["N"]
+         #CsynBE, tauB = 1)#, ce, eps  )
      })
-     plot(alphaBs ~ epsNs, type = "l")
-     alphaBs10 <- sapply(epsNs, function(epsN){
-       CsynBE <- c(CsynBC = 40, CsynBN = 40 - epsN, CSynBP = 6000)
-       alphaBalanced <- balanceAlphaBetweenElementLimitations(
-         alpha, CsynBE, tauB = 1, delta = 10)$alpha
+     plot(limN ~ epsNs, type = "l")
+     limN10 <- sapply(epsNs, function(epsN){
+       CsynBE <- c(C = 40, N = 40 - epsN, P = 6000)
+       alphaBalanced <- computeElementLimitations(
+         CsynBE, tauB = 1, delta = 10)["N"]
      })
-     lines(alphaBs10 ~ epsNs, lty = "dashed")
-     alphaBs20 <- sapply(epsNs, function(epsN){
-       CsynBE <- c(CsynBC = 40, CsynBN = 40 - epsN, CSynBP = 6000)
-       alphaBalanced <- balanceAlphaBetweenElementLimitations(
-         alpha, CsynBE, tauB = 1, delta = 20)$alpha
+     lines(limN10 ~ epsNs, lty = "dashed")
+     limN20 <- sapply(epsNs, function(epsN){
+       CsynBE <- c(C = 40, N = 40 - epsN, P = 6000)
+       alphaBalanced <- computeElementLimitations(
+         CsynBE, tauB = 1, delta = 20)["N"]
      })
-     lines(alphaBs20 ~ epsNs, lty = "dotted")
+     lines(limN20 ~ epsNs, lty = "dotted")
   }
   #
   scen <- "strongly C - limited (negative synthesis)"
   # negative carbon balance
-  alpha <- c(alphaC = 0.2, alphaN = 0.6, alphaP = 0.8)
-  CsynBE <- c(CsynBC = -40, CsynBN = 4, CSynBP = 4)
-  ce <- c(ccB = NA, cnB = 8, cnP = 8*8)
-  eps <- 0.5
-  alphaBalanced <- balanceAlphaBetweenElementLimitations(
-    alpha, CsynBE, tauB = 1)#, ce, eps  )
-  alphaBalanced
+  CsynBE <- c(C = -40, N = 4, P = 4)
+  limE <- computeElementLimitations(
+    CsynBE, tauB = 1)#, ce, eps  )
+  limE
   # think of accounting for negative biomass balance
-  expect_equal(alphaBalanced$alpha, as.numeric(alpha[1]), tolerance = 1e-2)
+  expect_equivalent(limE["C"], 1, tolerance = 1e-2)
 })
 
 test_that("same as sesam3a for fixed substrates", {

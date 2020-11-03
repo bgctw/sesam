@@ -243,10 +243,9 @@ derivSesam3P <- function(
   ))
 }
 
-balanceAlphaBetweenElementLimitations <- function(
-  ### compute balance between alphas of different element limitations
-  alpha    ##<< numeric vector of allocation coefficients for different elements
-  , CsynBE ##<< numeric vector of carbon available for biomass synthesis
+computeElementLimitations <- function(
+  ### compute element limitations
+  CsynBE   ##<< numeric vector of carbon available for biomass synthesis
   , tauB   ##<< scalar typical microbial turnover flux for scaling
   , delta = 10  ##<< scalar smoothing factor, the higher, the steeper the transition
 ){
@@ -257,104 +256,41 @@ balanceAlphaBetweenElementLimitations <- function(
     wELimi <- min( .Machine$double.xmax
                    , exp( delta/tauB*(min(CsynBE[-iE]) - CsynBE[iE])))
   })
-  names(wELim) <- names(alpha)
+  names(wELim) <- names(CsynBE)
   wELimNorm <- wELim/sum(wELim)
-  alphaBalanced <- sum(wELimNorm * alpha)
-  ##value<< a list with entries
-  list(
-    alpha = alphaBalanced  ##<< numeric scalar: balanced alpha
-    , wELim = wELimNorm    ##<< numeric vector: fractional element limitations
-  )
+  ##value<< numeric vector: fractional element limitations with names
+  ## corresponding to names of CsynBE
 }
 
-computeSesam3sAllocationPartitioning <- function(
-  ###  allocation partitioning alpha assuming enzymes to be in quasi steady state
-  dR		##<< numeric vector of potential decomposition flux from
-  ## residue pool (gC or gN/time)
-  ,dL		##<< numeric vector of potential decomposition flux from labile pool
+#' @export
+computeSesam3PAllocationPartitioning <- function(
+  ###  allocation partitioning alpha of four enzymes and biomineralization
+  dS    ##<< numeric vector (L,R) of potential depolymerization C-fluxes
+  ,dSP  ##<< numeric vector of potential biomineralizationdepolymerization P-fluxes
   ,B		##<< numeric vector of microbial biomass carbon
   ,kmkN	##<< numeric vector of product of (half-saturation constant in
   ## decomposition equation) x (enzyme turnover rate)
   ,aE		##<< numeric vector of proportion of microbial biomass allocated
   ## to enzyme production per time
-  ,alpha  ##<< numeric vector of current community allocation coefficients in (0,1)
+  ,alpha  ##<< numeric vector (L,R,LP,RP) of current community allocation
+  ## coefficients in (0,1)
+  ,wELim   ##<< numeric vector (nElement) of weights of elemental limitations
+  ,beta    ##<< numeric vector of C/N ratios of substrates and enzymes
+  ,gamma   ##<< numeric vector of C/P ratios of substrates (L,R) and enzymes (E)
 ){
-  revL = dL/(kmkN + (1 - alpha)*aE*B)
-  revR = dR/(kmkN + alpha*aE*B)
-  alphaTarget = revR/(revL + revR)
-  structure(alphaTarget, names = rep("alpha",length(alphaTarget)))
-  ##value<< sacalar numeric revenue-optimal alpha value
+  synEnz <- aE*B
+  cost <- (kmkN + alpha*synEnz) *
+    (wELim["C"] + wELim["N"]/beta["E"] + wELim["P"]/gamma["E"])
+  returnL <- dS["L"]*(wELim["C"] + wELim["N"]/beta["L"] + wELim["P"]/gamma["L"])
+  returnR <- dS["R"]*(wELim["C"] + wELim["N"]/beta["R"] + wELim["P"]/gamma["R"])
+  returnLP <- dSP["L"]*(wELim["P"])
+  returnRP <- dSP["R"]*(wELim["P"])
+  returnE <- structure(c(returnL, returnR, returnLP, returnRP),
+                       names = c("L","R","LP","RP"))
+  revenue <- returnE/cost[names(returnE)]
+  alpha <- revenue/sum(revenue)
+  alpha
+  ##value<< numeric vector of revenue-optimal alpha for enzymes L,R,LP,RP
 }
-attr(computeSesam3sAllocationPartitioning,"ex") <- function(){
-  parms <- list(
-    cnB = 11
-    ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
-    #,cnIR = 4.5   ##<< between micr and enzyme signal
-    ,cnIR = 7      ##<< between micr and enzyme signal
-    ,cnIL = 30     ##<< N poor substrate, here no inorganic N supply,
-    # need to have low C/N for CO2 increase scenario
-    ,kN = 60       ##<< /yr enzyme turnover 60 times a year, each 6 days ->
-    # fast priming pulses
-    ,km = 0.05     ##<< enzyme half-saturation constant, in magnitude of enzymes,
-    # determined by kN
-    ,kR = 1/(10)   ##<< 1/(x years) # to demonstrate changes on short time scale
-    ,kL = 5        ##<< 1/(x years) # formerly 1 year
-    ,aE = 0.001*365   ##<< C biomass allocated to enzymes 1/day /microbial biomass
-  )
-  x <- c( #aE = 0.001*365
-    B = 17                     ##<< microbial biomass
-    ,ER  = 2*parms$km                  ##<< total enzyme pool
-    ,EL  = 4*parms$km                   ##<< total enzyme pool
-    ,R = 1000                ##<< N rich substrate
-    ,RN = 1000/parms$cnIR   ##<< N rich substrate N pool
-    ,L = 100                 ##<< N poor substrate
-    ,LN = 100/parms$cnIL    ##<< N poor substrate N pool
-    ,I =  0.4                ##<< inorganic pool gN/m2
-  )
-  B <- x["B"]
-  # allocate only few to R (and most to L)
-  computeSesam3sAllocationPartitioning(
-    dR = parms$kR*x["R"], dL = parms$kL*x["L"], B = B
-    ,kmkN = parms$km*parms$kN, aE =  parms$aE
-    , alpha = 0.5
-  )
-  # if decL is small, allocate much to R
-  computeSesam3sAllocationPartitioning(
-    dR = parms$kR*x["R"], dL = parms$kL*x["L"]/500, B = B
-    ,kmkN = parms$km*parms$kN, aE =  parms$aE
-    , alpha = 0.5
-  )
-  # equal partitioning
-  computeSesam3sAllocationPartitioning(
-    dR = 1, dL = 1, B = B
-    ,kmkN = parms$km*parms$kN, aE =  parms$aE
-    , alpha = 0.5
-  )
-  # allocate 2/3 to R
-  computeSesam3sAllocationPartitioning(
-    dR = 2, dL = 1, B = B
-    ,kmkN = parms$km*parms$kN, aE =  parms$aE
-    , alpha = 0.5
-  )
-  # with missing dL, allocate all enzymes to R
-  computeSesam3sAllocationPartitioning(
-    dR = 2, dL = 0, B = B
-    ,kmkN = parms$km*parms$kN, aE =  parms$aE
-    , alpha = 0.5
-  )
-  # with missing dR, allocate zero enzymes to R
-  computeSesam3sAllocationPartitioning(
-    dR = 0, dL = 1, B = B
-    ,kmkN = parms$km*parms$kN, aE =  parms$aE
-    , alpha = 0.5
-  )
-  # with no decomposition, return NaN
-  computeSesam3sAllocationPartitioning(
-    dR = 0, dL = 0, B = B
-    ,kmkN = parms$km*parms$kN, aE =  parms$aE
-    , alpha = 0.5
-  )
-}
-
 
 
