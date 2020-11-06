@@ -2,6 +2,7 @@
 
 # gC/m2 and gN/m2, /yr
 
+#' @export
 derivSesam3P <- function(
   ### Soil Enzyme Steady Allocation model including phosporous dynamics
   t,x,parms
@@ -12,6 +13,8 @@ derivSesam3P <- function(
   # compute steady state enzyme levels for N and for C limitation
   dRPot <- parms$kR * x["R"]
   dLPot <- parms$kL * x["L"]
+  dLPPot <- parms$kLP * x["LP"] # potential biomineralization
+  dRPPot <- parms$kRP * x["RP"]
   immoPot <- parms$iB * x["I"]
   immoPPot <- parms$iBP * x["IP"]
   cnR <- x["R"]/x["RN"]
@@ -22,8 +25,9 @@ derivSesam3P <- function(
   cpL <- x["L"]/x["LP"]
   cpE <- parms$cpE
   cpB <- parms$cpB
-  alpha <- c(L = NA, R = x["alphaR"], P = x["alphaP"])
-  alpha["L"] <- 1 - sum(alpha, na.rm = TRUE)
+  # one state variable less, here LP, because alphas sum to one
+  alpha <- cbind(L = x["alphaL"], R = x["alphaR"], LP = NA, RP = x["alphaRP"])[1,]
+  alpha["LP"] <- 1 - sum(alpha, na.rm = TRUE)
   B <- x["B"]
   aeB <- parms$aE*B        # aeB without associated growth respiration
   kmN <- parms$kmN #parms$km*parms$kN
@@ -34,7 +38,8 @@ derivSesam3P <- function(
   # enzyme limitations of decomposition
   decL <- dLPot * alpha["L"]*aeB/(kmN + alpha["L"]*aeB)
   decR <- dRPot * alpha["R"]*aeB/(kmN + alpha["R"]*aeB)
-  decP <- (dRPot + decRL) * alphaRP*aeB/(kmN + alpha["P"]*aeB)
+  decLP <- dLPPot * alpha["LP"]*aeB/(kmN + alpha["LP"]*aeB)
+  decRP <- dRPPot * alpha["RP"]*aeB/(kmN + alpha["RP"]*aeB)
   #
   tvrERecycling <- parms$kNB*synE
   uNOrg <- parms$nu*(decL/cnL + decR/cnR + tvrERecycling/cnE)
@@ -53,30 +58,22 @@ derivSesam3P <- function(
   }
   PhiB <- uNOrg - synB/cnB - synE/cnE
   PhiPB <- uPOrg - synB/cpB - synE/cpE
-  alphaC <- computeSesam3AllocationPartitioning(
-    dR = dRPot, dL = dLPot, B = B
-    , kmkN = kmN, aE = parms$aE
-    , alpha = alpha
+  # community composition and enzyme allocation
+  limE <- computeElementLimitations(
+    cbind(C = CsynBC, N = CsynBN, P = CsynBP)[1,]
+    , tauB = parms$tau*B)
+  alphaTarget <- computeSesam3PAllocationPartitioning(
+    dS = cbind(R = dRPot, L = dLPot)[1,]
+    ,dSP = cbind(R = dRPPot, L = dLPPot)[1,]
+    , B = B
+    ,kmkN = kmN, aE =  parms$aE
+    ,alpha = alpha
+    ,wELim = wELim
+    ,beta = cbind(L = cnL, R = cpR, E = parms$cnE)[1,]
+    ,gamma = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
   )
-  alphaN <- computeSesam3PAllocationPartitioning(
-    dR = dRPot/cnR, dL = dLPot/cnL, B = B
-    , kmkN = kmN, aE = parms$aE
-    , alpha = alpha
-  )
-  alpha["P"] <- computeSesam3PAllocationPartitioning(
-    dR = dRPot/cpR, dL = dLPot/cpL, B = B
-    , kmkN = kmN, aE = parms$aE
-    , alpha = alpha
-  )
-  resBalance <- balanceAlphaBetweenElementLimitations3P(
-    structure(c(alphaC, alphaN, alpha["P"]), names = c("C","N","P"))
-    , c(CsynBC, CsynBN, CsynBP)
-    , tauB = parms$tau*B
-  )
-  alphaTarget <- resBalance$alpha
   # microbial community change as fast as microbial turnover
-  dAlphaR <- (alphaTarget["R"] - alpha["R"]) *  (parms$tau + abs(synB)/B)
-  dAlphaP <- (alphaTarget["P"] - alpha["P"]) *  (parms$tau + abs(synB)/B)
+  dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
   #
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
   respO <- uC - (synE/parms$eps + synB + rG + rM)
@@ -134,8 +131,10 @@ derivSesam3P <- function(
   }
   #
   resDeriv <- structure(as.numeric(
-    c( dB, dR, dRN, dRP, dL, dLN, dLP, dI, dIP, dAlpha))
-    ,names = c("dB","dR","dRN","dRP","dL","dLN","dLP","dI","dIP","dAlpha"))
+    c( dB, dR, dRN, dRP, dL, dLN, dLP, dI, dIP
+       , dAlpha["L"], dAlpha["R"], dAlpha["RP"]))
+    ,names = c("dB","dR","dRN","dRP","dL","dLN","dLP","dI","dIP"
+               ,"dAlphaL","dAlphaR","dAlphaRP"))
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   sqrEps <- sqrt(.Machine$double.eps)
   # parms$iL - (decL + dL)
@@ -174,10 +173,8 @@ derivSesam3P <- function(
   if (isTRUE(parms$isFixedI)) { resDeriv["dI"] <-  resDeriv["dIP"] <- 0   }
   #
   # further computations just for output for tacking the system
-  ER <- alpha["R"] * parms$aE * x["B"] / parms$kN
-  EL <- alpha["L"] * parms$aE * x["B"] / parms$kN
-  limER <- ER / (parms$kmR + ER)
-  limEL <- EL / (parms$kmL + EL)
+  limZ <- alpha * aeB / (parms$kmN + alpha * aeB)
+  rev
   revRC <- dRPot / (parms$km*parms$kN + alphaC["R"]*aeB)
   revLC <- dLPot / (parms$km*parms$kN + alphaC["L"]*aeB)
   revRN <- dRPot/cnR / (parms$km*parms$kN + alphaN["R"]*aeB)

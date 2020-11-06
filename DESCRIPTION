@@ -4,9 +4,9 @@ Version: 0.5.230
 Author: Thomas Wutzler
 Maintainer: Thomas Wutzler <twutz@bgc-jena.mpg.de>
 Description: Aggregating the SEAM model.
-Depends: R (>= 1.14.0), deSolve
+Depends: R (>= 3.5.0), deSolve
 Imports: twModMeta
 Suggests: testthat
 License: GPL-2
 LazyLoad: yes
-RoxygenNote: 6.1.1
+RoxygenNote: 7.1.1

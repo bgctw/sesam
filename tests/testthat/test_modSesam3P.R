@@ -86,7 +86,9 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   , LP = 200/parms0$cpIL     ##<< N poor substrate P pool
   , I =  1                   ##<< inorganic N pool
   , IP =  1                  ##<< inorganic P pool
-  , alpha = 0.5              ##<< initial community composition
+  , alphaL = 0.4              ##<< initial community composition
+  , alphaR = 0.5              ##<< initial community composition
+  , alphaRP = 0.1              ##<< initial community composition
 )
 x <- x0
 getX0NoP <- function(x0){x0[setdiff(names(x0),c("RP","LP","IP"))]}
@@ -115,7 +117,7 @@ test_that("computeSesam3PAllocationPartitioning carbon limited",{
   wELim <- c(C = 1, N = 1e-5, P = 1e-5)
   alpha0 <- c(L = 0.6, R = 0.4, LP = 1e-5, RP = 1e-5)
   wELim <- wELim/sum(wELim); alpha0 <- alpha0/sum(alpha0)
-  alphaCLim <- computeSesam3PAllocationPartitioning(
+  alpha <- computeSesam3PAllocationPartitioning(
     dS = cbind(R = parms$kR*x["R"], L = parms$kL*x["L"]) [1,]
     ,dSP = cbind(R = parms$kRP*x["R"], L = parms$kLP*x["L"])[1,]
     , B = x["B"]
@@ -132,7 +134,7 @@ test_that("computeSesam3PAllocationPartitioning carbon limited",{
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     ,alpha = alpha0["R"]
   ), names = "R")
-  expect_equal(alphaCLim["R"], alphaC, tolerance = 0.05 )
+  expect_equal(alpha["R"], alphaC, tolerance = 0.05 )
 })
 
 test_that("computeSesam3PAllocationPartitioning nitrogen limited",{
@@ -145,7 +147,7 @@ test_that("computeSesam3PAllocationPartitioning nitrogen limited",{
   wELim <- c(C = 1e-5, N = 1, P = 1e-5)
   alpha0 <- c(L = 0.6, R = 0.4, LP = 1e-5, RP = 1e-5)
   wELim <- wELim/sum(wELim); alpha0 <- alpha0/sum(alpha0)
-  alphaNLim <- computeSesam3PAllocationPartitioning(
+  alpha <- computeSesam3PAllocationPartitioning(
     dS = cbind(R = parms$kR*x["R"], L = parms$kL*x["L"]) [1,]
     ,dSP = cbind(R = parms$kRP*x["R"], L = parms$kLP*x["L"])[1,]
     , B = x["B"]
@@ -162,10 +164,8 @@ test_that("computeSesam3PAllocationPartitioning nitrogen limited",{
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     ,alpha = alpha0["R"]
   ), names = "R")
-  expect_equal(alphaNLim["R"], alphaN, tolerance = 0.05 )
+  expect_equal(alpha["R"], alphaN, tolerance = 0.05 )
 })
-
-
 
 test_that("computeElementLimitations",{
   #computeElementLimitations()
@@ -251,6 +251,7 @@ test_that("computeElementLimitations",{
   expect_equivalent(limE["C"], 1, tolerance = 1e-2)
 })
 
+# fixed substrate ---------------------------------------------------------
 test_that("same as sesam3a for fixed substrates", {
   parmsFixedS <- within(parms0,{
     isFixedS <- TRUE
@@ -259,6 +260,7 @@ test_that("same as sesam3a for fixed substrates", {
     isTvrNil <- TRUE
     iR <- 160
   })
+  ans0 <- derivSesam3P(0, x0, parms = parms0)
   ans0 <- derivSesam3P(0, x0, parms = parmsFixedS)
   times <- seq(0, 2100, length.out = 2)
   #times <- seq(0,2100, length.out = 101)
@@ -309,6 +311,9 @@ test_that("same as sesam3a for fixed substrates", {
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-2)
   #expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
 })
+
+# substrate feedbacks ---------------------------------------------------------
+
 
 test_that("same as sesam3a with substrate feedbacks", {
   parmsInit <- within(parms0, {isFixedI <- TRUE})
