@@ -268,8 +268,67 @@ $$
 The derivative has to be recomputed with the adjusted rates.
 
 ## Example complex model
-XXTODO single inorganic N pool and sum of given plant uptake and immobilization 
-to cross the potential fluxes.
 
+We simulate an inorganic N pool that feeds both, plant uptake, and 
+immobilization of N-limited microbial biomass.
+Microbial biomass is N-limited if there is not enough nitrogen from
+decomposition of organic matter and immobilization of the inorganic N pool.
+
+### System in two modes
+```{r}
+x0 = c(B = 150, IN = 8) # mol C biomass, mol inorganic N
+# time in days
+parms <- list(
+  kINPlant = 1/10 # 10 days turnover time
+  ,uINPlant = 0.9
+  ,decS = 0.9*10 #uINPlant*cnS same N returned to soil as taken up
+  ,eps = 0.6 # microbial carbon use efficiency
+  ,tau = 1/20
+  ,cnIS = 10 # litter input
+  ,cnB = 8
+  ,iB = 1/5 # 2*uINPlant
+  ,iIN = x0["IN"]*1/200  # compensating for leaching
+  ,lN = 1/200
+)
+```
+
+```{r}
+res <- ode(x0, 0:300, deriv_inorg_nitrogen, parms) %>% as.data.frame()
+x1 <- unlist(res[nrow(res),1 +seq_along(x0)])
+x1
+dx <- deriv_inorg_nitrogen(0, x1, parms)
+dx
+```
+The system runs into a steady state, where IN is relatively large, so that 
+microbial biomass is C-limited.
+
+```{r}
+res %>% 
+  select(time, B, IN) %>% 
+  pivot_longer(-time) %>% 
+  ggplot(aes(time, value, col = name)) + geom_line()
+```
+
+With increased leaching, the system runs into a steady state with low IN pool
+and the microbial biomass becomes N-limited, because the potential 
+immobilization flux is too small.
+```{r}
+parmsNlim <- within(parms, lN <- 1)
+res2 <- ode(x1, 0:300, deriv_inorg_nitrogen, parmsNlim) %>% as.data.frame()
+x2 <- unlist(res2[nrow(res2),1 +seq_along(x0)])
+x2
+dx <- deriv_inorg_nitrogen(0, x2, parms)
+dx
+
+```
+```{r}
+res2 %>% 
+  select(time, B, IN) %>% 
+  pivot_longer(-time) %>% 
+  ggplot(aes(time, value, col = name)) + geom_line()
+```
+### Simulating the change in IN on increased leaching
+
+XX
 
 
