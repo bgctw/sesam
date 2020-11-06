@@ -1,0 +1,275 @@
+---
+title: "Exploring strategies for long time steps"
+output: html_notebook
+---
+
+The large earth system models are formulated as discrete time step models.
+If the time steps are long, large fluxes change the pool in a single step,
+such that the computed rate at the beginning of the time step is not
+representative any more.
+
+Here, we explore, how an adjustment of the rate 
+parameters can be used to approximate the real behaviour during that
+time.
+
+```{r, echo=FALSE, results='hide', message=FALSE}
+library(ggplot2)
+library(grid)   #unit
+library(RColorBrewer) # brewer.pal
+library(tidyr)
+library(dplyr)
+library(purrr)
+library(tibble)
+library(deSolve)
+
+myColors <- brewer.pal(5,"Dark2")	
+.simpleCap <- function(s) {
+    paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
+}
+colScale <- scale_colour_manual(name = "Variant",values = myColors)
+.treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
+sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
+
+#themeDefault <- theme_classic()  
+themeDefault <- theme_bw()  
+```
+
+# Simulate a first order decay
+
+We simulate a simple first order decay with output at times 0,1,...
+The model is
+$$
+{dx \over dt} = -k \, x(t) + i
+$$
+with amount $x$ (e.g. unit mol nitrogen) changing with time $t$ (e.g. unit day)
+with a first-order output flux and an
+input flux which is independent of $x$. The input flux can depend on $t$ but
+for the derivation here, is assumed that the change within one time step
+is small.
+
+A model function that complies with the deSolve::ode requirements is:
+
+```{r}
+deriv <- function(t, x, parms){ list(
+  dx = c(x = -parms$k*x + parms$i),
+  output = c(decomp = -parms$k*x)
+  )}
+```
+
+This simple model has the analytic solution
+$$
+x(t) = \left(x_0 - {i \over k}\right)e^{-k t} + {i \over k}
+$$
+```{r}
+fAnalytic <- function(x0,times,k,i) (x0 - i/k)*exp(-k*times) + (i/k)
+```
+
+Such a model should be simulated using a solver that can adjust the time
+steps depending on the magnitude of changes. However, in many simulators
+a discrete time step solver is implemented, similar to the following code.
+
+```{r}
+solveDiscrete <- function(y, tstep, func, tout, parms) {
+  t <- seq(min(tout),max(tout),by = tstep)
+  nstep <- length(t) - 1
+  x <- c(x0, numeric(nstep))
+  for(i in 1:nstep) {
+    x[i+1] <- x[i] + func(t[i], x[i], parms)[[1]]*tstep
+  }
+  ans <- x[t %in% tout]
+  ans
+}
+```
+
+We now look at the simulation results obtained using different time steps
+in the solver.
+
+```{r}
+tsteps <- c(0.1,0.5,1)
+parms <- list(k = 0.9, i = 0.2)
+x0 <- 10
+times <- 0:4
+sims <- tsteps %>% map_df(function(tstep){
+  tibble(
+    solver = "discrete",
+    tstep = as.character(tstep),
+    t = times,
+    x = solveDiscrete(x0, !!tstep, deriv, times, parms = parms)
+  )
+})
+```
+
+And add the analytic solution.
+```{r}
+df <- sims %>% bind_rows(tibble(
+  solver = "analytic",
+  tstep = "analytic",
+  t = times,
+  x = fAnalytic(x0,times,parms$k, parms$i)
+))
+```
+
+```{r echo=FALSE}
+df %>% ggplot(aes(t,x, color = tstep)) + geom_point() + geom_line() + themeDefault
+```
+There is a large error in the first time step. Lets demonstrate this.
+
+## Look at first time step
+```{r}
+df1 <- tibble(
+  t = seq(0,1,length.out = 20),
+  sim_1 = x0 + deriv(0, x0, parms = parms)[[1]]*t,
+  analytic = fAnalytic(x0,t,parms$k, parms$i)
+)
+df1 %>% pivot_longer(sim_1:analytic,"tstep", values_to = "x") %>% 
+  ggplot(aes(t,x, color = tstep)) + geom_line() + themeDefault
+```
+The problem is that the rate, i.e. the slope, changes with the pool within
+the time step.
+This numeric problem leads to awkward model adjustments, such as checking that
+a negative change within one time step is not larger than the current pool size
+or discussions about simulation differences whether microbes or plants uptake from the
+same pool.
+
+## Derivation of adjusted rate
+Instead of adjusting the model, we suggest a practical solution of
+adjusting decay rates in the solver.
+
+We derive an adjusted rate, $k_c$, for the discrete time step 
+so that the change within the time step 
+is equal to the analytic solution, i.e. that the $x(t_s)$ is the same.
+
+$$
+x_{\text{corrected linear}}(t_s) = x_{\text{analytic}}(t_s) 
+\\
+x_0 + (i-k_c x_0) t_s =  \left(x_0 - {i \over k}\right)e^{-k t_s} + {i \over k}
+\\
+k_c = {i \over x_0} - {1 \over t_s} \left( {i \over k x_0} - 1\right)
+\left( 1 - e^{-k t_s}\right) 
+$$
+
+```{r}
+correct_rate <- function(k,i,x0,ts) 
+  #i/x0 -1/ts*((1 - i/k/x0)*exp(-k*ts) + i/k/x0 -1)
+  i/x0 -1/ts*(i/k/x0 - 1)*(1 - exp(-k*ts))
+parmsC1 <- within(parms, k <- correct_rate(k, i, x0, 1))
+c(parms$k, parmsC1$k)
+```
+The rate was adjusted from 0.9 to 0.6 so that the prediction after one time
+step coincides with the analytic solution.
+
+```{r echo=FALSE}
+df1 <- df1 %>% mutate(
+  sim_C = x0 + deriv(0, x0, parms = parmsC1)*t
+)
+df1 %>% pivot_longer(sim_1:sim_C,"tstep", values_to = "x") %>% 
+  ggplot(aes(t,x, color = tstep)) + geom_line() + themeDefault
+```
+## Applying the correction in the solver
+
+The correction depends on the current state. Therefore, it needs to be
+computed at each time step.
+For the simple model, the corrections does not depend on current derivative, 
+$dx$, and therefore could be applied in each time step without additional cost.
+However, for more complex models (see below) we allow the correction to
+depend on uncorrected $dx$. Therefore, if the correction is applied,
+it requires a second evaluation of the derivative, i.e. the model.
+
+The updated solver now takes a function that can adjust the parameters.
+After computing the uncorrected derivative, this function is called and
+asked to correct the parameters if necessary. The default does not adjust
+any parameters.
+
+If the parameters were corrected then the derivative is recomputed with the
+adjusted parameters.
+
+```{r}
+adjust_parms_identity <- function(parms, x, dx, ts) 
+  list(is_adjusted = FALSE, parms = parms)
+solveDiscreteAdj <- function(y, tstep, func, tout, parms
+                              ,f_adjust_parms = adjust_parms_identity) {
+  t <- seq(min(tout),max(tout),by = tstep)
+  nstep <- length(t) - 1
+  x <- c(x0, numeric(nstep))
+  for(i in 1:nstep) {
+    dx <- dx0 <- func(t[i], x[i], parms)[[1]]
+    ans_adjust <- f_adjust_parms(parms, x[i], dx, tstep)
+    if (isTRUE(ans_adjust$is_adjusted)){
+      dx <- func(t[i], x[i], ans_adjust$parms)[[1]]
+    }
+    x[i+1] <- x[i] + dx * tstep
+  }
+  ans <- x[t %in% tout]
+  ans
+}
+```
+
+For the first order decay model, the correction recomputes the decay rate
+based on the current state and the time step. It only corrects if the change 
+in $x$ is larger than 20% in order to save computation time.
+
+```{r}
+adjust_parms_firstorder <- function(p, x, dx, ts) {
+  if (abs(dx*ts/x) <= 0.2) return(adjust_parms_identity(p,x,dx,ts))
+  list(
+    is_adjusted = TRUE, 
+    parms = within(p, k <- correct_rate(p$k,p$i,x,ts)))
+}
+tsteps <- c(1,0.5,0.1)
+simsAdj <- tsteps %>% map_df(function(tstep){
+  tibble(
+    solver = "discrete_adjusted",
+    tstep = as.character(tstep),
+    t = times,
+    x = solveDiscreteAdj(x0, !!tstep, deriv, times, parms = parms
+                         ,f_adjust_parms = adjust_parms_firstorder)
+  )
+})
+```
+
+For this simple model this leads to a good solution.
+```{r echo=FALSE}
+df %>% bind_rows(simsAdj) %>% 
+  ggplot(aes(t,x, color = solver, linetype = tstep)) + geom_point() + geom_line() + themeDefault
+```
+
+# Strategy for more complex models
+
+The derivation of the adjusted rate is specific for the simple first order
+decay model with input. For more complex models, we cannot rely on an
+analytic solution to do a similar derivation.
+
+However, many formulations are similar to this simple model where fluxes 
+can be lumped into these two parts where a flux is first-order to $x$ and
+another flux is independent of $x$.
+
+In the SESAM model inorganic N pool, $x$, there is microbial 
+mineralization/immobilization, plant uptake, nitrogen deposition and leaching. 
+While N deposition and microbial mineralization are independent of $x$ 
+and leaching is first order in $x$, 
+plant uptake and microbial immobilization are complex formulations of many
+parameters, inputs, and other pools.
+However, SESAM is formulated in a way that these fluxes are take into account
+a potential flux that depends on $x$. We can express the first order rate in 
+terms of these fluxes $k = leach/x + immo/x + plantup/x$ and constant flux
+$i = Ndepo + Nmin$, based on first computation of the derivative 
+with unadjusted rates. 
+Then we need to downscale each of the three fluxes by factor $k_C \over k$. 
+Hence, we
+set the leaching rate ${l_N}_C = l_N {k_c \over k}$ and potential immobilization
+to 
+$$
+{i_{BN}}_C = {immo \over x} {k_C \over k}
+$$
+Similar potential plant uptake: 
+$$
+{k_{I_N P}}_C = {plantup \over x} {k_c \over k}
+$$
+The derivative has to be recomputed with the adjusted rates.
+
+## Example complex model
+XXTODO single inorganic N pool and sum of given plant uptake and immobilization 
+to cross the potential fluxes.
+
+
+
