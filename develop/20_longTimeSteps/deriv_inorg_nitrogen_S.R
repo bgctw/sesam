@@ -38,6 +38,7 @@ deriv_inorg_nitrogen_S <-function(t, x, p){
   list(
     dx = cbind(B = dB, SC = dSC, SN = dSN, IN = dIN)[1,],
     cbind(uINPlant_pot = uINPlant_pot, uINPlant_req = uINPlant_req,
+          plant_uptake = plant_uptake,
           immoNPot = immoNPot, immoN = immoN,
           minN = minN, minNPred = minNPred,
           leachN = leachN, depoN = depoN,

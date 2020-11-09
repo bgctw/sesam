@@ -69,7 +69,22 @@ steps depending on the magnitude of changes. However, in many simulators
 a discrete time step solver is implemented, similar to the following code.
 
 ```{r}
-# see solve_discrete_adj.R
+solveDiscrete <- function(y, tout, func, parms, tstep) {
+  t <- seq(min(tout),max(tout),by = tstep)
+  nstep <- length(t)
+  x <- rbind(y, matrix(NA_real_, nrow = nstep, ncol = length(y)))
+  outputs_list <- vector("list", nstep)
+  for(i in 1:nstep) {
+    resFunc <- func(t[i], x[i,], parms)
+    x[i+1,] <- x[i,] + resFunc[[1]] * tstep
+    outputs_list[[i]] <- resFunc[[2]]
+  }
+  isOut <- c(t %in% tout)
+  outputs_mat <- outputs_list[isOut] %>% bind_rows()
+  ans <- cbind(time = t[isOut], x[c(isOut,FALSE),,drop = FALSE], outputs_mat)
+  rownames(ans) <- NULL
+  ans
+}
 ```
 
 We now look at the simulation results obtained using different time steps
@@ -163,7 +178,8 @@ computed at each time step.
 For the simple model, the corrections does not depend on current derivative, 
 $dx$, and therefore could be applied in each time step without additional cost.
 However, for more complex models (see below) we allow the correction to
-depend on uncorrected $dx$. Therefore, if the correction is applied,
+depend on uncorrected result of the derivative. 
+Therefore, if the correction is applied,
 it requires a second evaluation of the derivative, i.e. the model.
 
 The updated solver now takes a function that can adjust the parameters.
@@ -175,7 +191,30 @@ If the parameters were corrected then the derivative is recomputed with the
 adjusted parameters.
 
 ```{r}
-# see solveDiscreteAdj.R
+adjust_parms_identity <- function(parms, x, dx, ts)
+  list(is_adjusted = FALSE, parms = parms)
+solveDiscreteAdj <- function(y, tout, func, parms, tstep
+                             ,f_adjust_parms = adjust_parms_identity) {
+  t <- seq(min(tout),max(tout),by = tstep)
+  nstep <- length(t)
+  x <- rbind(y, matrix(NA_real_, nrow = nstep, ncol = length(y)))
+  outputs_list <- vector("list", nstep)
+  for(i in 1:nstep) {
+    resFunc <- func(t[i], x[i,], parms)
+    ans_adjust <- f_adjust_parms(parms, x[i,], resFunc, tstep)
+    if (isTRUE(ans_adjust$is_adjusted)){
+      resFunc <- func(t[i], x[i,], ans_adjust$parms)
+    }
+    x[i+1,] <- x[i,] + resFunc[[1]] * tstep
+    outputs_list[[i]] <- resFunc[[2]]
+  }
+  isOut <- c(t %in% tout)
+  outputs_mat <- outputs_list[isOut] %>% bind_rows()
+  ans <- cbind(time = t[isOut], x[c(isOut,FALSE),,drop = FALSE], outputs_mat)
+  rownames(ans) <- NULL
+  ans
+}
+
 ```
 
 For the first order decay model, the correction recomputes the decay rate
@@ -215,81 +254,129 @@ decay model with input. For more complex models, we cannot rely on an
 analytic solution to do a similar derivation.
 
 However, many formulations are similar to this simple model where fluxes 
-can be lumped into these two parts where a flux is first-order to $x$ and
-another flux is independent of $x$.
+can be lumped into these two parts:
 
-In the SESAM model inorganic N pool, $x$, there is microbial 
-mineralization/immobilization, plant uptake, nitrogen deposition and leaching. 
-While N deposition and microbial mineralization are independent of $x$ 
-and leaching is first order in $x$, 
-plant uptake and microbial immobilization are complex formulations of many
-parameters, inputs, and other pools.
-However, SESAM is formulated in a way that these fluxes are take into account
-a potential flux that depends on $x$. We can express the first order rate in 
-terms of these fluxes $k = leach/x + immo/x + plantup/x$ and constant flux
-$i = Ndepo + Nmin$, based on first computation of the derivative 
-with unadjusted rates. 
-Then we need to downscale each of the three fluxes by factor $k_C \over k$. 
-Hence, we
-set the leaching rate ${l_N}_C = l_N {k_c \over k}$ and potential immobilization
-to 
-$$
-{i_{BN}}_C = {immo \over x} {k_C \over k}
-$$
-Similar potential plant uptake: 
-$$
-{k_{I_N P}}_C = {plantup \over x} {k_c \over k}
-$$
-The derivative has to be recomputed with the adjusted rates.
+- a flux that is first-order to $x$, and
+- a flux that is not directly dependent on $x$.
 
-# Example more complex microbial model
 
-We simulate an inorganic N pool that feeds both, plant uptake, and 
-immobilization of N-limited microbial biomass.
-Microbial biomass is N-limited if there is not enough nitrogen from
-decomposition of organic matter and immobilization of the inorganic N pool.
+## Example more complex microbial model
 
-## System in two modes
+In the following model there are several processes influencing 
+the inorganic N pool, $I_N$. There is microbial 
+mineralization/immobilization, microbial turnover, plant uptake, 
+nitrogen deposition and leaching. 
+While N deposition and microbial mineralization are independent of $I_N$ 
+and leaching is first order in $I_N$, 
+plant uptake and microbial mineralization/immobilization 
+are complex formulations of many parameters, inputs, and other pools.
+
+For simplicity in the model does not consider SOM pools and feedback
+of microbes to the decomposition flux.
+Microbial biomass, $B$, is N-limited if there is not enough nitrogen from
+decomposition of organic matter and immobilization of the inorganic $I_N$ pool.
+
+![](nitrogen_inorg_model.svg)
+
+```{r}
+deriv_inorg_nitrogen <-function(t, x, p){
+  # plant uptake
+  uINPlant_pot <- p$kINPlant * x["IN"]
+  uINPlant_req <- p$uINPlant # for simplicity
+  plant_uptake <- min(uINPlant_pot, uINPlant_req)
+  # microbial carbon part
+  dec <- p$decS # for simplicity
+  tvr <- p$tau * x["B"]
+  synBC_C <- p$eps*(dec -tvr) # C available for biomass synthesis
+  # microbial nitrogen part
+  decN <- dec/p$cnIS
+  tvrN <- tvr/p$cnB
+  immoNPot <- p$iB * x["IN"]
+  synBC_N <- (decN + immoNPot - tvrN)*p$cnB # biomass synthesis constraint by N
+  # growth limited either C or N
+  synBC <- min(synBC_C, synBC_N) # biomass growth limited by either C or N
+  nbal <- decN - synBC/p$cnB - tvrN # imbalance flux by mineral
+  minN <- max(0, nbal) # if nbal is positive N is mineralized
+  immoN <- max(0, -nbal) # if nbal is negative N is immobilized
+  # inorganic N
+  depoN <- p$iIN
+  leachN <- p$lN * x["IN"]
+  # here, we assume for simplicity that all tvr is mineralized
+  minNPred <- tvrN
+  dIN = depoN + minN +minNPred -leachN -immoN -plant_uptake
+  dB = synBC
+  # C mineralization
+  respGr <- (1 - p$eps)/p$eps * synBC
+  respTvr <- tvr
+  respOverflow <- dec - dB - respGr - tvr
+  resp <- respGr + respTvr + respOverflow
+  # check mass balances
+  meps <- .Machine$double.eps^(1/2)
+  if(abs((dB)  - (p$decS - resp)) > meps)
+    stop("mass balance C error")
+  if(abs((dB/p$cnB + dIN)  - 
+         (p$decS/p$cnIS + depoN - leachN - plant_uptake)) > meps)
+    stop("mass balance N error")
+  list(
+    dx = cbind(B = dB, IN = dIN)[1,],
+    cbind(uINPlant_pot = uINPlant_pot, uINPlant_req = uINPlant_req,
+          plant_uptake = plant_uptake,
+          immoNPot = immoNPot, immoN = immoN,
+          minN = minN, minNPred = minNPred,
+          leachN = leachN, depoN = depoN,
+          synBC = synBC, synBC_C = synBC_C, synBC_N = synBC_N)[1,]
+  )
+}
+```
+
+## Spinup to C-limited steady state
+
+Here, we use the variable-timestep solver from the deSolve package to obtain
+an accurate solution. 
+
 ```{r}
 x0 = c(B = 150, IN = 8) # mol C biomass, mol inorganic N
 # time in days
 parms <- list(
-  kINPlant = 1/10 # 10 days turnover time
-  ,uINPlant = 0.9
+  kINPlant = 1/10 # maximum plant uptake 10 days turnover time of I
+  ,uINPlant = 0.9 # demanded plant uptake
   ,decS = 0.9*10 #uINPlant*cnS same N returned to soil as taken up
-  ,eps = 0.6 # microbial carbon use efficiency
-  ,tau = 1/20
-  ,cnIS = 10 # litter input
-  ,cnB = 8
+  ,eps = 0.6     # microbial carbon use efficiency
+  ,tau = 1/20    # microbial turnover time
+  ,cnIS = 10     # C/N ratio of litter input
+  ,cnB = 8       # C/N ratio of microbial biomass
   #,iB = 1/5 # 2*uINPlant
-  ,iB = 0.9 # for demonstrating error in time stepped solution
-  ,iIN = x0["IN"]*1/200  # compensating for leaching
-  ,lN = 1/200
+  ,iB = 0.9      # for demonstrating error in time stepped solution
+  ,iIN = x0["IN"]*1/200  # N depostion: magnitude of compensating for leaching
+  ,lN = 1/200    # leaching rate  
 )
-```
-
-```{r}
 res <- ode(x0, 0:300, deriv_inorg_nitrogen, parms) %>% as.data.frame()
-x1 <- unlist(res[nrow(res),1 +seq_along(x0)])
-x1
-dx <- deriv_inorg_nitrogen(0, x1, parms)
-dx
 ```
+
 The system runs into a steady state, where IN is relatively large, so that 
-microbial biomass is C-limited.
+microbial biomass is C-limited, seen by $synBC = synBC_C < synBC_N$ and an
+mineralization/immobilization flux smaller than the potential immobilization.
 
 ```{r}
+x1 <- unlist(res[nrow(res),1 +seq_along(x0)])
+dx <- deriv_inorg_nitrogen(0, x1, parms); dx[[2]]
+```
+
+```{r echo=FALSE}
 res %>% 
   select(time, B, IN) %>% 
   pivot_longer(-time) %>% 
   ggplot(aes(time, value, col = name)) + geom_line() +
-  facet_wrap(~name, scales = "free_y")
+  facet_wrap(~name, scales = "free_y") +
+  themeDefault
 ```
 
 ## Simulating increased C input
 
-with increase C input by litter, i.e increased C from decomposition with
-same N return, the system runs into N limitation.
+With increased C input by litter, i.e increased C from decomposition with
+same N, the system runs into N limitation, 
+seen by $synBC = synBC_N < synBC_C$ and and
+mineralization/immobilization equal to the potential immobilization.
 
 ```{r}
 cnISC = 60 # litter input
@@ -298,78 +385,81 @@ parmsCinc <- within(parms, {
   decS <- uINPlant*cnIS #uINPlant*cnS same N returned to soil as taken up
 })
 res2c <- ode(x1, 0:8, deriv_inorg_nitrogen, parmsCinc) %>% as.data.frame()
+x2 <- unlist(res2c[nrow(res2c),1 +seq_along(x0)])
+dx <- deriv_inorg_nitrogen(0, x2, parmsCinc); dx[[2]]
 ```
-
-```{r}
-dxc <- deriv_inorg_nitrogen(0, x1, parmsCinc)
-dxc
-```
-```{r}
+```{r echo=FALSE}
 res2c %>% 
   select(time, IN, B) %>% 
   pivot_longer(-time) %>% 
   ggplot(aes(time, value, color = name)) + geom_line() +
-  facet_wrap(~name, scales = "free_y")
+  facet_wrap(~name, scales = "free_y") +
+  themeDefault
 ```
 
-```{r}
-x1c <- unlist(res2c[nrow(res2c),1 +seq_along(x0)])
-x1c
-dxc <- deriv_inorg_nitrogen(0, x1c, parmsCinc)
-dxc
-```
+### Time stepped solution without and without rate adjustment
 
-### Time stepped solution without rate adjustment
 ```{r}
 resStep1 <- solveDiscreteAdj(x1, 0:8, deriv_inorg_nitrogen, parmsCinc, 
-                             tstep = 2) 
+                             tstep = 2) # no rate adjustment
+```
+
+The rate adjustment is possible, because the model is formulated 
+in a way that all the inorganic fluxes are take into account
+a potential flux that depends on $I_N$. We can express the first order rate in 
+terms of these fluxes $k = {leach + immo + plantup \over I_N}$ and constant flux
+$i = N_{depo} + N_{min}$, based on first computation of the derivative 
+with unadjusted rates. With these we compute the corrected decay rate, $k_c$.
+Then each of the three fluxes is downscaled by factor $k_c \over k$. 
+Hence, we
+set the leaching rate ${l_N}_C = l_N {k_c \over k}$ and potential immobilization
+to 
+$$
+{i_{BN}}_C = {immo \over x} {k_c \over k}
+$$
+Similar potential plant uptake is corrected: 
+$$
+{k_{I_N P}}_C = {\text{plant uptake} \over x} {k_c \over k}
+$$
+The derivative has to be recomputed with the adjusted rates.
+
+```{r}
+adjust_parms_IN <- function(p, x, resFunc, ts) {
+  dx <- resFunc[[1]]
+  if (all(abs(dx*ts/x) <= 0.1)) return(adjust_parms_identity(p,x,dx,ts))
+  o <- resFunc[[2]]
+  kIN <- (o["immoN"] + o["leachN"] + o["plant_uptake"])/x["IN"]
+  iIN <- o["depoN"] + o["minN"] + o["minNPred"]
+  kINAdj <- correct_rate(kIN,iIN,x["IN"],ts)
+  kINFac <- kINAdj/kIN
+  list(
+    is_adjusted = TRUE,
+    parms = within(p,{
+      iB <- iB * kINFac
+      kINPlant <- kINPlant * kINFac
+      lN <- lN * kINFac
+    })
+  )
+}
+resStep2 <- solveDiscreteAdj(x1, 0:8, deriv_inorg_nitrogen, parmsCinc, 
+                             tstep = 2, f_adjust_parms = adjust_parms_IN) 
 ```
 
 ```{r echo=FALSE}
 rbind(
-  mutate(res2c, solver = "ode")
+  mutate(res2c, solver = "deSolve")
   ,mutate(resStep1, solver = "timestep")
+  ,mutate(resStep2, solver = "IN rate adjusted")
 ) %>% 
   select(time, solver, IN, B) %>% 
   pivot_longer(!c(time, solver)) %>% 
-  ggplot(aes(time, value, color = solver)) + geom_line() +
-  facet_wrap(~name, scales = "free_y")
-
+  ggplot(aes(time, value, color = solver, linetype = solver)) + geom_line() +
+  facet_wrap(~name, scales = "free_y") + themeDefault 
 ```
-
-The numerical error is most present in IN pool with oscillating behavior
+The numerical error for the uncorrected time-step solver 
+is most present in the IN pool with oscillating behavior
 due to overshoots.
 
-### Time stepped solution with rate adjustment
-```{r}
-
-resStep1 <- solveDiscreteAdj(x1, 0:6, deriv_inorg_nitrogen, parmsCinc, 
-                             tstep = 2) 
-```
-
-
-
-
-```{r}
-
-adjust_parms_firstorder <- function(p, x, dx, ts) {
-  if (abs(dx*ts/x) <= 0.2) return(adjust_parms_identity(p,x,dx,ts))
-  list(
-    is_adjusted = TRUE, 
-    parms = within(p, k <- correct_rate(p$k,p$i,x,ts)))
-}
-tsteps <- c(1,0.5,0.1)
-simsAdj <- tsteps %>% map_df(function(tstep){
-  tibble(
-    solver = "discrete_adjusted",
-    tstep = as.character(tstep),
-    t = times,
-    x = solveDiscreteAdj(x0, !!tstep, deriv, times, parms = parms
-                         ,f_adjust_parms = adjust_parms_firstorder)
-  )
-})
-```
-
-```
-
+The rate adjustment in inorganic pool works reasonably well in this more complex 
+model setup.
 
