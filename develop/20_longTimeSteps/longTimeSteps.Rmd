@@ -69,16 +69,7 @@ steps depending on the magnitude of changes. However, in many simulators
 a discrete time step solver is implemented, similar to the following code.
 
 ```{r}
-solveDiscrete <- function(y, tstep, func, tout, parms) {
-  t <- seq(min(tout),max(tout),by = tstep)
-  nstep <- length(t) - 1
-  x <- c(x0, numeric(nstep))
-  for(i in 1:nstep) {
-    x[i+1] <- x[i] + func(t[i], x[i], parms)[[1]]*tstep
-  }
-  ans <- x[t %in% tout]
-  ans
-}
+# see solve_discrete_adj.R
 ```
 
 We now look at the simulation results obtained using different time steps
@@ -87,14 +78,14 @@ in the solver.
 ```{r}
 tsteps <- c(0.1,0.5,1)
 parms <- list(k = 0.9, i = 0.2)
-x0 <- 10
+x0 <- c(x = 10)
 times <- 0:4
 sims <- tsteps %>% map_df(function(tstep){
   tibble(
     solver = "discrete",
     tstep = as.character(tstep),
     t = times,
-    x = solveDiscrete(x0, !!tstep, deriv, times, parms = parms)
+    x = solveDiscrete(x0, times, deriv, parms = parms, tstep = !!tstep)[,"x"]
   )
 })
 ```
@@ -160,7 +151,7 @@ step coincides with the analytic solution.
 
 ```{r echo=FALSE}
 df1 <- df1 %>% mutate(
-  sim_C = x0 + deriv(0, x0, parms = parmsC1)*t
+  sim_C = x0 + deriv(0, x0, parms = parmsC1)[[1]]*t
 )
 df1 %>% pivot_longer(sim_1:sim_C,"tstep", values_to = "x") %>% 
   ggplot(aes(t,x, color = tstep)) + geom_line() + themeDefault
@@ -184,24 +175,7 @@ If the parameters were corrected then the derivative is recomputed with the
 adjusted parameters.
 
 ```{r}
-adjust_parms_identity <- function(parms, x, dx, ts) 
-  list(is_adjusted = FALSE, parms = parms)
-solveDiscreteAdj <- function(y, tstep, func, tout, parms
-                              ,f_adjust_parms = adjust_parms_identity) {
-  t <- seq(min(tout),max(tout),by = tstep)
-  nstep <- length(t) - 1
-  x <- c(x0, numeric(nstep))
-  for(i in 1:nstep) {
-    dx <- dx0 <- func(t[i], x[i], parms)[[1]]
-    ans_adjust <- f_adjust_parms(parms, x[i], dx, tstep)
-    if (isTRUE(ans_adjust$is_adjusted)){
-      dx <- func(t[i], x[i], ans_adjust$parms)[[1]]
-    }
-    x[i+1] <- x[i] + dx * tstep
-  }
-  ans <- x[t %in% tout]
-  ans
-}
+# see solveDiscreteAdj.R
 ```
 
 For the first order decay model, the correction recomputes the decay rate
@@ -209,7 +183,8 @@ based on the current state and the time step. It only corrects if the change
 in $x$ is larger than 20% in order to save computation time.
 
 ```{r}
-adjust_parms_firstorder <- function(p, x, dx, ts) {
+adjust_parms_firstorder <- function(p, x, resDeriv, ts) {
+  dx <- resDeriv[[1]]
   if (abs(dx*ts/x) <= 0.2) return(adjust_parms_identity(p,x,dx,ts))
   list(
     is_adjusted = TRUE, 
@@ -221,8 +196,8 @@ simsAdj <- tsteps %>% map_df(function(tstep){
     solver = "discrete_adjusted",
     tstep = as.character(tstep),
     t = times,
-    x = solveDiscreteAdj(x0, !!tstep, deriv, times, parms = parms
-                         ,f_adjust_parms = adjust_parms_firstorder)
+    x = solveDiscreteAdj(x0, times, deriv, parms = parms, tstep = !!tstep
+                         ,f_adjust_parms = adjust_parms_firstorder)[,"x"]
   )
 })
 ```
@@ -267,14 +242,14 @@ $$
 $$
 The derivative has to be recomputed with the adjusted rates.
 
-## Example complex model
+# Example more complex microbial model
 
 We simulate an inorganic N pool that feeds both, plant uptake, and 
 immobilization of N-limited microbial biomass.
 Microbial biomass is N-limited if there is not enough nitrogen from
 decomposition of organic matter and immobilization of the inorganic N pool.
 
-### System in two modes
+## System in two modes
 ```{r}
 x0 = c(B = 150, IN = 8) # mol C biomass, mol inorganic N
 # time in days
@@ -286,7 +261,8 @@ parms <- list(
   ,tau = 1/20
   ,cnIS = 10 # litter input
   ,cnB = 8
-  ,iB = 1/5 # 2*uINPlant
+  #,iB = 1/5 # 2*uINPlant
+  ,iB = 0.9 # for demonstrating error in time stepped solution
   ,iIN = x0["IN"]*1/200  # compensating for leaching
   ,lN = 1/200
 )
@@ -306,29 +282,94 @@ microbial biomass is C-limited.
 res %>% 
   select(time, B, IN) %>% 
   pivot_longer(-time) %>% 
-  ggplot(aes(time, value, col = name)) + geom_line()
+  ggplot(aes(time, value, col = name)) + geom_line() +
+  facet_wrap(~name, scales = "free_y")
 ```
 
-With increased leaching, the system runs into a steady state with low IN pool
-and the microbial biomass becomes N-limited, because the potential 
-immobilization flux is too small.
-```{r}
-parmsNlim <- within(parms, lN <- 1)
-res2 <- ode(x1, 0:300, deriv_inorg_nitrogen, parmsNlim) %>% as.data.frame()
-x2 <- unlist(res2[nrow(res2),1 +seq_along(x0)])
-x2
-dx <- deriv_inorg_nitrogen(0, x2, parms)
-dx
+## Simulating increased C input
 
+with increase C input by litter, i.e increased C from decomposition with
+same N return, the system runs into N limitation.
+
+```{r}
+cnISC = 60 # litter input
+parmsCinc <- within(parms, {
+  cnIS <- cnISC
+  decS <- uINPlant*cnIS #uINPlant*cnS same N returned to soil as taken up
+})
+res2c <- ode(x1, 0:8, deriv_inorg_nitrogen, parmsCinc) %>% as.data.frame()
+```
+
+```{r}
+dxc <- deriv_inorg_nitrogen(0, x1, parmsCinc)
+dxc
 ```
 ```{r}
-res2 %>% 
-  select(time, B, IN) %>% 
+res2c %>% 
+  select(time, IN, B) %>% 
   pivot_longer(-time) %>% 
-  ggplot(aes(time, value, col = name)) + geom_line()
+  ggplot(aes(time, value, color = name)) + geom_line() +
+  facet_wrap(~name, scales = "free_y")
 ```
-### Simulating the change in IN on increased leaching
 
-XX
+```{r}
+x1c <- unlist(res2c[nrow(res2c),1 +seq_along(x0)])
+x1c
+dxc <- deriv_inorg_nitrogen(0, x1c, parmsCinc)
+dxc
+```
+
+### Time stepped solution without rate adjustment
+```{r}
+resStep1 <- solveDiscreteAdj(x1, 0:8, deriv_inorg_nitrogen, parmsCinc, 
+                             tstep = 2) 
+```
+
+```{r echo=FALSE}
+rbind(
+  mutate(res2c, solver = "ode")
+  ,mutate(resStep1, solver = "timestep")
+) %>% 
+  select(time, solver, IN, B) %>% 
+  pivot_longer(!c(time, solver)) %>% 
+  ggplot(aes(time, value, color = solver)) + geom_line() +
+  facet_wrap(~name, scales = "free_y")
+
+```
+
+The numerical error is most present in IN pool with oscillating behavior
+due to overshoots.
+
+### Time stepped solution with rate adjustment
+```{r}
+
+resStep1 <- solveDiscreteAdj(x1, 0:6, deriv_inorg_nitrogen, parmsCinc, 
+                             tstep = 2) 
+```
+
+
+
+
+```{r}
+
+adjust_parms_firstorder <- function(p, x, dx, ts) {
+  if (abs(dx*ts/x) <= 0.2) return(adjust_parms_identity(p,x,dx,ts))
+  list(
+    is_adjusted = TRUE, 
+    parms = within(p, k <- correct_rate(p$k,p$i,x,ts)))
+}
+tsteps <- c(1,0.5,0.1)
+simsAdj <- tsteps %>% map_df(function(tstep){
+  tibble(
+    solver = "discrete_adjusted",
+    tstep = as.character(tstep),
+    t = times,
+    x = solveDiscreteAdj(x0, !!tstep, deriv, times, parms = parms
+                         ,f_adjust_parms = adjust_parms_firstorder)
+  )
+})
+```
+
+```
 
 
