@@ -463,3 +463,54 @@ due to overshoots.
 The rate adjustment in inorganic pool works reasonably well in this more complex 
 model setup.
 
+# Higher order kinetics
+
+With output fluxes proportional to the pool size and input fluxes not directly 
+dependent on pool size, the adjusted rate strategy can be applied. Higher
+order kinetics need some more care.
+
+For examples saturating rates are often described by Michaelis Menten (MM) kinetics:
+$$
+r = k_r {x \over k_{rm} + x}
+$$
+Depending on the magnitude of $x$ we need to associate $r$ with  
+either first order dependencies or directly independent rate.
+If $x \gg k_{xm}$, $r \approx k_r$ independent of $x$. On the other hand
+if $x \ll k_{xm}$, $r \approx {k_r \over k_{rm}} x$ first order in $x$.
+
+The Chemistry Equilibrium Approximation (ECA) for a single substrate $x$ and
+multiple consumers, $E_j$, the reasoning for rate adjustment 
+reduces to the MM case. For a three consumers the 
+consumption rates are computed as:
+$$
+v_j = \frac{{v_{max}}_j x E_j}{k_{sj} \left( 
+       1 + {E_1 \over k_{s1}} + {E_2 \over k_{s2}} + {E_3 \over k_{s3}} \right) + x} =
+     {k_r}_j {x \over {k_{rm}}_j + x}  
+$$
+with
+$$
+{k_r}_j = {v_{max}}_j E_J
+\\
+{k_{rm}}_j = k_{sj} \left( 
+       1 + {E_1 \over k_{s1}} + {E_2 \over k_{s2}} + {E_3 \over k_{s3}} \right)
+$$
+
+## Example ECA $I_N$ uptake model 
+
+As an example, we reformulate potential plant uptake and potential microbial
+immobilization to compete with each other.
+Transporter binding sites $E$ for plant are assumed to be constant, 
+${E_{IN}}_P \sim 1$ 
+and for microbial immobilization are assumed to be proportional to biomass 
+${E_{IN}}_B \sim B$. 
+Proportionality constants are part of
+the maximum uptake rates, ${k_{IN}}_P$ and $i_B$ and substrate affinities, 
+${k_m}_P$ and ${k_m}_B$.
+
+$$
+\text{plant uptake}_{Pot} = \frac{{k_{IN}}_P \  I_N}{\left({k_m}_P + {{k_m}_P B \over {k_m}_B} + 1\right) + I_N}
+\\
+immo_{Pot} = \frac{i_B B \  I_N}{\left({k_m}_B + B + {{k_m}_B \over {k_m}_P}\right) + I_N}
+$$
+
+TODO: implement model and play with parameters in N limitation.
