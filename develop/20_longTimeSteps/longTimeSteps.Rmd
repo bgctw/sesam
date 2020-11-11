@@ -34,9 +34,9 @@ sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
 themeDefault <- theme_bw()  
 ```
 
-# Simulate a first order decay
+# First order decay
 
-We simulate a simple first order decay with output at times 0,1,...
+Consider a simple first order decay with output at times 0,1,...
 The model is
 $$
 {dx \over dt} = -k \, x(t) + i
@@ -87,9 +87,9 @@ solveDiscrete <- function(y, tout, func, parms, tstep) {
 }
 ```
 
-We now look at the simulation results obtained using different time steps
-in the solver.
-
+A comparison of simulation results obtained using different time steps
+in the solver and add the analytic solution shows a large error at
+the first time step.
 ```{r}
 tsteps <- c(0.1,0.5,1)
 parms <- list(k = 0.9, i = 0.2)
@@ -103,10 +103,6 @@ sims <- tsteps %>% map_df(function(tstep){
     x = solveDiscrete(x0, times, deriv, parms = parms, tstep = !!tstep)[,"x"]
   )
 })
-```
-
-And add the analytic solution.
-```{r}
 df <- sims %>% bind_rows(tibble(
   solver = "analytic",
   tstep = "analytic",
@@ -118,9 +114,7 @@ df <- sims %>% bind_rows(tibble(
 ```{r echo=FALSE}
 df %>% ggplot(aes(t,x, color = tstep)) + geom_point() + geom_line() + themeDefault
 ```
-There is a large error in the first time step. Lets demonstrate this.
-
-## Look at first time step
+## Closer look at the first time step
 ```{r}
 df1 <- tibble(
   t = seq(0,1,length.out = 20),
@@ -137,7 +131,7 @@ a negative change within one time step is not larger than the current pool size
 or discussions about simulation differences whether microbes or plants uptake from the
 same pool.
 
-## Derivation of adjusted rate
+## Derivation of an adjusted rate
 Instead of adjusting the model, we suggest a practical solution of
 adjusting decay rates in the solver.
 
@@ -155,10 +149,10 @@ k_c = {i \over x_0} - {1 \over t_s} \left( {i \over k x_0} - 1\right)
 $$
 
 ```{r}
-correct_rate <- function(k,i,x0,ts) 
+adjust_rate <- function(k,i,x0,ts) 
   #i/x0 -1/ts*((1 - i/k/x0)*exp(-k*ts) + i/k/x0 -1)
   i/x0 -1/ts*(i/k/x0 - 1)*(1 - exp(-k*ts))
-parmsC1 <- within(parms, k <- correct_rate(k, i, x0, 1))
+parmsC1 <- within(parms, k <- adjust_rate(k, i, x0, 1))
 c(parms$k, parmsC1$k)
 ```
 The rate was adjusted from 0.9 to 0.6 so that the prediction after one time
@@ -227,7 +221,7 @@ adjust_parms_firstorder <- function(p, x, resDeriv, ts) {
   if (abs(dx*ts/x) <= 0.2) return(adjust_parms_identity(p,x,dx,ts))
   list(
     is_adjusted = TRUE, 
-    parms = within(p, k <- correct_rate(p$k,p$i,x,ts)))
+    parms = within(p, k <- adjust_rate(p$k,p$i,x,ts)))
 }
 tsteps <- c(1,0.5,0.1)
 simsAdj <- tsteps %>% map_df(function(tstep){
@@ -430,7 +424,7 @@ adjust_parms_IN <- function(p, x, resFunc, ts) {
   o <- resFunc[[2]]
   kIN <- (o["immoN"] + o["leachN"] + o["plant_uptake"])/x["IN"]
   iIN <- o["depoN"] + o["minN"] + o["minNPred"]
-  kINAdj <- correct_rate(kIN,iIN,x["IN"],ts)
+  kINAdj <- adjust_rate(kIN,iIN,x["IN"],ts)
   kINFac <- kINAdj/kIN
   list(
     is_adjusted = TRUE,
@@ -466,51 +460,81 @@ model setup.
 # Higher order kinetics
 
 With output fluxes proportional to the pool size and input fluxes not directly 
-dependent on pool size, the adjusted rate strategy can be applied. Higher
-order kinetics need some more care.
+dependent on pool size, the adjusted rate strategy can be directly applied. 
+Higher order kinetics need some more care. We need to define whether at the 
+current state, the rate is closer to a first-order rate or to a
+rate independent of pool size.
 
-For examples saturating rates are often described by Michaelis Menten (MM) kinetics:
+## Michaelis Menten (MM)
+Saturating rates are often described by Michaelis Menten (MM) kinetics:
 $$
 r = k_r {x \over k_{rm} + x}
 $$
 Depending on the magnitude of $x$ we need to associate $r$ with  
 either first order dependencies or directly independent rate.
-If $x \gg k_{xm}$, $r \approx k_r$ independent of $x$. On the other hand
-if $x \ll k_{xm}$, $r \approx {k_r \over k_{rm}} x$ first order in $x$.
 
-The Chemistry Equilibrium Approximation (ECA) for a single substrate $x$ and
-multiple consumers, $E_j$, the reasoning for rate adjustment 
-reduces to the MM case. For a three consumers the 
-consumption rates are computed as:
+- If $x \gg k_{rm}$, $r \approx k_r$: independent of $x$. On the other hand
+- if $x \ll k_{rm}$, $r \approx {k_r \over k_{rm}} x$: first order in $x$.
+
+Hence, we propose an approximation where the total flux is partially allocated 
+to the first order and partially to the independent flux, with the weights 
+changing with $k_m + x$ in such a way that $w \to 1$ for $x \gg k_{rm}$ and 
+$w \to 0$ for $x \ll k_{rm}$.
+
 $$
-v_j = \frac{{v_{max}}_j x E_j}{k_{sj} \left( 
-       1 + {E_1 \over k_{s1}} + {E_2 \over k_{s2}} + {E_3 \over k_{s3}} \right) + x} =
-     {k_r}_j {x \over {k_{rm}}_j + x}  
-$$
-with
-$$
-{k_r}_j = {v_{max}}_j E_J
+w_i = {x \over k_{rm} + x}
 \\
-{k_{rm}}_j = k_{sj} \left( 
-       1 + {E_1 \over k_{s1}} + {E_2 \over k_{s2}} + {E_3 \over k_{s3}} \right)
+r_c = [w k_r + (1-w)k_{rc}] {x \over k_{rm} + x}
+$$
+TODO: example
+
+## Chemistry Equilibrium Approximation (ECA)
+For the Chemistry Equilibrium Approximation (ECA) for a single substrate $x$ and
+multiple consumers, $E_j$, the reasoning for rate adjustment 
+reduces to the MM case. 
+$$
+r_j = \frac{{r_{max}}_j x E_j}{k_{sj} f_E + x} =
+     {k_r}_j {x \over {k_{rm}}_j + x}  
+\\
+f_E(k_{s},E) = 1 + {E_1 \over k_{s1}} + {E_2 \over k_{s2}} + \ldots + {E_J \over k_{sJ}}
+$$
+with MM parameters:
+$$
+{k_r}_j = {r_{max}}_j E_J
+\\
+{k_{rm}}_j = k_{sj} f_E
 $$
 
-## Example ECA $I_N$ uptake model 
+### Example ECA $I_N$ uptake model 
 
 As an example, we reformulate potential plant uptake and potential microbial
 immobilization to compete with each other.
 Transporter binding sites $E$ for plant are assumed to be constant, 
-${E_{IN}}_P \sim 1$ 
-and for microbial immobilization are assumed to be proportional to biomass 
-${E_{IN}}_B \sim B$. 
-Proportionality constants are part of
-the maximum uptake rates, ${k_{IN}}_P$ and $i_B$ and substrate affinities, 
-${k_m}_P$ and ${k_m}_B$.
+${E_{IN}}_P = const$ provided as a model driver.
+for microbial immobilization binding sites are assumed to be proportional to biomass with proportionally constant $e_B$: ${E_{IN}}_B = e_B B$.
+Additional parameters are the maximum uptake rates, ${k_{IN}}_P$, $i_B$ and substrate affinities, ${k_S}_P$, ${k_S}_B$.
 
 $$
-\text{plant uptake}_{Pot} = \frac{{k_{IN}}_P \  I_N}{\left({k_m}_P + {{k_m}_P B \over {k_m}_B} + 1\right) + I_N}
+\text{plant uptake}_{Pot} = \frac{{k_{IN}}_P {E_{IN}}_P \  I_N}{ {k_S}_P f_E + I_N}
 \\
-immo_{Pot} = \frac{i_B B \  I_N}{\left({k_m}_B + B + {{k_m}_B \over {k_m}_P}\right) + I_N}
+immo_{Pot} = \frac{i_B e_B B \  I_N}{{k_S}_B f_E + I_N}
+\\
+\text{where } f_E = 1 + {e_B B \over {k_S}_B} + {{E_{IN}}_P \over {k_S}_P}
 $$
+
+The proportionality between enzymes and biomass cannot absorbed into the
+rate and affinity parameters, because affinity constants appear once without
+enzyme levels and once as a divisor of enzyme levels.
+Hence, we need four additional parameters to parametrize the competition
+by ECA compared to independent potential $I_N$ uptake.
 
 TODO: implement model and play with parameters in N limitation.
+
+## Power
+$$k_r x^p = k_r x^{p-1} \, x$$
+While it may be possible to extend the derivation of adjusted rate by
+considering an analytically tractable model that involves such a term,
+for now we approximate the power by an effective first order rate, 
+$k =  k_r x^{p-1}$.
+
+TODO example
