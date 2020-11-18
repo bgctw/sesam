@@ -12,12 +12,12 @@ derivSesam3a <- function(
   ## Alpha as an explicit state variable that changes with turnover
   ## Simplified computation of target based on current revenue based on current alpha
   if (!length(names(x))) names(x) <- c(
-    "B", "R", "RN", "L", "LN", "I", "alpha")
+    "B", "R", "RN", "L", "LN", "IN", "alpha")
   x <- pmax(unlist(x),1e-16)      # no negative masses
   # compute steady state enzyme levels for N and for C limitation
   dRPot <- parms$kR * x["R"]
   dLPot <- parms$kL * x["L"]
-  immoPot <- parms$iB * x["I"]
+  immoNPot <- parms$iBN * x["IN"]
   cnR <- x["R"]/x["RN"]
   cnL <- x["L"]/x["LN"]
   cnE <- parms$cnE
@@ -35,10 +35,10 @@ derivSesam3a <- function(
   decR <- dRPot * alpha*aeB/(kmN + alpha*aeB)
   #
   tvrERecycling <- parms$kNB*synE
-  uNOrg <- parms$nu*(decL/cnL + decR/cnR + tvrERecycling/cnE)
+  uNOrg <- parms$nuN*(decL/cnL + decR/cnR + tvrERecycling/cnE)
   uC <- decL + decR + tvrERecycling
   CsynBC <- uC - rM - synE/parms$eps
-  NsynBN <- (uNOrg + immoPot - synE/cnE)
+  NsynBN <- (uNOrg + immoNPot - synE/cnE)
   CsynBN <- if (NsynBN > 0) cnB/parms$eps*NsynBN else cnB*NsynBN
   CsynB <- min(CsynBC, CsynBN)
   if (CsynB > 0) {
@@ -48,7 +48,7 @@ derivSesam3a <- function(
     synB <- CsynB # with negative biomass change, do growth respiration
     rG <- 0
   }
-  PhiB <- uNOrg - synB/cnB - synE/cnE
+  PhiNB <- uNOrg - synB/cnB - synE/cnE
   alphaC <- computeSesam3sAllocationPartitioning(
     dR = dRPot, dL = dLPot, B = B
     , kmkN = kmN, aE = parms$aE
@@ -68,7 +68,7 @@ derivSesam3a <- function(
   respO <- uC - (synE/parms$eps + synB + rG + rM)
   respTvr <- (1 - parms$epsTvr) * tvrB
   # assuming same cnRatio of predators to equal cn ratio of microbes
-  PhiTvr <- respTvr/parms$cnB
+  PhiNTvr <- respTvr/parms$cnB
   #
   # tvr that feeds R pool, assume that N in SOM for resp (by epsTvr) is mineralized
   tvrC <-  +parms$epsTvr*tvrB   + (1 - parms$kNB)*synE
@@ -76,14 +76,14 @@ derivSesam3a <- function(
   # fluxes leaving the system (will be set in scen where trv does not feed back)
   tvrExC <- tvrExN <- 0
   #
-  leach <- parms$l*x["I"]
-  plantNUpPot <- parms$kIPlant*x["I"]
+  leachN <- parms$lN*x["IN"]
+  plantNUpPot <- parms$kINPlant*x["IN"]
   plantNUp <- if (!is.null(parms$plantNUpAbs)) {
     min(parms$plantNUpAbs, plantNUpPot)
   } else {
     plantNUpPot
   }
-  PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE)
+  PhiNU <- (1 - parms$nuN)*(decL/cnL + decR/cnR + tvrERecycling/cnE)
   #
   dB <- synB - tvrB
   dL <- -decL  + parms$iL
@@ -91,11 +91,11 @@ derivSesam3a <- function(
   dR <- -decR  + parms$iR  + tvrC
   dRN <- -decR/cnR  + parms$iR/parms$cnIR  + tvrN
   # here plant uptake as absolute parameter
-  dI <-  +parms$iI  - plantNUp  - leach  + PhiU  + PhiB  + PhiTvr
+  dIN <-  +parms$iIN  - plantNUp  - leachN  + PhiNU  + PhiNB  + PhiNTvr
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
-    dR <- dL <- dRN <- dLN <- dI <- 0
+    dR <- dL <- dRN <- dLN <- dIN <- 0
   } else if (isTRUE(parms$isTvrNil)) {
     # scenario of enzymes and biomass not feeding back to R
     dR <- +parms$iR - decR
@@ -105,8 +105,8 @@ derivSesam3a <- function(
   }
   #
   resDeriv <- structure(as.numeric(
-    c( dB, dR, dRN, dL, dLN, dI, dAlpha))
-    ,names = c("dB","dR","dRN","dL","dLN","dI","dAlpha"))
+    c( dB, dR, dRN, dL, dLN, dIN, dAlpha))
+    ,names = c("dB","dR","dRN","dL","dLN","dIN","dAlpha"))
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   sqrEps <- sqrt(.Machine$double.eps)
   # parms$iL - (decL + dL)
@@ -118,23 +118,23 @@ derivSesam3a <- function(
   if (diff( unlist(c(uC = uC, usage = respB + synB + synE )))^2 > sqrEps )  stop(
     "biomass mass balance C error")
   if (diff( unlist(
-    c(uN = uNOrg, usage = synE/parms$cnE + synB/parms$cnB + PhiB )))^2 >
+    c(uN = uNOrg, usage = synE/parms$cnE + synB/parms$cnB + PhiNB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   if (!isTRUE(parms$isFixedS)) {
     if (diff(unlist(
       c(dB + dR + dL + tvrExC + resp,    parms$iR + parms$iL )))^2 >
       sqrEps )  stop("mass balance C error")
     if (diff(unlist(
-      c( dB/parms$cnB  + dRN + dLN + dI + tvrExN
-         , parms$iR/parms$cnIR  + parms$iL/parms$cnIL + parms$iI -
-         plantNUp - parms$l*x["I"])))^2 >
+      c( dB/parms$cnB  + dRN + dLN + dIN + tvrExN
+         , parms$iR/parms$cnIR  + parms$iL/parms$cnIL + parms$iIN -
+         plantNUp - parms$lN*x["IN"])))^2 >
       .Machine$double.eps )  stop("mass balance dN error")
   }
   #
   # allowing scenarios with holding some pools fixed
   if (isTRUE(parms$isFixedR)) { resDeriv["dR"] <- resDeriv["dRN"] <-  0   }
   if (isTRUE(parms$isFixedL)) { resDeriv["dL"] <- resDeriv["dLN"] <-  0   }
-  if (isTRUE(parms$isFixedI)) { resDeriv["dI"] <-  0   }
+  if (isTRUE(parms$isFixedI)) { resDeriv["dIN"] <-  0   }
   if (isTRUE(parms$isFixedAlpha)) { resDeriv["dAlpha"] <-  0   }
   #
   # further computations just for output for tacking the system
@@ -147,9 +147,9 @@ derivSesam3a <- function(
   revRN <- dRPot/cnR / (parms$km*parms$kN + alphaN*aeB)
   revLN <- dLPot/cnL / (parms$km*parms$kN + alphaN*aeB)
   # net mic mineralization/immobilization when accounting uptake mineralization
-  PhiBU <- PhiB + PhiU
+  PhiNBU <- PhiNB + PhiNU
   # total mineralization flux including microbial turnover
-  PhiTotal <- PhiBU + PhiTvr
+  PhiNTotal <- PhiNBU + PhiNTvr
   # do not match in other limitation
   # c(alphaC, revRC/(revRC + revLC)); c(alphaN, revRN/(revRN + revLN))
   # compute C available for biomass, this time without accounting immobilization flux
@@ -166,12 +166,12 @@ derivSesam3a <- function(
      , respTvr = as.numeric(respTvr)
      #, ER = as.numeric(ER), EL = as.numeric(EL)
     #, MmB = as.numeric(MmB)
-    , PhiTotal = as.numeric(PhiTotal)
-    , PhiB = as.numeric(PhiB)
-    , PhiU = as.numeric(PhiU)
-    , PhiTvr = as.numeric(PhiTvr)
-    , PhiBU = as.numeric(PhiBU)
-    , immoPot = as.numeric(immoPot)
+    , PhiNTotal = as.numeric(PhiNTotal)
+    , PhiNB = as.numeric(PhiNB)
+    , PhiNU = as.numeric(PhiNU)
+    , PhiNTvr = as.numeric(PhiNTvr)
+    , PhiNBU = as.numeric(PhiNBU)
+    , immoNPot = as.numeric(immoNPot)
     , alphaTarget = as.numeric(alphaTarget)
     , alphaC = as.numeric(alphaC), alphaN = as.numeric(alphaN)
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
@@ -187,7 +187,7 @@ derivSesam3a <- function(
     #, pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) )
     #, NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
     #, dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)
-    #, dI = as.numeric(dI)
+    #, dIN = as.numeric(dIN)
     , uC = as.numeric(uC), synB = as.numeric(synB)
     #, decN = as.numeric(decN)
     , plantNUp = plantNUp
@@ -204,7 +204,7 @@ computeOutputsSesam3 <- function(
   # compute steady state enzyme levels for N and for C limitation
   dRPot <- parms$kR * x[,"R"]
   dLPot <- parms$kL * x[,"L"]
-  immoPot <- parms$iB * x[,"I"]
+  immoNPot <- parms$iBN * x[,"IN"]
   cnR <- x[,"R"]/x[,"RN"]
   cnL <- x[,"L"]/x[,"LN"]
   cnE <- parms$cnE
@@ -222,15 +222,15 @@ computeOutputsSesam3 <- function(
   decR <- dRPot * alpha*aeB/(kmN + alpha*aeB)
   #
   tvrERecycling <- parms$kNB*synE
-  uNOrg <- parms$nu*(decL/cnL + decR/cnR + tvrERecycling/cnE)
+  uNOrg <- parms$nuN*(decL/cnL + decR/cnR + tvrERecycling/cnE)
   uC <- decL + decR + tvrERecycling
   CsynBC <- uC - rM - synE/parms$eps
-  NsynBN <- (uNOrg + immoPot - synE/cnE)
+  NsynBN <- (uNOrg + immoNPot - synE/cnE)
   CsynBN <- ifelse(NsynBN > 0, cnB/parms$eps*NsynBN, cnB*NsynBN)
   CsynB <- pmin(CsynBC, CsynBN)
   synB <- ifelse(CsynB > 0, parms$eps*CsynB, CsynB )
   rG <- ifelse(CsynB > 0, (1 - parms$eps)*CsynB, 0)
-  PhiB <- uNOrg - synB/cnB - synE/cnE
+  PhiNB <- uNOrg - synB/cnB - synE/cnE
   alphaC <- computeSesam3sAllocationPartitioning(
     dR = dRPot, dL = dLPot, B = B
     , kmkN = kmN, aE = parms$aE
@@ -250,7 +250,7 @@ computeOutputsSesam3 <- function(
   respO <- uC - (synE/parms$eps + synB + rG + rM)
   respTvr <- (1 - parms$epsTvr) * tvrB
   # assuming same cnRatio of predators to equal cn ratio of microbes
-  PhiTvr <- respTvr/parms$cnB
+  PhiNTvr <- respTvr/parms$cnB
   #
   # tvr that feeds R pool, assume that N in SOM for resp (by epsTvr) is mineralized
   tvrC <-  +parms$epsTvr*tvrB   + (1 - parms$kNB)*synE
@@ -258,14 +258,14 @@ computeOutputsSesam3 <- function(
   # fluxes leaving the system (will be set in scen where trv does not feed back)
   tvrExC <- tvrExN <- 0
   #
-  leach <- parms$l*x[,"I"]
-  plantNUpPot <- parms$kIPlant*x[,"I"]
+  leachN <- parms$lN*x[,"IN"]
+  plantNUpPot <- parms$kINPlant*x[,"IN"]
   if (!is.null(parms$plantNUpAbs)) {
     plantNUp <- min(plantNUpPot, parms$plantNUpAbs)
   } else {
     plantNUp <- plantNUpPot
   }
-  PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE)
+  PhiNU <- (1 - parms$nuN)*(decL/cnL + decR/cnR + tvrERecycling/cnE)
   #
   dB <- synB - tvrB
   dL <- -decL  + parms$iL
@@ -273,11 +273,11 @@ computeOutputsSesam3 <- function(
   dR <- -decR  + parms$iR  + tvrC
   dRN <- -decR/cnR  + parms$iR/parms$cnIR  + tvrN
   # here plant uptake as absolute parameter
-  dI <-  +parms$iI  - plantNUp  - leach  + PhiU  + PhiB  + PhiTvr
+  dIN <-  +parms$iIN  - plantNUp  - leachN  + PhiNU  + PhiNB  + PhiNTvr
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
-    dR[] <- dL[] <- dRN[] <- dLN[] <- dI[] <- 0
+    dR[] <- dL[] <- dRN[] <- dLN[] <- dIN[] <- 0
   } else if (isTRUE(parms$isTvrNil)) {
     # scenario of enzymes and biomass not feeding back to R
     dR <- +parms$iR - decR
@@ -286,8 +286,8 @@ computeOutputsSesam3 <- function(
     tvrExN <- tvrN
   }
   #
-  resDeriv <- cbind( dB, dR, dRN, dL, dLN, dI, dAlpha)
-  colnames(resDeriv) <- c("dB","dR","dRN","dL","dLN","dI","dAlpha")
+  resDeriv <- cbind( dB, dR, dRN, dL, dLN, dIN, dAlpha)
+  colnames(resDeriv) <- c("dB","dR","dRN","dL","dLN","dIN","dAlpha")
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   sqrEps <- sqrt(.Machine$double.eps)
   # parms$iL - (decL + dL)
@@ -300,23 +300,23 @@ computeOutputsSesam3 <- function(
   if (any( (uC - (respB + synB + synE ))^2 > sqrEps ))  stop(
     "biomass mass balance C error")
   if (any(
-    (uNOrg - (synE/parms$cnE + synB/parms$cnB + PhiB))^2 >
+    (uNOrg - (synE/parms$cnE + synB/parms$cnB + PhiNB))^2 >
     .Machine$double.eps))  stop("biomass mass balance N error")
   if (!isTRUE(parms$isFixedS)) {
     if (any(
       ((dB + dR + dL + tvrExC + resp) - (parms$iR + parms$iL))^2 >
       sqrEps ))  stop("mass balance C error")
     if (any(
-      ((dB/parms$cnB  + dRN + dLN + dI + tvrExN) -
-         (parms$iR/parms$cnIR  + parms$iL/parms$cnIL - plantNUp  + parms$iI -
-         plantNUp - parms$l*x[,"I"]))^2 >
+      ((dB/parms$cnB  + dRN + dLN + dIN + tvrExN) -
+         (parms$iR/parms$cnIR  + parms$iL/parms$cnIL - plantNUp  + parms$iIN -
+         plantNUp - parms$lN*x[,"IN"]))^2 >
       .Machine$double.eps ))  stop("mass balance dN error")
   }
   #
   # allowing scenarios with holding some pools fixed
   if (isTRUE(parms$isFixedR)) { resDeriv[,"dR"] <- resDeriv[,"dRN"] <-  0   }
   if (isTRUE(parms$isFixedL)) { resDeriv[,"dL"] <- resDeriv[,"dLN"] <-  0   }
-  if (isTRUE(parms$isFixedI)) { resDeriv[,"dI"] <-  0   }
+  if (isTRUE(parms$isFixedI)) { resDeriv[,"dIN"] <-  0   }
   if (isTRUE(parms$isFixedAlpha)) {
     resDeriv[,"dAlpha"] <-  0
     }
@@ -331,9 +331,9 @@ computeOutputsSesam3 <- function(
   revRN <- dRPot/cnR / (parms$kmN + alphaN*aeB)
   revLN <- dLPot/cnL / (parms$kmN + alphaN*aeB)
   # net mic mineralization/immobilization when accounting uptake mineralization
-  PhiBU <- PhiB + PhiU
+  PhiNBU <- PhiNB + PhiNU
   # total mineralization flux including microbial turnover
-  PhiTotal <- PhiBU + PhiTvr
+  PhiNTotal <- PhiNBU + PhiNTvr
   # do not match in other limitation
   # c(alphaC, revRC/(revRC + revLC)); c(alphaN, revRN/(revRN + revLN))
   # compute C available for biomass, this time without accounting immobilization flux
@@ -349,12 +349,12 @@ computeOutputsSesam3 <- function(
     , respTvr = as.numeric(respTvr)
     #, ER = as.numeric(ER), EL = as.numeric(EL)
     #, MmB = as.numeric(MmB)
-    , PhiTotal = as.numeric(PhiTotal)
-    , PhiB = as.numeric(PhiB)
-    , PhiU = as.numeric(PhiU)
-    , PhiTvr = as.numeric(PhiTvr)
-    , PhiBU = as.numeric(PhiBU)
-    , immoPot = as.numeric(immoPot)
+    , PhiNTotal = as.numeric(PhiNTotal)
+    , PhiNB = as.numeric(PhiNB)
+    , PhiNU = as.numeric(PhiNU)
+    , PhiNTvr = as.numeric(PhiNTvr)
+    , PhiNBU = as.numeric(PhiNBU)
+    , immoNPot = as.numeric(immoNPot)
     , alphaTarget = as.numeric(alphaTarget)
     , alphaC = as.numeric(alphaC), alphaN = as.numeric(alphaN)
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
@@ -371,7 +371,7 @@ computeOutputsSesam3 <- function(
     #, pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) )
     #, NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
     #, dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)
-    #, dI = as.numeric(dI)
+    #, dIN = as.numeric(dIN)
     #, uC = as.numeric(uC), synB = as.numeric(synB)
     #, decN = as.numeric(decN)
   ))
@@ -419,7 +419,7 @@ attr(computeSesam3sAllocationPartitioning,"ex") <- function(){
     ,RN = 1000/parms$cnIR   ##<< N rich substrate N pool
     ,L = 100                 ##<< N poor substrate
     ,LN = 100/parms$cnIL    ##<< N poor substrate N pool
-    ,I =  0.4                ##<< inorganic pool gN/m2
+    ,IN =  0.4                ##<< inorganic pool gN/m2
   )
   B <- x["B"]
   # allocate only few to R (and most to L)

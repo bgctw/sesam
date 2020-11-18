@@ -33,7 +33,7 @@ derivSesam4F <- function(
   B <- x$tot["BC"]
   dRPot <- parms$kR * x$tot["RC"]
   dLPot <- parms$kL * x$tot["LC"]
-  immoPot <- parms$iB * x$tot["I"]
+  immoNPot <- parms$iBN * x$tot["IN"]
   immoPPot <- parms$iBP * x$tot["IP"]
   aeB <- parms$aE*B
   kmN <- parms$kmN #parms$km*parms$kN
@@ -49,7 +49,7 @@ derivSesam4F <- function(
   tvrBPred <- if (B < parms$B0) 0 else parms$tauP*(B - parms$B0)*B
   tvrBOrg <- tvrB + parms$epsP*tvrBPred # turnover feeding back to organic
   respTvr <- (1 - parms$epsP)*tvrBPred  # turnover mineralized (respired)
-  PhiTvr <- respTvr/parms$cnB
+  PhiNTvr <- respTvr/parms$cnB
   PhiPTvr <- respTvr/parms$cpB
   #
   # organic uptake
@@ -61,10 +61,10 @@ derivSesam4F <- function(
   # relURecyc depends on relUC because composition of enzymes is that of uptake
   #fracUC <- decL*x$rel[["LC"]] + decR*x$rel[["RC"]] +
   #  tvrERecycling*relSC + tvrBOrg*(1 - cW)*x$rel[["BC"]]
-  fracUNOrg <- parms$nu*(decL/cnL*x$rel[["LN"]] + decR/cnR*x$rel[["RN"]] +
+  fracUNOrg <- parms$nuN*(decL/cnL*x$rel[["LN"]] + decR/cnR*x$rel[["RN"]] +
                            (tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)*x$rel[["BN"]])
-  uNOrg <- parms$nu*(decL/cnL + decR/cnR + tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)
-  #uNOrg1 <- parms$nu*(decNLR + decNE + decNB)
+  uNOrg <- parms$nuN*(decL/cnL + decR/cnR + tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)
+  #uNOrg1 <- parms$nuN*(decNLR + decNE + decNB)
   #if (abs(uNOrg - uNOrg1) > 1e-14) stop("fracUNOrg error")
   uPOrg <- parms$nuP*(decL/cpL + decR/cpR +
                         tvrERecycling/cpE + tvrBOrg*(1 - cW)/cpBL)
@@ -73,7 +73,7 @@ derivSesam4F <- function(
   #
   # elemental limitations by potential biomass synthesis and respiration
   CsynBC <- uC - rM - synE/parms$eps
-  CsynBN <- cnB/parms$eps*(uNOrg + immoPot - synE/cnE)
+  CsynBN <- cnB/parms$eps*(uNOrg + immoNPot - synE/cnE)
   CsynBP <- cpB/parms$eps*(uPOrg + immoPPot - synE/cpE)
   CsynB <- min(CsynBC, CsynBN, CsynBP)
   if (CsynB > 0) {
@@ -112,7 +112,7 @@ derivSesam4F <- function(
   #
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
   respO <- uC + starvB - (synE/parms$eps + synB + rG + rM)
-  PhiB <- uNOrg + starvB/cnB - synB/cnB - synE/cnE
+  PhiNB <- uNOrg + starvB/cnB - synB/cnB - synE/cnE
   PhiPB <- uPOrg + starvB/cpB - synB/cpB - synE/cpE
   #
   tvrN <-  +cW*tvrBOrg/parms$cnBW   + (1 - parms$kNB)*synE/parms$cnE
@@ -121,14 +121,14 @@ derivSesam4F <- function(
   tvrExC <- x$units$C;  tvrExN <- x$units$N;  tvrExP <- x$units$P
   tvrExC[] <- tvrExN[] <- tvrExP[] <- 0
   #
-  leach <- parms$l*x$tot["I"]
-  PhiU <- (1 - parms$nu)*(decL/cnL + decR/cnR + tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)
+  leachN <- parms$lN*x$tot["IN"]
+  PhiNU <- (1 - parms$nuN)*(decL/cnL + decR/cnR + tvrERecycling/cnE + tvrBOrg*(1 - cW)/cnBL)
   leachP <- parms$lP*x$tot["IP"]
   PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE + tvrBOrg*(1 - cW)/cpBL)
   #
   respB <- (synE)/parms$eps*(1 - parms$eps)  + rG + rM + respO
   resp <- respB + respTvr
-  immoN <- max(0,-PhiB); minN <- max(0,PhiB)
+  immoN <- max(0,-PhiNB); minN <- max(0,PhiNB)
   immoP <- max(0,-PhiPB); minP <- max(0,PhiPB)
   #
   # after sC and immo is known, relSC can be computed (see SteadyEnzyme4a.Rmd)
@@ -140,23 +140,23 @@ derivSesam4F <- function(
   cpS <- sC/sP
   .aC <- decL*x$rel[["LC"]] + decR*x$rel[["RC"]] + tvrBOrg*(1 - cW)*x$rel[["BC"]] +
     starvB*x$rel[["BC"]]
-  .aN <- parms$nu * (decL/cnL*x$rel[["LN"]] + decR/cnR*x$rel[["RN"]] +
+  .aN <- parms$nuN * (decL/cnL*x$rel[["LN"]] + decR/cnR*x$rel[["RN"]] +
     tvrBOrg*(1 - cW)/cnBL*x$rel[["BN"]]) +
-    starvB/cnB*x$rel[["BN"]] + immoN*x$rel[["I"]]
+    starvB/cnB*x$rel[["BN"]] + immoN*x$rel[["IN"]]
   .aP <- parms$nuP * (decL/cpL*x$rel[["LP"]] + decR/cpR*x$rel[["RP"]] +
     tvrBOrg*(1 - cW)/cpBL*x$rel[["BP"]]) +
     starvB/cpB*x$rel[["BP"]] + immoP*x$rel[["IP"]]
   relSC <- .aC/(sC - tvrERecycling)
-  relSN <- .aN/(sN - parms$nu*tvrERecycling/cnE)
+  relSN <- .aN/(sN - parms$nuN*tvrERecycling/cnE)
   relSP <- .aP/(sP - parms$nuP*tvrERecycling/cpE)
   relUC <- (sC*relSC - starvB*x$rel[["BC"]])/uC
   if (any(abs( sC*relSC - (.aC + tvrERecycling*relSC)) > sqrEps)) stop(
     "composition C mass balance error in synthesis flux")
-  if (any(abs( sN*relSN - (.aN + parms$nu*tvrERecycling/cnE*relSN)) > sqrEps)) stop(
+  if (any(abs( sN*relSN - (.aN + parms$nuN*tvrERecycling/cnE*relSN)) > sqrEps)) stop(
     "composition N mass balance error in synthesis flux")
   if (any(abs( sP*relSP - (.aP + parms$nuP*tvrERecycling/cpE*relSP)) > sqrEps)) stop(
     "composition P mass balance error in synthesis flux")
-  fracPhiU <- (1 - parms$nu)*(decL/cnL*x$rel[["LN"]] + decR/cnR*x$rel[["RN"]]
+  fracPhiU <- (1 - parms$nuN)*(decL/cnL*x$rel[["LN"]] + decR/cnR*x$rel[["RN"]]
                               + tvrERecycling/cnE*relSN +
                                 tvrBOrg*(1 - cW)/cnBL*x$rel[["BN"]])
   fracPhiPU <- (1 - parms$nuP)*(decL/cpL*x$rel[["LP"]] + decR/cpR*x$rel[["RP"]]
@@ -188,18 +188,18 @@ derivSesam4F <- function(
   dRN <- -decR/cnR*x$rel[["RN"]]  + parms$iR/parms$cnIR*parms$relIR$N  + tvrN
   dRP <- -decR/cpR*x$rel[["RP"]]  + parms$iR/parms$cpIR*parms$relIR$P  + tvrP
   # here plant uptake as absolute parameter
-  dITot <-  +parms$iI + sum(fracPhiU*x$units$N) + minN + PhiTvr -
-    (parms$kIPlant*x$tot["I"] + leach + immoN)
-  dI <-  +parms$iI*parms$relII + fracPhiU  + minN*relSN + PhiTvr*x$rel[["BN"]] -
-    (parms$kIPlant*x$tot["I"] + leach + immoN)*x$rel[["I"]]
+  dITot <-  +parms$iIN + sum(fracPhiU*x$units$N) + minN + PhiNTvr -
+    (parms$kINPlant*x$tot["IN"] + leachN + immoN)
+  dIN <-  +parms$iIN*parms$relII + fracPhiU  + minN*relSN + PhiNTvr*x$rel[["BN"]] -
+    (parms$kINPlant*x$tot["IN"] + leachN + immoN)*x$rel[["IN"]]
   dIP <-  +parms$iIP*parms$relIIP + fracPhiPU + minP*relSP + PhiPTvr*x$rel[["BP"]] -
     (parms$kIPPlant*x$tot["IP"] + leachP + immoP)*x$rel[["IP"]]
   dResp <- respB*relSC + respTvr*x$rel[["BC"]]
-  dLeachN <- leach*x$rel[["I"]]
+  dLeachN <- leachN*x$rel[["IN"]]
   dLeachP <- leachP*x$rel[["IP"]]
   .tmp.f.displaySumDeriv <- function(){
     c( BC = sum(dB*x$units$C), RC = sum(dR*x$units$C), LC = sum(dL*x$units$C)
-       , RN = sum(dRN*x$units$N), LN = sum(dLN*x$units$N), I = sum(dI*x$units$N)
+       , RN = sum(dRN*x$units$N), LN = sum(dLN*x$units$N), IN = sum(dIN*x$units$N)
        , RP = sum(dRP*x$units$P), LP = sum(dLP*x$units$P), IP = sum(dIP*x$units$P)
        , resp = sum(dResp*x$units$C
        , leachN = sum(dLeachN*x$units$N), leachP = sum(dLeachP*x$units$P))
@@ -208,7 +208,7 @@ derivSesam4F <- function(
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
-    dR[] <- dL[] <- dRN[] <- dLN[] <- dRP[] <- dLP[] <- dI[] <- dIP[] <- 0
+    dR[] <- dL[] <- dRN[] <- dLN[] <- dRP[] <- dLP[] <- dIN[] <- dIP[] <- 0
   } else if (isTRUE(parms$isTvrNil)) {
     # scenario of enzymes and biomass not feeding back to R
     # subtract from R again an regard in mass balance check
@@ -221,7 +221,7 @@ derivSesam4F <- function(
   # make sure same order as stateNames in x (C, N P, scalars)
   resDeriv <- structure(as.numeric(
     c( dB, dR, dL, dResp
-       , dBN, dRN, dLN, dI, dLeachN
+       , dBN, dRN, dLN, dIN, dLeachN
        , dBP, dRP, dLP, dIP, dLeachP
        , dAlpha))
     , names = names(x$stateVec(x)) )
@@ -232,7 +232,7 @@ derivSesam4F <- function(
   if (diff( unlist(c(uC = uC + starvB, usage = respB + synB + synE )))^2 > sqrEps )  stop(
     "biomass mass balance C error")
   if (diff( unlist(
-    c(sN = uNOrg + starvB/cnB, usage = synE/parms$cnE + synB/parms$cnB + PhiB )))^2 >
+    c(sN = uNOrg + starvB/cnB, usage = synE/parms$cnE + synB/parms$cnB + PhiNB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   if (diff( unlist(
     c(uP = uPOrg + starvB/cpB, usage = synE/parms$cpE + synB/parms$cpB + PhiPB )))^2 >
@@ -246,14 +246,14 @@ derivSesam4F <- function(
     "biomass turnover mass balance C error")
   if (diff( unlist(c(
     tvrB/cnB + tvrBPred/cnB
-    , usage = PhiTvr + tvrBOrg/cnB
-    #, usage = PhiTvr + cW*tvrBOrg/cnBW + (1 - cW)*tvrBOrg/cnBL
+    , usage = PhiNTvr + tvrBOrg/cnB
+    #, usage = PhiNTvr + cW*tvrBOrg/cnBW + (1 - cW)*tvrBOrg/cnBL
   )))^2 > sqrEps )  stop(
     "biomass turnover mass balance N error")
   if (diff( unlist(c(
     tvrB/cpB + tvrBPred/cpB
     , usage = PhiPTvr + tvrBOrg/cpB
-    #, usage = PhiTvr + cW*tvrBOrg/cnBW + (1 - cW)*tvrBOrg/cnBL
+    #, usage = PhiNTvr + cW*tvrBOrg/cnBW + (1 - cW)*tvrBOrg/cnBL
   )))^2 > sqrEps )  stop(
     "biomass turnover mass balance P error")
   if (!isTRUE(parms$isFixedS)) {
@@ -263,9 +263,9 @@ derivSesam4F <- function(
       (parms$iR*parms$relIR$C + parms$iL*parms$relIL$C)
       ) > sqrEps))  stop("mass balance dC error")
     if (any(abs(
-      (dBN  + dRN + dLN + dI + tvrExN) -
+      (dBN  + dRN + dLN + dIN + tvrExN) -
       (parms$iR/parms$cnIR*parms$relIR$N  + parms$iL/parms$cnIL*parms$relIL$N +
-       parms$iI*parms$relII - parms$kIPlant*x$tot["I"]*x$rel[["I"]] - dLeachN)
+       parms$iIN*parms$relII - parms$kINPlant*x$tot["IN"]*x$rel[["IN"]] - dLeachN)
     ) > sqrEps))  stop("mass balance dN error")
     if (any(abs(
       (dBP  + dRP + dLP + dIP + tvrExP) -
@@ -281,7 +281,7 @@ derivSesam4F <- function(
   if (isTRUE(parms$isFixedL)) {
     resDeriv[names(x$frac[["LC"]])] <- resDeriv[names(x$frac[["LN"]])] <-
       resDeriv[names(x$frac[["LP"]])] <- 0 }
-  if (isTRUE(parms$isFixedI)) { resDeriv[names(x$frac[["I"]])] <- 0 }
+  if (isTRUE(parms$isFixedI)) { resDeriv[names(x$frac[["IN"]])] <- 0 }
   if (isTRUE(parms$isFixedIP)) { resDeriv[names(x$frac[["IP"]])] <- 0 }
   #
   # further computations just for output for tacking the system
@@ -294,9 +294,9 @@ derivSesam4F <- function(
   revRN <- dRPot/cnR / (parms$km*parms$kN + alphaN*aeB)
   revLN <- dLPot/cnL / (parms$km*parms$kN + alphaN*aeB)
   # net mic mineralization/immobilization when accounting uptake mineralization
-  PhiBU <- PhiB + PhiU
+  PhiNBU <- PhiNB + PhiNU
   # total mineralization flux including microbial turnover
-  PhiTotal <- PhiBU + PhiTvr
+  PhiNTotal <- PhiNBU + PhiNTvr
   #
   if (isTRUE(parms$isRecover) ) recover()
   list( resDeriv,  c(
@@ -304,12 +304,12 @@ derivSesam4F <- function(
      , respO = as.numeric(respO)
      , respB = as.numeric(respB)
      , respTvr = as.numeric(respTvr)
-    , PhiTotal = as.numeric(PhiTotal)
-    , PhiB = as.numeric(PhiB), PhiU = as.numeric(PhiU)
-    , PhiTvr = as.numeric(PhiTvr)
-    , PhiBU = as.numeric(PhiBU)
-    , immoPot = as.numeric(immoPot)
-    , PhiPTotal = as.numeric(PhiPB + PhiPU + PhiTvr)
+    , PhiNTotal = as.numeric(PhiNTotal)
+    , PhiNB = as.numeric(PhiNB), PhiNU = as.numeric(PhiNU)
+    , PhiNTvr = as.numeric(PhiNTvr)
+    , PhiNBU = as.numeric(PhiNBU)
+    , immoNPot = as.numeric(immoNPot)
+    , PhiPTotal = as.numeric(PhiPB + PhiPU + PhiNTvr)
     , PhiPB = as.numeric(PhiPB), PhiPU = as.numeric(PhiPU)
     , PhiPTvr = as.numeric(PhiPTvr)
     , PhiPBU = as.numeric(PhiPB + PhiPU)
@@ -341,7 +341,7 @@ derivSesam4F <- function(
     #, ER = as.numeric(ER), EL = as.numeric(EL)
   , structure(as.numeric(resp*relSC)
               , names = paste("respTotal",names(x$units$C), sep = "_"))
-  , structure(as.numeric(immoN*x$rel[["I"]])
+  , structure(as.numeric(immoN*x$rel[["IN"]])
               , names = paste("immoN",names(x$units$N), sep = "_"))
   , structure(as.numeric(minN*x$rel[["BN"]])
               , names = paste("minN",names(x$units$N), sep = "_"))

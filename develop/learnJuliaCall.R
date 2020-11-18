@@ -32,7 +32,7 @@ names(x) = julia_eval("symbols(se.getStateVector())")
 xR <- c(B = 5, c = 4)
 julia_assign(x, xR)
 
-julia_eval("StateVectorType = @SLVector Float64 (:B, :R, :RN, :L, :LN, :I, :α)")
+julia_eval("StateVectorType = @SLVector Float64 (:B, :R, :RN, :L, :LN, :IN, :α)")
 
 julia_createStateVector = function(x, module, name = toString(substitute(x))){
   #name

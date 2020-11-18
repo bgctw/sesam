@@ -11,7 +11,7 @@ test_that("MultiPoolFractions amend through all fractions", {
   expect_true( inherits(x, "MultiPoolFractions"))
   expect_equal( names(x$tot), c(
     "BC","RC","LC","resp"
-    , "BN","RN","LN","I","leachN"
+    , "BN","RN","LN","IN","leachN"
     , "BP","RP","LP","IP","leachP"
     , "alpha"))
   expect_true( all( c("RC_SOM","RC_amend","RP_SOM","alpha") %in% names(x$stateVec(x)) ))
@@ -29,7 +29,7 @@ test_that("MultiPoolFractions amend through all fractions", {
   expect_equivalent( x$rel[["RN"]], x$frac[["RN"]]/x$tot["RN"])
   # reli <- x$rel[["BC"]]
   expect_true( all(sapply(x$rel[c("BC","RC","LC")], function(reli) sum(reli * units$C)) - 1 < 1e-12) )
-  expect_true( all(sapply(x$rel[c("RN","LN","I")], function(reli) sum(reli * units$N)) - 1 < 1e-12) )
+  expect_true( all(sapply(x$rel[c("RN","LN","IN")], function(reli) sum(reli * units$N)) - 1 < 1e-12) )
   expect_true( all(sapply(x$rel[c("RP","LP","IP")], function(reli) sum(reli * units$P)) - 1 < 1e-12) )
   expect_true( all(unlist(x$rel[["alpha"]]) - 1 < 1e-12) )
 })
@@ -40,7 +40,7 @@ test_that("MultiPoolFractions 13C 14N, noPIso", {
     , N = c(N14 = 1, N15 = 0.01) # 15N in percent
   )
   x <- createMultiPoolFractions(units, setX = createSesam4CNsetX(units))
-  expect_equal( names(x$tot), c("BC","RC","LC","resp","BN","RN","LN","I","leachN","BP","RP","LP","IP","leachP","alpha"))
+  expect_equal( names(x$tot), c("BC","RC","LC","resp","BN","RN","LN","IN","leachN","BP","RP","LP","IP","leachP","alpha"))
   expect_true( all( c("RC_C12","RC_C13","RN_N14","alpha","RP") %in% names(x$stateVec(x)) ))
   #.self <- x  # rm(.self)  # poolName <- "RP"
   x0 <- structure(seq_along(x$stateVec(x)), names = names(x$stateVec(x)))
@@ -55,7 +55,7 @@ test_that("MultiPoolFractions 13C 14N, noPIso", {
   expect_equivalent( x$rel[["RC"]], x$frac[["RC"]]/x$tot["RC"])
   expect_equivalent( x$rel[["RN"]], x$frac[["RN"]]/x$tot["RN"])
   expect_true( all(sapply(x$rel[c("BC","RC","LC")], function(reli) sum(reli * units$C)) - 1 < 1e-12) )
-  expect_true( all(sapply(x$rel[c("RN","LN","I")], function(reli) sum(reli * units$N)) - 1 < 1e-12) )
+  expect_true( all(sapply(x$rel[c("RN","LN","IN")], function(reli) sum(reli * units$N)) - 1 < 1e-12) )
   expect_true( all(sapply(x$rel[c("RP","LP","IP")], function(reli) sum(reli * units$P)) - 1 < 1e-12) )
   expect_true( all(unlist(x$rel[["alpha"]]) - 1 < 1e-12) )
 })
@@ -160,7 +160,7 @@ test_that("elementMultiPoolFractions", {
   expect_equal( colnames(elFb), c("LC","RC"))
   #
   elFc <- elementMultiPoolFractions(x1F,"N")
-  expect_equal( colnames(elFc), c("BN", "RN", "LN", "I", "leachN"))
+  expect_equal( colnames(elFc), c("BN", "RN", "LN", "IN", "leachN"))
   expect_equal( rownames(elFc), names(x1F$units$N))
   #
   elFd <- elementMultiPoolFractions(x1F,"P")

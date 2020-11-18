@@ -35,11 +35,11 @@ parms0 <- list(
   #,plantNUp = 300/70*1/4  ##<< plant N uptake balancing N inputs
   ,plantNUp = 0   ##<< plant N uptake balancing N inputs
   ,useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
-  ,kIPlant = 10.57 #0.0289652*365         ##<< plant uptake iP I
-  ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
-  ,iI = 0         ##<< input of mineral N
-  ,l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I
-  ,nu = 0.9       ##<< microbial N use efficiency
+  ,kINPlant = 10.57 #0.0289652*365         ##<< plant uptake iP IN
+  ,iBN = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iBN IN
+  ,iIN = 0         ##<< input of mineral N
+  ,lN = 0.96 #0.00262647*365       ##<< leaching rate of mineralN lN IN
+  ,nuN = 0.9       ##<< microbial N use efficiency
   #, isEnzymeMassFlux = FALSE  ##<< steady state B solution neglects enyzme mass fluxes
   , isEnzymeMassFlux = TRUE  ##<< steady state B solution accounts for enyzme mass fluxes
   , kmN = 0.3 * 0.01*365  ##<< /yr enzyme turnover 1% turning over each day
@@ -50,8 +50,8 @@ parms0 <- within(parms0,{
   #cnER <- cnEL <- cnE
   #kNR <- kNL <- kN
   plantNUpAbs <- iL / cnIL	# same litter input as plant uptake
-  kIPlant <- plantNUpAbs <- 0			# no plant uptake
-  kIPlant <- 0			# no plant uptake
+  kINPlant <- plantNUpAbs <- 0			# no plant uptake
+  kINPlant <- 0			# no plant uptake
 })
 
 parms <- parms0
@@ -62,7 +62,7 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   , RN = 7000/parms0$cnIR    ##<< N rich substrate N pool
   , L = 200                  ##<< N poor substrate
   , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
-  , I =  1                   ##<< inorganic pool
+  , IN =  1                   ##<< inorganic pool
   , alpha = 0.5              ##<< initial community composition
 )
 x <- x0
@@ -73,7 +73,7 @@ x0Nlim <- c( #aE = 0.001*365
   , RN = 1000/parms0$cnIR    ##<< N rich substrate N pool
   , L = 200                  ##<< N poor substrate
   , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
-  , I =  0                   ##<< inorganic pool
+  , IN =  0                   ##<< inorganic pool
   , alpha = 0.5              ##<< initial community composition
 )
 
@@ -109,7 +109,7 @@ test_that("sesam3BSteadyClim",{
       c(eps*(decL + decR + decE - maint), tvr)
       #ansi <- sesam3BSteadyNlim(dLN, dRN, alpha, parms = parms, immNPot = immNPot)
     })
-    matplot(Bs, t(ans), type = "l")
+    matplot(Bs, t(ans), type = "lN")
   }
   .tmp.f <- function(){
     decFacs <- seq(0.1,0.15,length.out = 51)
@@ -118,7 +118,7 @@ test_that("sesam3BSteadyClim",{
       dR2 <- dL*decFac
       B <- sesam3BSteadyClim(dL2, dR2, alpha, parms = parms)
     })
-    plot(ans ~ decFacs, type = "l")
+    plot(ans ~ decFacs, type = "lN")
   }
 })
 
@@ -149,23 +149,23 @@ test_that("sesam3BSteadyNlim",{
   betaB <- parms[["cnB"]]
   betaE <- parms[["cnE"]]
   kappaE = parms[["kNB"]]
-  nu = parms[["nu"]]  # N efficiency during DON uptake
+  nuN = parms[["nuN"]]  # N efficiency during DON uptake
   decLN <- dLN*(1 - alpha)*aE*B/(kmkN + (1 - alpha)*aE*B)
   decRN <- dRN*(alpha)*aE*B/(kmkN + (alpha)*aE*B)
   synEN <- aE*B/betaE
   decEN <- kappaE*synEN
   tvrBN <- tau*B/betaB
-  #c(decLN, decRN, immNPot, nu*(decLN + decRN) + immNPot, tvrBN)
-  expect_equal(nu*(decLN + decRN + decEN) + immNPot - synEN - tvrBN, 0.0, tolerance = 1e-6)
+  #c(decLN, decRN, immNPot, nuN*(decLN + decRN) + immNPot, tvrBN)
+  expect_equal(nuN*(decLN + decRN + decEN) + immNPot - synEN - tvrBN, 0.0, tolerance = 1e-6)
   .tmp.f <- function(){
     nPots <- seq(0,10,length.out = 11)
     #nPots <- seq(0,.1,length.out = 11)
     ans <- sapply(nPots, function(immNPot){
       ansi <- sesam3BSteadyNlim(dLN, dRN, alpha, parms = parms, immNPot = immNPot)
     })
-    #matplot(nPots, t(Re(ans)), type = "l"); abline(h = 0)
+    #matplot(nPots, t(Re(ans)), type = "lN"); abline(h = 0)
     # only second root seesm reasonably increase with immNPot
-    plot(ans ~ nPots, type = "l"); abline(h = 0)
+    plot(ans ~ nPots, type = "lN"); abline(h = 0)
   }
 })
 
@@ -250,7 +250,7 @@ test_that("same as sesam3s with substrate feedbacks", {
   #rbind(xEExp[names(xETest)], xETest)
   #
   # from C to N limitation
-  x0CNLim <- x0; x0CNLim["I"] <- 0
+  x0CNLim <- x0; x0CNLim["IN"] <- 0
   times <- seq(0,1200, length.out = 2)
   #times <- seq(0,1200, length.out = 101)
   #times <- c(0,seq(140,220, length.out = 101))
@@ -284,7 +284,7 @@ test_that("same as sesam3s with substrate feedbacks", {
   ggplot(filter(res, time > 10 & time < 500), aes(time, EL, color = scen)) + geom_line()
   ggplot(filter(res, time < 500), aes(time, alphaC, color = scen)) + geom_line()
   ggplot(filter(res, time < 5000), aes(time, alphaN, color = scen)) + geom_line()
-  ggplot(filter(res, time > 01), aes(time, PhiB, color = scen, linetype = scen)) + geom_line()
+  ggplot(filter(res, time > 01), aes(time, PhiNB, color = scen, linetype = scen)) + geom_line()
 }
 
 

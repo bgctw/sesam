@@ -34,11 +34,11 @@ parms0 <- list(
   #,plantNUp = 300/70*1/4  # plant N uptake balancing N inputs
   ,plantNUp = 0
   ,useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
-  ,kIPlant = 10.57 #0.0289652*365          ##<< plant uptake iP I
-  ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
-  ,iI = 0     ##<< input of mineral N
-  ,l = 0.96   #0.00262647*365       ##<< leaching rate of mineralN l I
-	,nu = 0.9     # microbial N use efficiency
+  ,kINPlant = 10.57 #0.0289652*365          ##<< plant uptake iP IN
+  ,iBN = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iBN IN
+  ,iIN = 0     ##<< input of mineral N
+  ,lN = 0.96   #0.00262647*365       ##<< leaching rate of mineralN lN IN
+	,nuN = 0.9     # microbial N use efficiency
 )
 parms0 <- within(parms0,{
   kmkN <- km*kN
@@ -48,8 +48,8 @@ parms0 <- within(parms0,{
   kNR <- kNL <- kN
   plantNUpOrg <- 0 # no organic N uptake
   plantNUpAbs <- iL / cnIL	# inorganic plant N uptake same litter input
-  kIPlant <- 1000  # high number -> constrain by plantNUpAbs
-  kIPlant <- plantNUpAbs <- 0			# no plant uptake
+  kINPlant <- 1000  # high number -> constrain by plantNUpAbs
+  kINPlant <- plantNUpAbs <- 0			# no plant uptake
 })
 
 parms <- parms0
@@ -62,13 +62,13 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   ,RN = 7000/parms0$cnIR    ##<< N rich substrate N pool
   ,L = 200                  ##<< N poor substrate
   ,LN = 200/parms0$cnIL     ##<< N poor substrate N pool
-  ,I =  1                   ##<< inorganic pool
+  ,IN =  1                   ##<< inorganic pool
   ,alpha = 0.5              ##<< initial microbial community partitioning
 )
 x <- x0
 
 x0Seam2 <- c(x0[setdiff(names(x0),"alpha")]
-)[c("B","ER","EL","R","RN","L","LN","I")]	##<< make sure to have same order as derivative of Seam2
+)[c("B","ER","EL","R","RN","L","LN","IN")]	##<< make sure to have same order as derivative of Seam2
 #x0Seam2
 
 x0Nlim <- c( #aE = 0.001*365
@@ -79,11 +79,11 @@ x0Nlim <- c( #aE = 0.001*365
   ,RN = 1000/parms0$cnIR    ##<< N rich substrate N pool
   ,L = 200                  ##<< N poor substrate
   ,LN = 200/parms0$cnIL     ##<< N poor substrate N pool
-  ,I =  0                   ##<< inorganic pool
+  ,IN =  0                   ##<< inorganic pool
   ,alpha = 0.5              ##<< initial microbial community partitioning
 )
 x0NlimSeam2 <- c(x0Nlim[setdiff(names(x0),"alpha")]
-)[c("B","ER","EL","R","RN","L","LN","I")]	##<< make sure to have same order as derivative of Seam2
+)[c("B","ER","EL","R","RN","L","LN","IN")]	##<< make sure to have same order as derivative of Seam2
 
 
 test_that("same as seam for fixed substrates", {
@@ -183,8 +183,8 @@ test_that("same as seam with substrate feedbacks", {
   namesCompare <- setdiff( names(xETest), c("dL","dR","dB"))
   expect_true( all(abs(xETest[namesCompare] - xEExp[namesCompare])/pmax(1e-5,abs(xEExp[namesCompare])) < 1e-2))
   # from C to N limitation
-  x0CNLim <- x0; x0CNLim["I"] <- 0
-  x0CNLimSeam2 <- x0Seam2; x0CNLimSeam2["I"] <- 0
+  x0CNLim <- x0; x0CNLim["IN"] <- 0
+  x0CNLimSeam2 <- x0Seam2; x0CNLimSeam2["IN"] <- 0
   times <- seq(0,1200, length.out = 8)
   #times <- seq(0,1200, length.out = 101)
   #times <- c(0,seq(140,220, length.out = 101))
@@ -215,14 +215,14 @@ test_that("same as seam with substrate feedbacks", {
   ggplot(filter(res, time > 10 & time < 500), aes(time, EL, color = scen)) + geom_line()
   ggplot(filter(res, time < 500), aes(time, alphaC, color = scen)) + geom_line()
   ggplot(filter(res, time < 5000), aes(time, alphaN, color = scen)) + geom_line()
-  ggplot(filter(res, time > 01), aes(time, PhiB, color = scen, linetype = scen)) + geom_line()
+  ggplot(filter(res, time > 01), aes(time, PhiNB, color = scen, linetype = scen)) + geom_line()
   ggplot(filter(res, time > 01), aes(time, dR, color = scen, linetype = scen)) + geom_line()
   ggplot(filter(res, time > 01), aes(time, dL, color = scen, linetype = scen)) + geom_line()
 }
 
 test_that("mass balance with plant N uptake", {
   # mass balance chekced within derivSeam3a
-  parmsInit <- within(parms0, {kIPlant = 1000; plantNUpAbs  <- iL/cnIL})
+  parmsInit <- within(parms0, {kINPlant = 1000; plantNUpAbs  <- iL/cnIL})
   times <- seq(0,800, length.out = 2)
   times <- seq(0,800, length.out = 101)
   #times <- c(0,148:151)
@@ -240,8 +240,8 @@ test_that("mass balance with plant N uptake", {
     , fBalanceAlpha = balanceAlphaBetweenCNLimitations))
   #
   # from C to N limitation
-  x0CNLim <- x0; x0CNLim["I"] <- 0
-  x0CNLimSeam2 <- x0Seam2; x0CNLimSeam2["I"] <- 0
+  x0CNLim <- x0; x0CNLim["IN"] <- 0
+  x0CNLimSeam2 <- x0Seam2; x0CNLimSeam2["IN"] <- 0
   times <- seq(0,1200, length.out = 8)
   #times <- seq(0,1200, length.out = 101)
   #times <- c(0,seq(140,220, length.out = 101))

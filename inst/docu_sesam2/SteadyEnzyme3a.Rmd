@@ -28,8 +28,8 @@ C_{\operatorname{syn}BC} &= u_C - \operatorname{syn}_E/\epsilon - r_M \\
 \\
 C_{\operatorname{syn}BN} &=  \beta_B N_{\operatorname{syn}BN} /\epsilon \\
 &= \beta_B /\epsilon (u_N - \operatorname{syn}_E/\beta_E)   \\
-&= \beta_B /\epsilon \left[ \nu (\operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R + \kappa_E a_E B/\beta_E) + u_{\operatorname{imm,Pot}}- a_E B/\beta_E  \right] \\
-&= \beta_B /\epsilon \left[ \nu (\operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R) + u_{\operatorname{imm,Pot}} - (1 - \nu \kappa_E) a_E B/\beta_E  \right] \\
+&= \beta_B /\epsilon \left[ \nuN (\operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R + \kappa_E a_E B/\beta_E) + u_{\operatorname{imm,Pot}}- a_E B/\beta_E  \right] \\
+&= \beta_B /\epsilon \left[ \nuN (\operatorname{dec}_L/\beta_L + \operatorname{dec}_R/\beta_R) + u_{\operatorname{imm,Pot}} - (1 - \nuN \kappa_E) a_E B/\beta_E  \right] \\
 \\
 C_{\operatorname{syn}BP} &=  \gamma_B P_{\operatorname{syn}BP} /\epsilon \\
 &= \gamma_B /\epsilon (u_P - \operatorname{syn}_E/\gamma_E)   \\

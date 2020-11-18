@@ -43,11 +43,11 @@ derivSeam3b <- function(
   plantNUpOrg <- if (!is.null(parms$plantNUpOrg))
     pmin(parms$plantNUpOrg, decN/2) else 0
   # mineralization due to soil heterogeneity (Manzoni 08)
-  PhiU <- (1 - parms$nu) * (decN - plantNUpOrg)
+  PhiNU <- (1 - parms$nuN) * (decN - plantNUpOrg)
   # immobilization flux
-  immoPot <- parms$iB * x["I"]
-  uNSubstrate <- (decN - plantNUpOrg - PhiU)    # plant uptake also of organic N
-  uNPot <-  immoPot + uNSubstrate
+  immoNPot <- parms$iBN * x["IN"]
+  uNSubstrate <- (decN - plantNUpOrg - PhiNU)    # plant uptake also of organic N
+  uNPot <-  immoNPot + uNSubstrate
   NsynBN <- uNPot - synE/cnE
   # C required for biomass growth and growth respiration under N limitation
   CsynBN <- (NsynBN*cnB)/parms$eps
@@ -76,17 +76,17 @@ derivSeam3b <- function(
   respSynE <- (1 - parms$eps)/parms$eps * synE
   respO <- uC - (synE + respSynE + synB + rG + rM)
   # imbalance mineralization/immobilization flux substrates only
-  PhiB <- uNSubstrate - (synE/parms$cnE + synB/parms$cnB)
+  PhiNB <- uNSubstrate - (synE/parms$cnE + synB/parms$cnB)
   # imbalance taking into account potential immobilization
   MmImb <- uNPot - (synE/parms$cnE + synB/parms$cnB)
-  #PhiB2 <- MmImb - immoPot # should equal PhiB
-  PhiBU <- PhiB + PhiU
+  #PhiB2 <- MmImb - immoNPot # should equal PhiNB
+  PhiNBU <- PhiNB + PhiNU
   respTvr <- (1 - parms$epsTvr) * tvrB
-  PhiTvr <- respTvr/parms$cnB
+  PhiNTvr <- respTvr/parms$cnB
   # net microbial mineralization/imm when taking into account uptake mineralization
-  PhiBU <- PhiB + PhiU
+  PhiNBU <- PhiNB + PhiNU
   # total mineralization flux including microbial turnover
-  PhiTotal <- PhiBU + PhiTvr
+  PhiNTotal <- PhiNBU + PhiNTvr
   #
   # Revenue strategy
   revLC <- decLp / (parms$kNL) / (parms$kmL + EL)
@@ -110,8 +110,8 @@ derivSeam3b <- function(
   tvrExC <- 0     # fluxes leaving the system
   tvrExN <- 0
   #
-  leach <- parms$l*x["I"]
-  plantNUpPot <- parms$kIPlant*x["I"]
+  leachN <- parms$lN*x["IN"]
+  plantNUpPot <- parms$kINPlant*x["IN"]
   plantNUp <- if (!is.null(parms$plantNUpAbs)) {
     min(parms$plantNUpAbs, plantNUpPot)
   } else {
@@ -125,14 +125,14 @@ derivSeam3b <- function(
   dLN <- -decL/cnL  + parms$iL/parms$cnIL
   dR <- -decR + parms$iR + tvrC
   dRN <- -decR/cnR + parms$iR/parms$cnIR + tvrN
-  #dI <- +parms$iI +MmB +PhiTvr -(parms$kIPlant+parms$l)*x["I"]
+  #dIN <- +parms$iIN +MmB +PhiNTvr -(parms$kINPlant+parms$lN)*x["IN"]
   # plant uptake as absolute parameter
-  dI <- +parms$iI - plantNUp - leach + PhiB + PhiU + PhiTvr
-  #if (dI > 0.01 ) recover()
+  dIN <- +parms$iIN - plantNUp - leachN + PhiNB + PhiNU + PhiNTvr
+  #if (dIN > 0.01 ) recover()
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
-    dR <- dL <- dRN <- dLN <- dI <- 0
+    dR <- dL <- dRN <- dLN <- dIN <- 0
   } else if (isTRUE(parms$isTvrNil)) {
     # scenario of enzymes and biomass not feeding back to R
     dR <- +parms$iR - decR
@@ -144,8 +144,8 @@ derivSeam3b <- function(
   resp <- respB + respTvr
   #
   resDeriv <- structure(as.numeric(
-    c( dB, dER, dEL, dR, dRN, dL, dLN, dI, dAlpha))
-    , names = c("dB","dER","dEL","dR","dRN","dL","dLN","dI","dAlpha"))
+    c( dB, dER, dEL, dR, dRN, dL, dLN, dIN, dAlpha))
+    , names = c("dB","dER","dEL","dR","dRN","dL","dLN","dIN","dAlpha"))
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   sqrEps <- sqrt(.Machine$double.eps)
   # parms$iL - (decL + dL)
@@ -154,31 +154,31 @@ derivSeam3b <- function(
   if (diff( unlist(c(uC = uC, usage = respB + synB + synE )))^2 > sqrEps ) stop(
     "biomass mass balance C error")
   if (diff( unlist(
-    c(uN = uNSubstrate, usage = synE/parms$cnE + synB/parms$cnB + PhiB )))^2 >
+    c(uN = uNSubstrate, usage = synE/parms$cnE + synB/parms$cnB + PhiNB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   if (!isTRUE(parms$isFixedS)) {
     if (diff(unlist(
       c(dB + dER + dEL + dR + dL + tvrExC + resp, parms$iR + parms$iL )))^2 >
       sqrEps )  stop("mass balance C error")
     if (diff(unlist(
-      c( dB/parms$cnB  + (dER + dEL)/parms$cnE  + dRN + dLN + dI + tvrExN
-         , parms$iR/parms$cnIR  + parms$iL/parms$cnIL + parms$iI -
-         plantNUp - plantNUpOrg - parms$l*x["I"])))^2 >
+      c( dB/parms$cnB  + (dER + dEL)/parms$cnE  + dRN + dLN + dIN + tvrExN
+         , parms$iR/parms$cnIR  + parms$iL/parms$cnIL + parms$iIN -
+         plantNUp - plantNUpOrg - parms$lN*x["IN"])))^2 >
       .Machine$double.eps )  stop("mass balance dN error")
   }
-  # keeping R,L, or I constant
+  # keeping R,L, or IN constant
   if (isTRUE(parms$isFixedR)) { resDeriv["dR"] <- resDeriv["dRN"] <-  0   }
   if (isTRUE(parms$isFixedL)) { resDeriv["dL"] <- resDeriv["dLN"] <-  0   }
-  if (isTRUE(parms$isFixedI)) { resDeriv["dI"] <-  0   }
+  if (isTRUE(parms$isFixedI)) { resDeriv["dIN"] <-  0   }
   #
   if (isTRUE(parms$isRecover) ) recover()
   list( resDeriv, c(
     respO = as.numeric(respO)
     #, MmB = as.numeric(MmB)
-    , PhiB = as.numeric(PhiB), PhiU = as.numeric(PhiU)
-    , PhiTvr = as.numeric(PhiTvr)
-    , PhiBU = as.numeric(PhiBU), PhiTotal = as.numeric(PhiTotal)
-    , immoPot = as.numeric(immoPot), MmImb = as.numeric(MmImb)
+    , PhiNB = as.numeric(PhiNB), PhiNU = as.numeric(PhiNU)
+    , PhiNTvr = as.numeric(PhiNTvr)
+    , PhiNBU = as.numeric(PhiNBU), PhiNTotal = as.numeric(PhiNTotal)
+    , immoNPot = as.numeric(immoNPot), MmImb = as.numeric(MmImb)
     , alphaTarget = as.numeric(alphaTarget)
     , alphaC = as.numeric(alphaC), alphaN = as.numeric(alphaN)
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
@@ -194,7 +194,7 @@ derivSeam3b <- function(
     , pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) )
     , NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
     , dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)
-    , dI = as.numeric(dI)
+    , dIN = as.numeric(dIN)
     #    wCLim = (CsynBN/CsynBC)^delta
     #    wNLim = (parms$eps*CsynBC/cnB / NsynBN)^delta
     , uC = as.numeric(uC), synB = as.numeric(synB)
@@ -246,6 +246,6 @@ getSeamStateFromSesam <- function(
     , EL = unname((1 - x0["alpha"])*parms$aE*x0["B"]/parms$kNL)
     , ER = unname((x0["alpha"])*parms$aE*x0["B"]/parms$kNR)
     # make sure to have same order as derivative of Seam3
-  )[c("B","ER","EL","R","RN","L","LN","I","alpha")]
+  )[c("B","ER","EL","R","RN","L","LN","IN","alpha")]
   ##value<< SEAM3 state vector with ER and EL set to quasi steady state
 }

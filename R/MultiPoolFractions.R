@@ -52,7 +52,7 @@ attr(createMultiPoolFractions,"ex") <- function(){
   x0Vec["alpha"] <- 0.5    # scalars
   x0Vec["IP_tot"] <- 2
   x0Vec <- setMultiPoolFractionsPool(  # single element pools
-    x, x0Vec, "I", 10, rel = aR$N, element = "N")
+    x, x0Vec, "IN", 10, rel = aR$N, element = "N")
   x0Vec <- setMultiPoolFractionsElements( # multiple element pools
     x, x0Vec, "B", 100, ce = c(cnB, cpB), rel = aR)
   x0Vec <- setMultiPoolFractionsElements(
@@ -165,7 +165,7 @@ createSesam4setX <- function(
   .poolStatesMapC <- MultiPoolFractions_getPoolStatesMap(
     names(units$C), c("BC","RC","LC","resp"))
   .poolStatesMapN <- MultiPoolFractions_getPoolStatesMap(
-    names(units$N), c("BN","RN","LN","I","leachN"))
+    names(units$N), c("BN","RN","LN","IN","leachN"))
   .poolStatesMapP <- MultiPoolFractions_getPoolStatesMap(
     names(units$P), c("BP","RP","LP","IP","leachP"))
   ##value<< a \code{function(.self,x) -> .self}
@@ -196,7 +196,7 @@ createSesam4CNsetX <- function(
   .poolStatesMapC <- MultiPoolFractions_getPoolStatesMap(
     names(units$C), c("BC","RC","LC","resp"))
   .poolStatesMapN <- MultiPoolFractions_getPoolStatesMap(
-    names(units$N), c("BN","RN","LN","I","leachN"))
+    names(units$N), c("BN","RN","LN","IN","leachN"))
   ##value<< a function that properly updates frac and tot in .self
   function(.self,x){
     .self <- .self$updateElement(.self, x, "C", .poolStatesMapC)

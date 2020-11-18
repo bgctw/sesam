@@ -60,11 +60,11 @@ parms0 <- list(
   , iL = 300       ##<< g/m2 input per year (half NPP)
   , plantNUp = 0   ##<< plant N uptake balancing N inputs
   , useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
-  , kIPlant = 10.57 #0.0289652*365         ##<< plant uptake iP I
-  , iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
-  , iI = 0         ##<< input of mineral N
-  , l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I
-  , nu = 0.9       ##<< microbial N use efficiency
+  , kINPlant = 10.57 #0.0289652*365         ##<< plant uptake iP IN
+  , iBN = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iBN IN
+  , iIN = 0         ##<< input of mineral N
+  , lN = 0.96 #0.00262647*365       ##<< leaching rate of mineralN lN IN
+  , nuN = 0.9       ##<< microbial N use efficiency
   , isEnzymeMassFlux = TRUE  ##<< steady state BC solution accounts for enyzme mass fluxes
   , nuP = 0.3      ##<< microbial uptake of depolymerized P, (1-nuP) is mineralized
   , cpE = 100     ##<< Sterner02, protein with no P
@@ -79,15 +79,15 @@ parms0 <- list(
   , nuP = 0.01 # DOP almost all mineralized before taken up
 )
 parms0 <- within(parms0,{
-  lP <- l       # leaching rate of inorganic P equals that of N
+  lP <- lN       # leaching rate of inorganic P equals that of N
   kiPlant <- 0  # no plant uptake
-  kIPPlant <- kIPlant  # plant uptake rate of P equals that of N
-  iIP <- l      # assume no P inputs compensate for leaching
+  kIPPlant <- kINPlant  # plant uptake rate of P equals that of N
+  iIP <- lN      # assume no P inputs compensate for leaching
 })
 # assure no P-limitation
 parms0 <- within(parms0,{
   plantNUpAbs <- iL/cnIL
-  lP <- kIPlant <- 0    # no leaching of P
+  lP <- kINPlant <- 0    # no leaching of P
   iBP <- 1e6            # no limit of P immobilization flux
 })
 # neglect influence of inorganic pools (keep them at fixed initial values)
@@ -103,7 +103,7 @@ drivers <- list(
   , cnIL = 30      ##<< C/N ratio of labile litter input
   , cpIR = 40      ##<< C/P ratio of the residue litter input
   , cpIL = 919     ##<< C/P ratio of the labile litter input, NPSOM Tipping16
-  , iI = 0         ##<< input of mineral N
+  , iIN = 0         ##<< input of mineral N
   , iIP = 0        ##<< input of labile mineral P
 )
 parms0 <- c(parms0[setdiff(names(parms0),names(drivers))], drivers)
@@ -119,7 +119,7 @@ x0 <- c( #aE = 0.001*365
   , LC = 100                 ##<< C litter OM
   , LN = 100/parms0$cnIL    ##<< N litter OM 
   , LP = 100/parms0$cpIL    ##<< P litter OM 
-  , I =  0.1               ##<< inorganic N pool 
+  , IN =  0.1               ##<< inorganic N pool 
   , IP =  0.01              ##<< inorganic P pool 
   , alpha = 0.5             ##<< microbial community partitioning [0,1]
 )
@@ -150,7 +150,7 @@ ggplot( resAgg, aes(time, value, color = variable, linetype = variable)) + geom_
 resAgg <- resC %>% select(time, alpha, alphaC, alphaN) %>% gather(key = "variable", "value", -time)
 ggplot( resAgg, aes(time, value, color = variable, linetype = variable)) + geom_line()
 # organic-inorganic N fluxes
-resAgg <- resC %>% select(time, PhiTotal, PhiU, PhiB, PhiTvr) %>% gather(key = "variable", "value", -time)
+resAgg <- resC %>% select(time, PhiNTotal, PhiNU, PhiNB, PhiNTvr) %>% gather(key = "variable", "value", -time)
 ggplot( resAgg, aes(time, value, color = variable, linetype = variable)) + geom_line()
 # N decomposition fluxes
 resAgg <- resC %>% select(time, decNL, decNR, decNE, decNB) %>% gather(key = "variable", "value", -time)
@@ -206,7 +206,7 @@ ggplot( resAgg, aes(cnIL, value, color = variable, linetype = variable)) + geom_
 resAgg <- xEs %>% select(cnIL, alpha, alphaC, alphaN) %>% gather(key = "variable", "value", -cnIL)
 ggplot( resAgg, aes(cnIL, value, color = variable, linetype = variable)) + geom_line()
 # organic-inorganic N fluxes
-resAgg <- xEs %>% select(cnIL, PhiTotal, PhiU, PhiB, PhiTvr) %>% gather(key = "variable", "value", -cnIL)
+resAgg <- xEs %>% select(cnIL, PhiNTotal, PhiNU, PhiNB, PhiNTvr) %>% gather(key = "variable", "value", -cnIL)
 ggplot( resAgg, aes(cnIL, value, color = variable, linetype = variable)) + geom_line()
 # microbial turnover
 resAgg <- xEs %>% mutate(tvrBTotal = tvrB + tvrBPred) %>% select(cnIL, tvrBTotal, tvrB, tvrBPred) %>% gather(key = "variable", "value", -cnIL)
@@ -267,7 +267,7 @@ At steady state there is no microbial starvation, $starv_N$, and immobilization
 of inorganic N, $immo_N$, contributes a small share when organic N is limiting.
 
 ```{r echo=FALSE}
-resAgg <- xEs %>% mutate(immoN = pmax(0, -PhiB), starvN = starvB/parms0$cnB) %>% 
+resAgg <- xEs %>% mutate(immoN = pmax(0, -PhiNB), starvN = starvB/parms0$cnB) %>% 
   select(cnIL, decNR, decNL, decNB, decNE, immoN, starvN) %>% gather(key = "variable", "value", -cnIL)
 ggplot( resAgg, aes(cnIL, value, color = variable, linetype = variable)) + geom_line()
 ```

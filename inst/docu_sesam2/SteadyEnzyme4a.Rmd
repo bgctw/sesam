@@ -114,16 +114,16 @@ For N its similar:
 
 $$
 \begin{align}
-s_N &= \nu (\operatorname{dec}_R/\beta_R + \operatorname{dec}_L/\beta_L + t_{BD}/\beta_{BL}
+s_N &= \nuN (\operatorname{dec}_R/\beta_R + \operatorname{dec}_L/\beta_L + t_{BD}/\beta_{BL}
  + t_{ED}/\beta_E) + i\beta_B  + \operatorname{imm}_N\\
-s_N r_{sN}  &= a_N  + \nu \, t_{ED} r_{sN} /\beta_E \\
-r_{sN}  &= a_N/(s_N - \nu \,t_{ED}/\beta_E) \\ 
+s_N r_{sN}  &= a_N  + \nuN \, t_{ED} r_{sN} /\beta_E \\
+r_{sN}  &= a_N/(s_N - \nuN \,t_{ED}/\beta_E) \\ 
 \end{align}
 $$
  with
 $$
 \begin{align}
-a_N &= \nu( \operatorname{dec}_R r_R/\beta_R + \operatorname{dec}_L r_L/\beta_L 
+a_N &= \nuN( \operatorname{dec}_R r_R/\beta_R + \operatorname{dec}_L r_L/\beta_L 
 + t_{BD} r_B/\beta_{BL} ) +  i \, r_B \beta_B + \operatorname{imm}_N r_I\\
 \end{align}
 $$

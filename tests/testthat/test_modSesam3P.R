@@ -39,11 +39,11 @@ parms0 <- list(
   #,plantNUp = 300/70*1/4  ##<< plant N uptake balancing N inputs
   ,plantNUp = 0   ##<< plant N uptake balancing N inputs
   ,useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
-  ,kIPlant = 10.57 #0.0289652*365         ##<< plant uptake iP I
-  ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
-  ,iI = 0         ##<< input of mineral N
-  ,l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I
-  , nu = 0.9       ##<< microbial N use efficiency
+  ,kINPlant = 10.57 #0.0289652*365         ##<< plant uptake iP IN
+  ,iBN = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iBN IN
+  ,iIN = 0         ##<< input of mineral N
+  ,lN = 0.96 #0.00262647*365       ##<< leaching rate of mineralN lN IN
+  , nuN = 0.9       ##<< microbial N use efficiency
   #, isEnzymeMassFlux = FALSE  ##<< steady state B solution neglects enyzme mass fluxes
   , isEnzymeMassFlux = TRUE  ##<< steady state B solution accounts for enyzme mass fluxes
   , nuP = 0.3      ##<< microbial uptake of depolymerized P, (1-nuP) is mineralized
@@ -60,12 +60,12 @@ parms0 <- within(parms0,{
  # eps1 <- eps2 <- eps
   #cnER <- cnEL <- cnE
   #kNR <- kNL <- kN
-  lP <- l       # leaching rate of inorganic P equals that of N
-  nuP <- nu     # mineralization of P during decomposiition equals that of N
-  kIPPlant <- kIPlant  # plant uptake rate of P equals that of N
-  iIP <- l      # assume no P inputs compensate for leaching
+  lP <- lN       # leaching rate of inorganic P equals that of N
+  nuP <- nuN     # mineralization of P during decomposiition equals that of N
+  kIPPlant <- kINPlant  # plant uptake rate of P equals that of N
+  iIP <- lN      # assume no P inputs compensate for leaching
   plantNUpAbs <- iL / cnIL	# same litter input as plant uptake
-  kIPlant <- plantNUpAbs <- 0			# no plant uptake
+  kINPlant <- plantNUpAbs <- 0			# no plant uptake
   kLP <- kRP <- kSP
 })
 # for compatibility set C:N:P ratio of cell walls to that of biomass
@@ -84,7 +84,7 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   , L = 200                  ##<< N poor substrate
   , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
   , LP = 200/parms0$cpIL     ##<< N poor substrate P pool
-  , I =  1                   ##<< inorganic N pool
+  , IN =  1                   ##<< inorganic N pool
   , IP =  1                  ##<< inorganic P pool
   , alphaL = 0.4              ##<< initial community composition
   , alphaR = 0.5              ##<< initial community composition
@@ -102,7 +102,7 @@ x0Nlim <- c( #aE = 0.001*365
   , L = 200                  ##<< N poor substrate
   , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
   , LP = 200/parms0$cpIL     ##<< N poor substrate P pool
-  , I =  0                   ##<< inorganic N pool
+  , IN =  0                   ##<< inorganic N pool
   , IP =  10                  ##<< inorganic P pool
   , alpha = 0.5              ##<< initial community composition
 )
@@ -124,8 +124,8 @@ test_that("computeSesam3PAllocationPartitioning carbon limited",{
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     ,alpha = alpha0
     ,limE = limE
-    ,beta = cbind(L = cnL, R = cpR, E = parms$cnE)[1,]
-    ,gamma = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
+    ,betaN = cbind(L = cnL, R = cpR, E = parms$cnE)[1,]
+    ,betaP = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
   )
   expect_equal(names(alpha), c("L", "R", "LP", "RP"))
   expect_equal(sum(alpha),1)
@@ -154,8 +154,8 @@ test_that("computeSesam3PAllocationPartitioning nitrogen limited",{
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     ,alpha = alpha0
     ,limE = limE
-    ,beta = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
-    ,gamma = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
+    ,betaN = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
+    ,betaP = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
   )
   expect_equal(names(alpha), c("L", "R", "LP", "RP"))
   expect_equal(sum(alpha),1)
@@ -226,7 +226,7 @@ test_that("computeElementLimitations",{
          CsynBE, tauB = 1, delta = 5)["N"]
          #CsynBE, tauB = 1)#, ce, eps  )
      })
-     plot(limN ~ epsNs, type = "l")
+     plot(limN ~ epsNs, type = "lN")
      limN10 <- sapply(epsNs, function(epsN){
        CsynBE <- c(C = 40, N = 40 - epsN, P = 6000)
        alphaBalanced <- computeElementLimitations(
@@ -354,7 +354,7 @@ test_that("same as sesam3a for fixed substrates", {
 #   #rbind(xEExp[names(xETest)], xETest)
 #   #
 #   # from C to N limitation
-#   x0CNLim <- x0; x0CNLim["I"] <- 0
+#   x0CNLim <- x0; x0CNLim["IN"] <- 0
 #   times <- seq(0,1200, length.out = 2)
 #   #times <- seq(0,1200, length.out = 101)
 #   #times <- c(0,seq(140,220, length.out = 101))
@@ -388,7 +388,7 @@ test_that("same as sesam3a for fixed substrates", {
 #   ggplot(filter(res, time > 10 & time < 500), aes(time, EL, color = scen)) + geom_line()
 #   ggplot(filter(res, time < 500), aes(time, alphaC, color = scen)) + geom_line()
 #   ggplot(filter(res, time < 5000), aes(time, alphaN, color = scen)) + geom_line()
-#   ggplot(filter(res, time > 01), aes(time, PhiB, color = scen, linetype = scen)) + geom_line()
+#   ggplot(filter(res, time > 01), aes(time, PhiNB, color = scen, linetype = scen)) + geom_line()
 # }
 #
 #

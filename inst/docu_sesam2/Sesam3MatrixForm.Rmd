@@ -7,13 +7,13 @@ output: html_notebook
 Sierra and Müller 2015 proposed a general framework of SOM models (eq. 19).
 
 $$
-\frac{dC}{dt} = I(t) + T(C,t) N(C,t) C 
+\frac{dC}{dt} = IN(t) + T(C,t) N(C,t) C 
 $$
 where $T$ are transfer coefficients, and $N$ are instant decomposition rates.
 
 With constant inputs, its an autonomous nonlinear model.
 $$
-\frac{dC}{dt} = I + T(C) k(C) C 
+\frac{dC}{dt} = IN + T(C) k(C) C 
 $$
 with $\operatorname{diag}(T(C)) = -1$.
 
@@ -63,7 +63,7 @@ l_R = f(B, \alpha, a_E, k_{mN}) &= \frac{\alpha a_E}{k_{mN} + \alpha a_E B}
 \end{align}
 $$
 
-$l$ are  enzyme limitation of decomposition devided by $B$.
+$lN$ are  enzyme limitation of decomposition devided by $B$.
 $\alpha$ is community enzyme allocation, 
 $a_E$ is the fraction of microbial biomass invested into synthesis of
 new enzymes.
@@ -143,7 +143,7 @@ $$
 ## Nitrogen compartment
 ### State variables
 $$
-(L_N, R_N, B_N, I)
+(L_N, R_N, B_N, IN)
 $$
 In SESAM3 code always $B_N = \beta_B B$ is not explicitly tracked.
 But here we report its description for checking the compartmental conditions.
@@ -168,35 +168,35 @@ $$
 \\
 \operatorname{out}_{R_N} &= \operatorname{out}_{R}
 \\
-\operatorname{out}_{I} &= k_{IP}+ l + i_B 
+\operatorname{out}_{IN} &= k_{IP}+ lN + i_B 
 \\
 \operatorname{out}_{B_N} &= \tau  + \operatorname{out}_{B_NEnzR} + 
     \operatorname{out}_{B_NEnzI} +  M_{\operatorname{Imb}} 
 \end{align}
 $$
-where $k_{IP}$ is plant uptake rate, $l$ is leaching rate, and $i_B$ is 
+where $k_{IP}$ is plant uptake rate, $lN$ is leaching rate, and $i_B$ is 
 maximum immobilization rate. 
 
 Net loss of enzyme production going to the $R_N$ pool during
-enzyme turnover and to $I$ during mineralization in DOM uptake:
+enzyme turnover and to $IN$ during mineralization in DOM uptake:
 $$
 \begin{align}
 \operatorname{out}_{B_NEnzR} &= \operatorname{syn}_{B_NEnz} (1-\kappa_E)
 \\
-\operatorname{out}_{B_NEnzI} &= \operatorname{syn}_{B_NEnz} \kappa_E (1-\nu) 
+\operatorname{out}_{B_NEnzI} &= \operatorname{syn}_{B_NEnz} \kappa_E (1-\nuN) 
 \\
 \operatorname{syn}_{B_NEnz} &= a_E \beta_B/\beta_E 
 \end{align}
 $$
 The remaining par is uptake of enzyme turnover from DOM in quasi steady state:
 $$
-\operatorname{reuptake}_{B_NEnz} = \operatorname{syn}_{B_NEnz} \kappa_E \nu
-= a_E \beta_B/\beta_E \kappa_E \nu
+\operatorname{reuptake}_{B_NEnz} = \operatorname{syn}_{B_NEnz} \kappa_E \nuN
+= a_E \beta_B/\beta_E \kappa_E \nuN
 $$
 
 Although SESAM3 does not model gross immobilizationa and gross mineralization
-here we describe the a maxium immobilization flux, $i_B I$
-leaving the $I$ pool to $B$, and parts of it later return to $I$ 
+here we describe the a maxium immobilization flux, $i_B IN$
+leaving the $IN$ pool to $B$, and parts of it later return to $IN$ 
 as imbalance flux.
 
 The imbalance and synthesis per microbioal biomass N, $B_N$, is
@@ -207,14 +207,14 @@ M_{\operatorname{Imb}} &= N_{\operatorname{synBN}} - (C_{\operatorname{synB}} -r
 \\
 N_{\operatorname{synBN}} &= u_N - \operatorname{syn}_{B_NEnz}
 \\
-u_N &= \nu (k_L l_L L_N  +  k_R l_R R_N 
+u_N &= \nuN (k_L l_L L_N  +  k_R l_R R_N 
   + \kappa_E a_E /\beta_E) \beta_B
-  + i_B I/B_N 
+  + i_B IN/B_N 
 \end{align}
 $$
 
 The uptake, also, is expressed per microbial biomass N.
-The limitation of decomposition fluxes $l$ and enzyme investment $a_E$
+The limitation of decomposition fluxes $lN$ and enzyme investment $a_E$
 need to be multiplied by $B = \beta_B B_N$ instead of $B_N$. 
 Thats why the $\beta_B$ occurs as multiplicator.
 
@@ -240,15 +240,15 @@ $$
 
 ### Transfer coefficients
 
-Part $1-\nu$ of the decomposition is mineralized during uptake mineraliztion.
+Part $1-\nuN$ of the decomposition is mineralized during uptake mineraliztion.
 Since always $B_N = B / \beta_B$, it is not explicitly tracked as state 
 variable, but part of the model matrix form description.
 
 $$
 \begin{align}
-T_{L_N \to B_N} &= T_{R_N \to B_N} = \nu
+T_{L_N \to B_N} &= T_{R_N \to B_N} = \nuN
 \\
-T_{L_N \to I} &= T_{R_N \to I} = 1 - \nu
+T_{L_N \to IN} &= T_{R_N \to IN} = 1 - \nuN
 \\
 T_{B_N \to R_N} &=  
 \frac{\epsilon_{\operatorname{Tvr}} \tau + \operatorname{out}_{B_NEnzR}}{\operatorname{out}_{B_N}}
@@ -257,14 +257,14 @@ $$
 
 SESAM3 does not compute gross mineralization and gross immobilization, but
 only the net flux. 
-For convenience, however, we describe the maximum flux from $I$ to $B$, and
-the flux from $B$ to $I$ as the imbalance between the maximum 
+For convenience, however, we describe the maximum flux from $IN$ to $B$, and
+the flux from $B$ to $IN$ as the imbalance between the maximum 
 gross immobilization plus organic N uptake and microbial demand.
 $$
 \begin{align}
-T_{I \to B_N} &= \frac{i_B}{\operatorname{out}_{I}} = \frac{i_B}{k_{IP}+ l + i_B}
+T_{IN \to B_N} &= \frac{i_B}{\operatorname{out}_{IN}} = \frac{i_B}{k_{IP}+ lN + i_B}
 \\
-T_{B_N \to I} &= \frac{\operatorname{out}_{B_NEnzI} + M_{\operatorname{Imb}} }{\operatorname{out}_{B_N}}
+T_{B_N \to IN} &= \frac{\operatorname{out}_{B_NEnzI} + M_{\operatorname{Imb}} }{\operatorname{out}_{B_N}}
 \end{align}
 $$
 

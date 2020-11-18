@@ -15,7 +15,7 @@ represented by parameter $\epsilon$.
 With the simple model, $S^*$ increased as CUE decreased because fresh inputs 
 accumulated and were only slowly decomposed.
 
-Here I study a different system where I assume that the accumulation of litter
+Here IN study a different system where IN assume that the accumulation of litter
 inputs is not the primary determinant of SOM stocks. 
 
 
@@ -46,11 +46,11 @@ There is a specific litter pool, that is assumed
 - its changes in pool size are small compared to changes in pool size of the 
   residue pool, $R$.
   
-Hence here, litter inputs, $I$, directly feed to microbial biomass, $B$.
+Hence here, litter inputs, $IN$, directly feed to microbial biomass, $B$.
 
 $$
 \begin{align}
-dL/dt &= I -f_L(L)g(B) \\
+dL/dt &= IN -f_L(L)g(B) \\
 dB/dt &= \epsilon f_L(L)g(B) + \epsilon f_R(R)g(B) - \tau B \\
 dR/dt &= -f_R(R)g(B) + \tau B\\
 \end{align}
@@ -62,18 +62,18 @@ and a part $(1-\epsilon)$ is respired.
 At steady state:
 $$
 \begin{align}
-f_L(L)g(B) &= I \\
-dB/dt &= \epsilon I + \epsilon f_R(R)g(B) - \tau B \\
+f_L(L)g(B) &= IN \\
+dB/dt &= \epsilon IN + \epsilon f_R(R)g(B) - \tau B \\
 \end{align}
 $$
 
 Steady state of $R$ by setting derivatives to zero and adding the equations of $dB$ and $dR$:
 $$
 \begin{align}
-0 &= \epsilon I + (\epsilon - 1) f_R(R^*)g(B^*) \\
-f_R(R^*) &= \frac{\epsilon I}{(1-\epsilon) g(B^*)} \\
-R^* &= f^{-1}\left( \frac{\epsilon I}{(1-\epsilon) g(B^*)} \right) \\
-\frac{dR}{dt} &= (f^{-1})' \left( \frac{\epsilon I}{(1-\epsilon) g(B^*)} \right) \frac{\epsilon I}{(1-\epsilon)^2 g(B^*)}\\
+0 &= \epsilon IN + (\epsilon - 1) f_R(R^*)g(B^*) \\
+f_R(R^*) &= \frac{\epsilon IN}{(1-\epsilon) g(B^*)} \\
+R^* &= f^{-1}\left( \frac{\epsilon IN}{(1-\epsilon) g(B^*)} \right) \\
+\frac{dR}{dt} &= (f^{-1})' \left( \frac{\epsilon IN}{(1-\epsilon) g(B^*)} \right) \frac{\epsilon IN}{(1-\epsilon)^2 g(B^*)}\\
 \end{align}
 $$
 
@@ -83,17 +83,17 @@ $$
 y &= f_R(R) = k_R R \\
 f^{-1}(y) &= y/k_R \\
 (f^{-1})'(y) &= 1/k_R \\
-R^* &=  \frac{\epsilon I}{k_R (1-\epsilon) g(B^*)}  \\
+R^* &=  \frac{\epsilon IN}{k_R (1-\epsilon) g(B^*)}  \\
 \end{align}
 $$
 Steady state for Biomass B:
 $$
 \begin{align}
-0 &= \epsilon I +\epsilon \, k_R R^* g(B^*) - \tau B^* \\
-0 &= \epsilon I + \epsilon \, k_R \frac{\epsilon I}{k_R (1-\epsilon) g(B^*)} g(B^*) - \tau B^* \\
-0 &= \epsilon I + \epsilon \, \frac{\epsilon I}{(1-\epsilon) }  - \tau B^* \\
-B^* &= \left( 1 + \frac{\epsilon}{(1-\epsilon)} \right) \frac{\epsilon I}{\tau} 
-     = \frac{\epsilon I}{\tau (1-\epsilon)} \\
+0 &= \epsilon IN +\epsilon \, k_R R^* g(B^*) - \tau B^* \\
+0 &= \epsilon IN + \epsilon \, k_R \frac{\epsilon IN}{k_R (1-\epsilon) g(B^*)} g(B^*) - \tau B^* \\
+0 &= \epsilon IN + \epsilon \, \frac{\epsilon IN}{(1-\epsilon) }  - \tau B^* \\
+B^* &= \left( 1 + \frac{\epsilon}{(1-\epsilon)} \right) \frac{\epsilon IN}{\tau} 
+     = \frac{\epsilon IN}{\tau (1-\epsilon)} \\
 \end{align}
 $$
 
@@ -103,21 +103,21 @@ on $g(B)$.
 With $g(B) = B/(k_M + B)$:
 $$
 \begin{align}
-R^* &=  \frac{\epsilon I}{k_R (1-\epsilon) g(B^*)}  
-    =  \frac{\epsilon I}{k_R (1-\epsilon)}  \frac{k_M+B^*}{B^*}\\
-    &=  \frac{\epsilon I}{k_R (1-\epsilon)}  \frac{k_M+\frac{\epsilon I}{\tau (1-\epsilon)}}
-        {\frac{\epsilon I}{\tau (1-\epsilon)}}
-    = \frac{k_M+ \frac{\epsilon I}{\tau (1-\epsilon)}}{k_R / \tau} \\
-    &= \frac{1}{k_R }\left( \tau k_M+ \frac{\epsilon I}{1-\epsilon} \right)\\
+R^* &=  \frac{\epsilon IN}{k_R (1-\epsilon) g(B^*)}  
+    =  \frac{\epsilon IN}{k_R (1-\epsilon)}  \frac{k_M+B^*}{B^*}\\
+    &=  \frac{\epsilon IN}{k_R (1-\epsilon)}  \frac{k_M+\frac{\epsilon IN}{\tau (1-\epsilon)}}
+        {\frac{\epsilon IN}{\tau (1-\epsilon)}}
+    = \frac{k_M+ \frac{\epsilon IN}{\tau (1-\epsilon)}}{k_R / \tau} \\
+    &= \frac{1}{k_R }\left( \tau k_M+ \frac{\epsilon IN}{1-\epsilon} \right)\\
 \end{align}
 $$
 And with $f_L(L) = k_L L$:
 $$
 \begin{align}
-L^* &= f_L^{-1}\left( I / g(B^*) \right)    
-    = \frac{I}{k_L}  \frac{k_M+B^*}{B^*}\\
-    & = \frac{I}{k_L}  \frac{k_M+\frac{\epsilon I}{\tau (1-\epsilon)}}{\frac{\epsilon I}{\tau (1-\epsilon)}}
-    = \frac{1}{k_L} \left( \frac{1-\epsilon}{\epsilon} k_m \tau + I \right) \\
+L^* &= f_L^{-1}\left( IN / g(B^*) \right)    
+    = \frac{IN}{k_L}  \frac{k_M+B^*}{B^*}\\
+    & = \frac{IN}{k_L}  \frac{k_M+\frac{\epsilon IN}{\tau (1-\epsilon)}}{\frac{\epsilon IN}{\tau (1-\epsilon)}}
+    = \frac{1}{k_L} \left( \frac{1-\epsilon}{\epsilon} k_m \tau + IN \right) \\
 \end{align}
 $$
 On increasing $\epsilon$ the second input related term of $R^*$ increases. 
@@ -138,7 +138,7 @@ e.g. their nitrogen contents.
 To compute the minimum of L+R stocks.
 $$
 \begin{align}
-R^* + L^* &=  \frac{1}{k_R }\left( \tau k_M+ \frac{\epsilon I}{(1-\epsilon)} \right)+ \frac{1}{k_L} \left( \frac{1-\epsilon}{\epsilon} k_m \tau + I \right) \\
+R^* + L^* &=  \frac{1}{k_R }\left( \tau k_M+ \frac{\epsilon IN}{(1-\epsilon)} \right)+ \frac{1}{k_L} \left( \frac{1-\epsilon}{\epsilon} k_m \tau + IN \right) \\
 \end{align}
 $$
 
@@ -152,10 +152,10 @@ $$
 Next we find the $\epsilon$ for which the derivative in respect to $\epsilon$ is zero.
 $$
 \begin{align}
-(R^* + L^*)' &=  \frac{1}{k_R }\left( \frac{I}{(1-\epsilon)^2} \right)
+(R^* + L^*)' &=  \frac{1}{k_R }\left( \frac{IN}{(1-\epsilon)^2} \right)
               + \frac{1}{k_L} \left( -\frac{1}{\epsilon^2} k_m \tau  \right) \\
-            &= \frac{I}{k_R(1-\epsilon)^2} -\frac{k_m \tau}{k_L \epsilon^2}  \\
-0 &= I k_L \epsilon^2 -  k_m \tau k_R(1-\epsilon)^2 = a \epsilon^2 -  b(1-\epsilon)^2 \\
+            &= \frac{IN}{k_R(1-\epsilon)^2} -\frac{k_m \tau}{k_L \epsilon^2}  \\
+0 &= IN k_L \epsilon^2 -  k_m \tau k_R(1-\epsilon)^2 = a \epsilon^2 -  b(1-\epsilon)^2 \\
 0 &= (a-b) \epsilon^2  +2b \epsilon -b \\
 0 &= \epsilon^2  +2b(a-b) \epsilon -b/(a-b) = \epsilon^2  +p\epsilon -q \\
 \epsilon_0 &= -\frac{p}{2} \pm \sqrt{\frac{p^2}{4}-q} = -\frac{p}{2} \pm \sqrt D\\
@@ -164,11 +164,11 @@ $$
 with
 $$
 \begin{align}
-a &= I \, k_L \\
+a &= IN \, k_L \\
 b &= \tau k_M \, k_R \\
-p &= 2 \tau k_M k_R / (I k_L - \tau k_M k_R) \\
-q &= -\tau k_M k_R / (I k_L - \tau k_M k_R) \\
-D &= \frac{p^2}{4}-q = \frac{\tau k_M k_R I k_L}{(I k_L - \tau k_M k_R)^2}
+p &= 2 \tau k_M k_R / (IN k_L - \tau k_M k_R) \\
+q &= -\tau k_M k_R / (IN k_L - \tau k_M k_R) \\
+D &= \frac{p^2}{4}-q = \frac{\tau k_M k_R IN k_L}{(IN k_L - \tau k_M k_R)^2}
 \end{align}
 $$
 A minimum always exists, because always $D > 0$ for $a \ne b$.
@@ -179,18 +179,18 @@ Only the positive solution ($+\sqrt{D}$) is a reasonable solution.
 
 ```{r include=FALSE}
 eps <- seq(0.1, 0.8, by = 0.05)
-I <- 100
+IN <- 100
 tau <- 12
 kR <- 1/5
 kL <- 5
-B <- eps*I/(tau*(1 - eps))
+B <- eps*IN/(tau*(1 - eps))
 kM <- as.numeric(quantile(B, 0.8))
 tkm <- tau*kM
-R <- R1 <- eps*I/(kR*(1 - eps))*(kM + B)/B
-R <- R2 <- 1/kR*(tau*kM + eps*I/(1 - eps))
-L <- 1/kL*((1 - eps)/eps*tau*kM + I)
+R <- R1 <- eps*IN/(kR*(1 - eps))*(kM + B)/B
+R <- R2 <- 1/kR*(tau*kM + eps*IN/(1 - eps))
+L <- 1/kL*((1 - eps)/eps*tau*kM + IN)
 ds <- data.frame(eps,L,B,R)
-a <- I*kL
+a <- IN*kL
 b <- tkm*kR
 epsMin <- solveSquare(a - b, 2*b, -b)[1]
 ggplot(ds, aes(eps,B)) + geom_line() + geom_point() +
@@ -205,7 +205,7 @@ The red square denotes the state of a simulation of the model over 100 years.
 The gray dashed line denotes the CUE for which SOM stocks are minimal.
 
 ```{r echo=FALSE}
-p <- list(I = I, tau = tau, kR = kR, kL = kL, kM = kM, eps = 0.4)
+p <- list(IN = IN, tau = tau, kR = kR, kL = kL, kM = kM, eps = 0.4)
 unlist(p)
 ```
 
@@ -216,7 +216,7 @@ dMod2 <- function(t,x,p){
   decR <- p$kR*x["R"] * gB
   decL <- p$kL*x["L"] * gB
   tvrB <- p$tau*x["B"]
-  dL <- p$I - decL
+  dL <- p$IN - decL
   dB <- p$eps*decL + p$eps*decR - tvrB
   dR <- -decR + tvrB
   list(setNames( c(dL, dB, dR), c("L","B","R")))

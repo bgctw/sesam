@@ -33,13 +33,13 @@ parms0 <- list(
   ,iL = 300         # g/m2 input per year (half NPP)
   #,plantNUp = 300/70*1/4  # plant N uptake balancing N inputs
   ,plantNUp = 0	# organic N takeup by plants
-  ,kIPlant = 10.57 #0.0289652*365          ##<< plant uptake iP I
+  ,kINPlant = 10.57 #0.0289652*365          ##<< plant uptake iP IN
   ,useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
-  ,iP = 10.57 #0.0289652*365          ##<< plant uptake iP I
-  ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
-  ,iI = 0     ##<< input of mineral N
-  ,l = 0.96   #0.00262647*365       ##<< leaching rate of mineralN l I
-	,nu = 0.9     # microbial N use efficiency
+  ,iP = 10.57 #0.0289652*365          ##<< plant uptake iP IN
+  ,iBN = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iBN IN
+  ,iIN = 0     ##<< input of mineral N
+  ,lN = 0.96   #0.00262647*365       ##<< leaching rate of mineralN lN IN
+	,nuN = 0.9     # microbial N use efficiency
 )
 parms0 <- within(parms0,{
             kmR <- kmL <- km
@@ -58,7 +58,7 @@ x0 <- x0Orig <- c(  # aE = 0.003*365
         ,RN = 1200/parms0$cnIR    ##<< N rich substrate N pool
         ,L = 170                  ##<< N poor substrate
         ,LN = 170/parms0$cnIL    ##<< N poor substrate N pool
-        ,I =  0                    ##<< inorganic pool
+        ,IN =  0                    ##<< inorganic pool
 )
 x <- x0
 
@@ -70,7 +70,7 @@ x0 <- x0Orig <- c( #aE = 0.001*365
         ,RN = 7000/parms0$cnIR    ##<< N rich substrate N pool
         ,L = 200                  ##<< N poor substrate
         ,LN = 200/parms0$cnIL    ##<< N poor substrate N pool
-        ,I =  0                    ##<< inorganic pool
+        ,IN =  0                    ##<< inorganic pool
 )
 x <- x0
 
@@ -91,7 +91,7 @@ test_that("Regression to previous values", {
 #    res <- derivSeam1(0, x0, parmsInit)
 #    expect_equal( res, list(structure(c(-98.6526666666667, 1.80502623688156, 2.20997376311844,
 #                                    -46.843, -13.3569658196672, 180, 6, 29.8401099297171), .Names = c("dB",
-#                                    "dER", "dEL", "dR", "dRN", "dL", "dLN", "dI")), structure(c(0,
+#                                    "dER", "dEL", "dR", "dRN", "dL", "dLN", "dIN")), structure(c(0,
 #                                    29.8401099297171, 17.9453240824173, 11.8947858472998, 0.472263868065967,
 #                                    0.472263868065967, 0.823529411764706, 4.5, 30, 0.6, 0.6, 84,
 #                                    120, 261.480666666667, 176.314, 85.1666666666667, 121.666666666667,
@@ -116,7 +116,7 @@ test_that("Regression to previous values", {
 #                            12.4849686746087, 52.2805297059652, 5.67779033179128, 5.40232140294974,
 #                            0.99358436024401, 204.011880247985, 202.703013518371, 1.0064570659651,
 #                            28.3104767483759, 14.2466396821218), .Names = c("time", "B",
-##                            "ER", "EL", "R", "RN", "L", "LN", "I", "respO", "Mm", "MmImb",
+##                            "ER", "EL", "R", "RN", "L", "LN", "IN", "respO", "Mm", "MmImb",
 #                            "MmTvr", "alpha", "alphaC", "alphaN", "cnR", "cnL", "limER",
 #                            "limEL", "decR", "decL", "resp", "respB", "respTvr", "tvrB",
 #                            "revRC", "revLC", "revRN", "revLN", "pCsyn", "CsynReq", "Csyn",
@@ -134,18 +134,18 @@ test_that("Regression to previous values", {
 							12.0990823795106, -9.28955046219926e-09, 5.46833689440973e-11,
 							-2.30926389122033e-11, -0.569999998615501, 331.186594750672,
 							86.6294298372961, 331.186594750672, 15.3064233572481, 0), .Names = c("time",
-							"B", "ER", "EL", "R", "RN", "L", "LN", "I", "respO", "PhiB",
-							"PhiU", "PhiTvr", "PhiBU", "PhiTotal", "immoPot", "MmImb", "alpha",
+							"B", "ER", "EL", "R", "RN", "L", "LN", "IN", "respO", "PhiNB",
+							"PhiNU", "PhiNTvr", "PhiNBU", "PhiNTotal", "immoNPot", "MmImb", "alpha",
 							"alphaC", "alphaN", "cnR", "cnL", "limER", "limEL", "decR", "decL",
 							"resp", "respB", "respTvr", "tvrB", "revRC", "revLC", "revRN",
 							"revLN", "pCsyn", "CsynReq", "Csyn", "pNsyn", "NsynReq", "Nsyn",
-							"dR", "dL", "dB", "dI", "uC", "synB", "decC", "decN","plantNUp"))
+							"dR", "dL", "dB", "dIN", "uC", "synB", "decC", "decN","plantNUp"))
 							, tolerance = 1e-3
 	)
     #res <- derivSeam1(0, xE, parmsInit)
     #res <- res1f <- as.data.frame(lsoda( x0, times, derivEezy5, parms=within(parms0, useFixedAlloc<-TRUE) ))
 
-    #plotResSeam2(res, "topright", cls = c("B10","respO","PhiU","Rr","Lr","alpha100"))
+    #plotResSeam2(res, "topright", cls = c("B10","respO","PhiNU","Rr","Lr","alpha100"))
 })
 
 

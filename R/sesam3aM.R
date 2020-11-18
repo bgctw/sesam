@@ -36,11 +36,11 @@ derivSesam3aM <- function(
   #-- N fluxes
   outLN <- outL
   outRN <- outR
-  # plant N uptake can have an upper absolute limit, compute rate per I
-  outI <- min(parms$kIP, parms$plantNUpAbs/x["I"]) + parms$l + parms$iB
+  # plant N uptake can have an upper absolute limit, compute rate per IN
+  outI <- min(parms$kIP, parms$plantNUpAbs/x["IN"]) + parms$lN + parms$iBN
   #
-  uN <- parms$nu*(decL*x["LN"] + decR*x["RN"] + kappaE*parms$aE/cnE)*cnB +
-    parms$iB*x["I"]/(B/cnB)
+  uN <- parms$nuN*(decL*x["LN"] + decR*x["RN"] + kappaE*parms$aE/cnE)*cnB +
+    parms$iBN*x["IN"]/(B/cnB)
   NsynBN <- uN - parms$aE*cnB/cnE
   CsynBN <- if (NsynBN > 0) NsynBN/parms$eps else NsynBN  #NsynBN/cnB
   #
@@ -56,25 +56,25 @@ derivSesam3aM <- function(
   MImb <- NsynBN - (CsynB - rG)
   tvrEN <- parms$aE*cnB/cnE
   outBNEnzR <- tvrEN*(1 - kappaE)
-  outBNEnzI <- (1 - parms$nu)*tvrEN*kappaE
+  outBNEnzI <- (1 - parms$nuN)*tvrEN*kappaE
   outBN <-  parms$tau + outBNEnzR + outBNEnzI + MImb
-  T["LN","BN"] <- T["RN","BN"] <- parms$nu
-  T["LN","I"] <- T["RN","I"] <- 1 - parms$nu
+  T["LN","BN"] <- T["RN","BN"] <- parms$nuN
+  T["LN","IN"] <- T["RN","IN"] <- 1 - parms$nuN
   T["BN","RN"] <- (parms$epsTvr*parms$tau + outBNEnzR)/outBN
-  T["BN","I"] <- ((1 - parms$epsTvr)*parms$tau + MImb + outBNEnzI)/outBN
-  T["I","BN"] <- parms$iB / outI
+  T["BN","IN"] <- ((1 - parms$epsTvr)*parms$tau + MImb + outBNEnzI)/outBN
+  T["IN","BN"] <- parms$iBN / outI
   #
   if (isTRUE(parms$isTvrNil)) {
     # scenario of enzymes and biomass not feeding back to R
     T["B","R"] <- T["BN","RN"] <- 0
   }
   #
-  I <- c(B = 0, R = parms$iR, RN = parms$iR/parms$cnIR
+  IN <- c(B = 0, R = parms$iR, RN = parms$iR/parms$cnIR
          , L = parms$iL, LN = parms$iL/parms$cnIL
-         , I = parms$iI, alpha = 0, BN = 0)
+         , IN = parms$iIN, alpha = 0, BN = 0)
   N <- setNames(c(outB, outR, outRN, outL, outLN, outI, 0, outBN), names(x))
   loss <- N*x
-  dx <- setNames(as.vector(t(T)%*%(N*as.matrix(x, ncol=1))), names(x)) + I
+  dx <- setNames(as.vector(t(T)%*%(N*as.matrix(x, ncol=1))), names(x)) + IN
   #
   #--- community composition
   dRPot <- parms$kR * x["R"]
@@ -97,7 +97,7 @@ derivSesam3aM <- function(
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
-    dx["R"] <- dx["L"] <- dx["RN"] <- dx["LN"] <- dx["I"] <- 0
+    dx["R"] <- dx["L"] <- dx["RN"] <- dx["LN"] <- dx["IN"] <- 0
   }
   #
   if (any(!is.finite(dx))) stop("encountered nonFinite derivatives")
@@ -111,7 +111,7 @@ derivSesam3aM <- function(
   # allowing scenarios with holding some pools fixed
   if (isTRUE(parms$isFixedR)) { dx["R"] <- dx["RN"] <-  0   }
   if (isTRUE(parms$isFixedL)) { dx["L"] <- dx["LN"] <-  0   }
-  if (isTRUE(parms$isFixedI)) { dx["I"] <-  0   }
+  if (isTRUE(parms$isFixedI)) { dx["IN"] <-  0   }
   #
   if (isTRUE(parms$isRecover) ) recover()
   # for matrix formulation, explicitly tracked BN, but do not return here.

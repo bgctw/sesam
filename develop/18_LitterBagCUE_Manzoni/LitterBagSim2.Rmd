@@ -57,11 +57,11 @@ parms0 <- list(
   , iL = 300       ##<< g/m2 input per year (half NPP)
   , plantNUp = 0   ##<< plant N uptake balancing N inputs
   , useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
-  , kIPlant = 10.57 #0.0289652*365         ##<< plant uptake iP I
-  , iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
-  , iI = 0         ##<< input of mineral N
-  , l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I
-  , nu = 0.9       ##<< microbial N use efficiency
+  , kINPlant = 10.57 #0.0289652*365         ##<< plant uptake iP IN
+  , iBN = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iBN IN
+  , iIN = 0         ##<< input of mineral N
+  , lN = 0.96 #0.00262647*365       ##<< leaching rate of mineralN lN IN
+  , nuN = 0.9       ##<< microbial N use efficiency
   , isEnzymeMassFlux = TRUE  ##<< steady state BC solution accounts for enyzme mass fluxes
   , nuP = 0.3      ##<< microbial uptake of depolymerized P, (1-nuP) is mineralized
   , cpE = 100     ##<< Sterner02, protein with no P
@@ -77,11 +77,11 @@ parms0 <- list(
   , nuP = 0.01 # DOP almost all mineralized before taken up
 )
 parms0 <- within(parms0,{
-  kIPlant <- iL / cnIL	# same litter input as plant uptake
-  kIPlant <- plantNUpAbs <- 0			# no plant uptake
-  lP <- l       # leaching rate of inorganic P equals that of N
-  kIPPlant <- kIPlant  # plant uptake rate of P equals that of N
-  iIP <- l      # assume no P inputs compensate for leaching
+  kINPlant <- iL / cnIL	# same litter input as plant uptake
+  kINPlant <- plantNUpAbs <- 0			# no plant uptake
+  lP <- lN       # leaching rate of inorganic P equals that of N
+  kIPPlant <- kINPlant  # plant uptake rate of P equals that of N
+  iIP <- lN      # assume no P inputs compensate for leaching
 })
 # assure no P-limitation
 parms0 <- within(parms0,{
@@ -90,8 +90,8 @@ parms0 <- within(parms0,{
 })
 # assure no limitaiton by abiotic N
 parms0 <- within(parms0,{
-  lI <- kIPlant <- 0    # no leading of N
-  iB <- 1e6            # no limit of N immobilization flux
+  lI <- kINPlant <- 0    # no leading of N
+  iBN <- 1e6            # no limit of N immobilization flux
 })
 # neglect influence of inorganic pools (keep them at fixed initial values)
 parms0$isFixedI <- TRUE
@@ -110,7 +110,7 @@ drivers <- list(
   , cnIL = 40      ##<< C/N ratio of labile litter input
   , cpIR = 40      ##<< C/P ratio of the residue litter input
   , cpIL = 919     ##<< C/P ratio of the labile litter input, NPSOM Tipping16
-  , iI = 0         ##<< input of mineral N
+  , iIN = 0         ##<< input of mineral N
   , iIP = 0        ##<< input of labile mineral P
 )
 parms0 <- c(parms0[setdiff(names(parms0),names(drivers))], drivers)
@@ -126,7 +126,7 @@ x0 <- c( #aE = 0.001*365
   , LC = 300                ##<< C litter OM
   , LN = 300/parms0$cnIL   ##<< N litter OM 
   , LP = 300/parms0$cpIL   ##<< P litter OM 
-  , I =  0.01               ##<< inorganic pool 
+  , IN =  0.01               ##<< inorganic pool 
   , IP =  0.01              ##<< inorganic pool 
   , alpha = 0.0             ##<< microbial community partitioning [0,1]
 )
@@ -174,7 +174,7 @@ ggplot( resAgg, aes(timeDay, value, color = variable, linetype = variable)) + ge
 resAgg <- resC %>% select(timeDay, tvrB, tvrBPred) %>% gather(key = "variable", "value", -timeDay)
 ggplot( resAgg, aes(timeDay, value, color = variable, linetype = variable)) + geom_line()
 # organic-inorganic N fluxes
-resAgg <- resC %>% select(timeDay, PhiTotal, PhiU, PhiB, PhiTvr) %>% gather(key = "variable", "value", -timeDay)
+resAgg <- resC %>% select(timeDay, PhiNTotal, PhiNU, PhiNB, PhiNTvr) %>% gather(key = "variable", "value", -timeDay)
 ggplot( resAgg, aes(timeDay, value, color = variable, linetype = variable)) + geom_line()
 # N decomposition fluxes
 # resAgg <- resC %>% select(timeDay, decNLR, decNE, decNB) %>% gather(key = "variable", "value", -timeDay)
@@ -278,7 +278,7 @@ ggplot( resAgg, aes(time, value, color = variable, linetype = variable)) + geom_
 
 # Simulation with N immobilization constrained
 ```{r}
-parms0Nlim <- within(parms0, iB <- 600/x0["I"])
+parms0Nlim <- within(parms0, iBN <- 600/x0["IN"])
 ans0 <- derivSesam4a(0, x0L, parms = parms0Nlim)
 times <- c(seq(0,2/12, length.out = 101),seq(2/12,2,length.out = 101)[-1],seq(2,20,length.out = 31)[-1])
 res <- res2 <- as.data.frame(lsoda( x0L, times, derivSesam4a, parms = parms0Nlim))
@@ -305,7 +305,7 @@ ggplot( resAgg, aes(timeDay, value, color = variable, linetype = variable)) + ge
 resAgg <- resC %>% select(timeDay, tvrB, tvrBPred) %>% gather(key = "variable", "value", -timeDay)
 ggplot( resAgg, aes(timeDay, value, color = variable, linetype = variable)) + geom_line()
 # organic-inorganic N fluxes
-resAgg <- resC %>% select(timeDay, PhiTotal, PhiU, PhiB, PhiTvr) %>% gather(key = "variable", "value", -timeDay)
+resAgg <- resC %>% select(timeDay, PhiNTotal, PhiNU, PhiNB, PhiNTvr) %>% gather(key = "variable", "value", -timeDay)
 ggplot( resAgg, aes(timeDay, value, color = variable, linetype = variable)) + geom_line()
 # N decomposition fluxes
 # resAgg <- resC %>% select(timeDay, decNLR, decNE, decNB) %>% gather(key = "variable", "value", -timeDay)
@@ -372,17 +372,17 @@ resCM <- resCMNLim <- resDecl %>%
 #   gather(key = "variable", "value", -time)
 # ggplot( resAgg, aes(time, value, color = variable, linetype = variable)) + geom_line()
 # CN
-#tmp <- rbind(cbind(resCMNLim, immoPot = parms0Nlim$iB), cbind(resCMUnlim, immoPot = "Unlimited"))
+#tmp <- rbind(cbind(resCMNLim, immoNPot = parms0Nlim$iBN), cbind(resCMUnlim, immoNPot = "Unlimited"))
 resAgg <- cueSesam(resCM) %>% 
   select(x, cueDef, cueSyn) %>% 
   gather(key = "variable", "value", -x)
 ggplot( resAgg, aes(x, value, color = variable, linetype = variable)) + geom_line() 
 #
 tmp <- rbind(resCMNLim,resCMUnlim)
-ggplot( tmp, aes(x, y, color = as.factor(immoPot))) + geom_line() 
+ggplot( tmp, aes(x, y, color = as.factor(immoNPot))) + geom_line() 
 #
-ggplot( tmp, aes(time, betaOM, color = as.factor(immoPot))) + geom_line() 
-ggplot( tmp, aes(time, 1/betaOM, color = as.factor(immoPot))) + geom_line() 
+ggplot( tmp, aes(time, betaOM, color = as.factor(immoNPot))) + geom_line() 
+ggplot( tmp, aes(time, 1/betaOM, color = as.factor(immoNPot))) + geom_line() 
 #
 ```
 

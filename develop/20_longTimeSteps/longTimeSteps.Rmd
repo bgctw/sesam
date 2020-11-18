@@ -257,18 +257,18 @@ can be lumped into these two parts:
 ## Example more complex microbial model
 
 In the following model there are several processes influencing 
-the inorganic N pool, $I_N$. There is microbial 
+the inorganic N pool, $IN_N$. There is microbial 
 mineralization/immobilization, microbial turnover, plant uptake, 
 nitrogen deposition and leaching. 
-While N deposition and microbial mineralization are independent of $I_N$ 
-and leaching is first order in $I_N$, 
+While N deposition and microbial mineralization are independent of $IN_N$ 
+and leaching is first order in $IN_N$, 
 plant uptake and microbial mineralization/immobilization 
 are complex formulations of many parameters, inputs, and other pools.
 
 For simplicity in the model does not consider SOM pools and feedback
 of microbes to the decomposition flux.
 Microbial biomass, $B$, is N-limited if there is not enough nitrogen from
-decomposition of organic matter and immobilization of the inorganic $I_N$ pool.
+decomposition of organic matter and immobilization of the inorganic $IN_N$ pool.
 
 ![](nitrogen_inorg_model.svg)
 
@@ -285,7 +285,7 @@ deriv_inorg_nitrogen <-function(t, x, p){
   # microbial nitrogen part
   decN <- dec/p$cnIS
   tvrN <- tvr/p$cnB
-  immoNPot <- p$iB * x["IN"]
+  immoNPot <- p$iBN * x["IN"]
   synBC_N <- (decN + immoNPot - tvrN)*p$cnB # biomass synthesis constraint by N
   # growth limited either C or N
   synBC <- min(synBC_C, synBC_N) # biomass growth limited by either C or N
@@ -332,15 +332,15 @@ an accurate solution.
 x0 = c(B = 150, IN = 8) # mol C biomass, mol inorganic N
 # time in days
 parms <- list(
-  kINPlant = 1/10 # maximum plant uptake 10 days turnover time of I
+  kINPlant = 1/10 # maximum plant uptake 10 days turnover time of IN
   ,uINPlant = 0.9 # demanded plant uptake
   ,decS = 0.9*10 #uINPlant*cnS same N returned to soil as taken up
   ,eps = 0.6     # microbial carbon use efficiency
   ,tau = 1/20    # microbial turnover time
   ,cnIS = 10     # C/N ratio of litter input
   ,cnB = 8       # C/N ratio of microbial biomass
-  #,iB = 1/5 # 2*uINPlant
-  ,iB = 0.9      # for demonstrating error in time stepped solution
+  #,iBN = 1/5 # 2*uINPlant
+  ,iBN = 0.9      # for demonstrating error in time stepped solution
   ,iIN = x0["IN"]*1/200  # N depostion: magnitude of compensating for leaching
   ,lN = 1/200    # leaching rate  
 )
@@ -400,8 +400,8 @@ resStep1 <- solveDiscreteAdj(x1, 0:8, deriv_inorg_nitrogen, parmsCinc,
 
 The rate adjustment is possible, because the model is formulated 
 in a way that all the inorganic fluxes are take into account
-a potential flux that depends on $I_N$. We can express the first order rate in 
-terms of these fluxes $k = {leach + immo + plantup \over I_N}$ and constant flux
+a potential flux that depends on $IN_N$. We can express the first order rate in 
+terms of these fluxes $k = {leachN + immo + plantup \over IN_N}$ and constant flux
 $i = N_{depo} + N_{min}$, based on first computation of the derivative 
 with unadjusted rates. With these we compute the corrected decay rate, $k_c$.
 Then each of the three fluxes is downscaled by factor $k_c \over k$. 
@@ -413,7 +413,7 @@ $$
 $$
 Similar potential plant uptake is corrected: 
 $$
-{k_{I_N P}}_C = {\text{plant uptake} \over x} {k_c \over k}
+{k_{IN_N P}}_C = {\text{plant uptake} \over x} {k_c \over k}
 $$
 The derivative has to be recomputed with the adjusted rates.
 
@@ -429,7 +429,7 @@ adjust_parms_IN <- function(p, x, resFunc, ts) {
   list(
     is_adjusted = TRUE,
     parms = within(p,{
-      iB <- iB * kINFac
+      iBN <- iBN * kINFac
       kINPlant <- kINPlant * kINFac
       lN <- lN * kINFac
     })
@@ -505,7 +505,7 @@ $$
 {k_{rm}}_j = k_{sj} f_E
 $$
 
-### Example ECA $I_N$ uptake model 
+### Example ECA $IN_N$ uptake model 
 
 As an example, we reformulate potential plant uptake and potential microbial
 immobilization to compete with each other.
@@ -515,9 +515,9 @@ for microbial immobilization binding sites are assumed to be proportional to bio
 Additional parameters are the maximum uptake rates, ${k_{IN}}_P$, $i_B$ and substrate affinities, ${k_S}_P$, ${k_S}_B$.
 
 $$
-\text{plant uptake}_{Pot} = \frac{{k_{IN}}_P {E_{IN}}_P \  I_N}{ {k_S}_P f_E + I_N}
+\text{plant uptake}_{Pot} = \frac{{k_{IN}}_P {E_{IN}}_P \  IN_N}{ {k_S}_P f_E + IN_N}
 \\
-immo_{Pot} = \frac{i_B e_B B \  I_N}{{k_S}_B f_E + I_N}
+immo_{Pot} = \frac{i_B e_B B \  IN_N}{{k_S}_B f_E + IN_N}
 \\
 \text{where } f_E = 1 + {e_B B \over {k_S}_B} + {{E_{IN}}_P \over {k_S}_P}
 $$
@@ -526,7 +526,7 @@ The proportionality between enzymes and biomass cannot absorbed into the
 rate and affinity parameters, because affinity constants appear once without
 enzyme levels and once as a divisor of enzyme levels.
 Hence, we need four additional parameters to parametrize the competition
-by ECA compared to independent potential $I_N$ uptake.
+by ECA compared to independent potential $IN_N$ uptake.
 
 TODO: implement model and play with parameters in N limitation.
 

@@ -11,7 +11,7 @@ deriv_inorg_nitrogen_S <-function(t, x, p){
   cnS <- x["SC"]/x["SN"]
   decN <- dec/cnS
   tvrN <- tvr/p$cnB
-  immoNPot <- p$iB * x["IN"]
+  immoNPot <- p$iBN * x["IN"]
   synBC_N <- (decN + immoNPot - tvrN)*p$cnB
   # growth limited either C or N
   synBC <- min(synBC_C, synBC_N) # biomass growth limited by either C or N
