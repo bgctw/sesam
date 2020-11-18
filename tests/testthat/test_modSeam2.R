@@ -133,13 +133,13 @@ test_that("Regression to previous values", {
 							173.258859674592, 216.835747365411, 0.799032732285683, 30.2843222577389,
 							12.0990823795106, -9.28955046219926e-09, 5.46833689440973e-11,
 							-2.30926389122033e-11, -0.569999998615501, 331.186594750672,
-							86.6294298372961, 331.186594750672, 15.3064233572481), .Names = c("time",
+							86.6294298372961, 331.186594750672, 15.3064233572481, 0), .Names = c("time",
 							"B", "ER", "EL", "R", "RN", "L", "LN", "I", "respO", "PhiB",
 							"PhiU", "PhiTvr", "PhiBU", "PhiTotal", "immoPot", "MmImb", "alpha",
 							"alphaC", "alphaN", "cnR", "cnL", "limER", "limEL", "decR", "decL",
 							"resp", "respB", "respTvr", "tvrB", "revRC", "revLC", "revRN",
 							"revLN", "pCsyn", "CsynReq", "Csyn", "pNsyn", "NsynReq", "Nsyn",
-							"dR", "dL", "dB", "dI", "uC", "synB", "decC", "decN"))
+							"dR", "dL", "dB", "dI", "uC", "synB", "decC", "decN","plantNUp"))
 							, tolerance = 1e-3
 	)
     #res <- derivSeam1(0, xE, parmsInit)

@@ -208,6 +208,7 @@ derivSeam2 <- function(
     #    wNLim = (parms$eps*CsynBC/cnB / NsynBN)^delta
     , uC = as.numeric(uC), synB = as.numeric(synB)
     , decC = as.numeric(decC), decN = as.numeric(decN)
+    , plantNUp = plantNUp
   ))
 }
 

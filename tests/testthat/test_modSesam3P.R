@@ -1,4 +1,4 @@
--tmp.f <- function(){
+.tmp.f <- function(){
   require(testthat)
 }
 #test_file("tests/testthat/test_modSesam3P.R")
@@ -114,16 +114,16 @@ test_that("computeSesam3PAllocationPartitioning carbon limited",{
   cpL <- x["L"]/x["LP"]
   cpR <- x["R"]/x["RP"]
   # with nearly pure C limitation, should match with old partitioning
-  wELim <- c(C = 1, N = 1e-5, P = 1e-5)
+  limE <- c(C = 1, N = 1e-5, P = 1e-5)
   alpha0 <- c(L = 0.6, R = 0.4, LP = 1e-5, RP = 1e-5)
-  wELim <- wELim/sum(wELim); alpha0 <- alpha0/sum(alpha0)
+  limE <- limE/sum(limE); alpha0 <- alpha0/sum(alpha0)
   alpha <- computeSesam3PAllocationPartitioning(
     dS = cbind(R = parms$kR*x["R"], L = parms$kL*x["L"]) [1,]
     ,dSP = cbind(R = parms$kRP*x["R"], L = parms$kLP*x["L"])[1,]
     , B = x["B"]
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     ,alpha = alpha0
-    ,wELim = wELim
+    ,limE = limE
     ,beta = cbind(L = cnL, R = cpR, E = parms$cnE)[1,]
     ,gamma = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
   )
@@ -144,16 +144,16 @@ test_that("computeSesam3PAllocationPartitioning nitrogen limited",{
   cpL <- x["L"]/x["LP"]
   cpR <- x["R"]/x["RP"]
   # with nearly pure N limitation, should match with old partitioning
-  wELim <- c(C = 1e-5, N = 1, P = 1e-5)
+  limE <- c(C = 1e-5, N = 1, P = 1e-5)
   alpha0 <- c(L = 0.6, R = 0.4, LP = 1e-5, RP = 1e-5)
-  wELim <- wELim/sum(wELim); alpha0 <- alpha0/sum(alpha0)
+  limE <- limE/sum(limE); alpha0 <- alpha0/sum(alpha0)
   alpha <- computeSesam3PAllocationPartitioning(
     dS = cbind(R = parms$kR*x["R"], L = parms$kL*x["L"]) [1,]
     ,dSP = cbind(R = parms$kRP*x["R"], L = parms$kLP*x["L"])[1,]
     , B = x["B"]
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     ,alpha = alpha0
-    ,wELim = wELim
+    ,limE = limE
     ,beta = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
     ,gamma = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
   )
@@ -261,136 +261,136 @@ test_that("same as sesam3a for fixed substrates", {
     iR <- 160
   })
   ans0 <- derivSesam3P(0, x0, parms = parms0)
-  ans0 <- derivSesam3P(0, x0, parms = parmsFixedS)
-  times <- seq(0, 2100, length.out = 2)
-  #times <- seq(0,2100, length.out = 101)
-  resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsFixedS))
-  resExp <- as.data.frame(lsoda(
-    getX0NoP(x0), times, derivSesam3a
-    , parms = parmsFixedS))
-    #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
-  xETest <- unlist(tail(resTest,1))
-  xEExp <- unlist(tail(resExp,1))
-  expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
-  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
-  x0EExp2 <- xETest[2:11]; x0EExp2[names(xEExp[2:8])] <- xEExp[2:8]
-  .tmp.f <- function(){
-    derivSesam3P(0, xETest[c(2:11)], within(parmsFixedS, isRecover <- TRUE))
-    derivSesam3P(0, x0EExp2, within(parmsFixedS, isRecover <- TRUE))
-    derivSesam3a(0, xEExp[c(2:8)], within(parmsFixedS, isRecover <- TRUE))
-  }
-  #
-  # N limitation
-  #times <- seq(0,2100, length.out = 101)
-  times <- seq(0, 8100, length.out = 2)
-  resTest <- as.data.frame(lsoda( x0Nlim, times, derivSesam3P, parms = parmsFixedS))
-  resExp <- as.data.frame(lsoda(
-    getX0NoP(x0Nlim), times, derivSesam3a
-    , parms = parmsFixedS))
-    #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
-  xETest <- unlist(tail(resTest,1))
-  xEExp <- unlist(tail(resExp,1))
-  expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-6)
-  expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 1e-6)
-  expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
-  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
-  #
-  # NP col-limitation
-  x0Plim <- x0Nlim; x0Plim["IP"] <- 0
-  #times <- seq(0,2100, length.out = 101)
-  resTest <- as.data.frame(lsoda( x0Plim, times, derivSesam3P, parms = parmsFixedS))
-  resExp <- as.data.frame(lsoda(
-    getX0NoP(x0Plim), times, derivSesam3a
-    , parms = parmsFixedS))
-  #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
-  xETest <- unlist(tail(resTest,1))
-  xEExp <- unlist(tail(resExp,1))
-  expect_true( xETest["alpha"] < xEExp["alpha"])
-  # interestingly this leads to slightly higher biomass under colimitation
-  # expect_true( xETest["B"] < xEExp["B"])
-  expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-2)
-  #expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  # ans0 <- derivSesam3P(0, x0, parms = parmsFixedS)
+  # times <- seq(0, 2100, length.out = 2)
+  # #times <- seq(0,2100, length.out = 101)
+  # resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsFixedS))
+  # resExp <- as.data.frame(lsoda(
+  #   getX0NoP(x0), times, derivSesam3a
+  #   , parms = parmsFixedS))
+  #   #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
+  # xETest <- unlist(tail(resTest,1))
+  # xEExp <- unlist(tail(resExp,1))
+  # expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
+  # expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  # x0EExp2 <- xETest[2:11]; x0EExp2[names(xEExp[2:8])] <- xEExp[2:8]
+  # .tmp.f <- function(){
+  #   derivSesam3P(0, xETest[c(2:11)], within(parmsFixedS, isRecover <- TRUE))
+  #   derivSesam3P(0, x0EExp2, within(parmsFixedS, isRecover <- TRUE))
+  #   derivSesam3a(0, xEExp[c(2:8)], within(parmsFixedS, isRecover <- TRUE))
+  # }
+  # #
+  # # N limitation
+  # #times <- seq(0,2100, length.out = 101)
+  # times <- seq(0, 8100, length.out = 2)
+  # resTest <- as.data.frame(lsoda( x0Nlim, times, derivSesam3P, parms = parmsFixedS))
+  # resExp <- as.data.frame(lsoda(
+  #   getX0NoP(x0Nlim), times, derivSesam3a
+  #   , parms = parmsFixedS))
+  #   #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
+  # xETest <- unlist(tail(resTest,1))
+  # xEExp <- unlist(tail(resExp,1))
+  # expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-6)
+  # expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 1e-6)
+  # expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
+  # expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+  # #
+  # # NP col-limitation
+  # x0Plim <- x0Nlim; x0Plim["IP"] <- 0
+  # #times <- seq(0,2100, length.out = 101)
+  # resTest <- as.data.frame(lsoda( x0Plim, times, derivSesam3P, parms = parmsFixedS))
+  # resExp <- as.data.frame(lsoda(
+  #   getX0NoP(x0Plim), times, derivSesam3a
+  #   , parms = parmsFixedS))
+  # #, parms = within(parmsFixedS, isEnzymeMassFlux <- FALSE)))
+  # xETest <- unlist(tail(resTest,1))
+  # xEExp <- unlist(tail(resExp,1))
+  # expect_true( xETest["alpha"] < xEExp["alpha"])
+  # # interestingly this leads to slightly higher biomass under colimitation
+  # # expect_true( xETest["B"] < xEExp["B"])
+  # expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-2)
+  # #expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
 })
 
-# substrate feedbacks ---------------------------------------------------------
-
-
-test_that("same as sesam3a with substrate feedbacks", {
-  parmsInit <- within(parms0, {isFixedI <- TRUE})
-  ans0 <- derivSesam3P(0, x0, parms = parmsInit)
-  times <- seq(0,800, length.out = 2)
-  #times <- seq(0,800, length.out = 101)
-  #times <- c(0,148:151)
-  #times <- seq(0,2100, by = 2)
-  #times <- seq(0,10000, length.out = 101)
-  #ans1 <- derivSesam3P(0, x0, within(parmsInit, isRecover <- TRUE) )
-  #
-  resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsInit))
-  resExp <- as.data.frame(lsoda(
-    getX0NoP(x0), times, derivSesam3a
-    , parms = parmsInit))
-  #    , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
-  xETest <- unlist(tail(resTest,1))
-  xEExp <- unlist(tail(resExp,1));
-  xpESteady <- unlist(head(tail(resTest,2),1))	# the previous before end
-  expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-4)
-  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
-  #rbind(xEExp[names(xETest)], xETest)
-  .tmp.f <- function(){
-    derivSesam3P(0, x0, within(parmsInit, isRecover <- TRUE))
-  }
-  #
-  # N limitation
-  resTest <- as.data.frame(lsoda( x0Nlim, times, derivSesam3P, parms = parmsInit))
-  resExp <- as.data.frame(lsoda(
-    getX0NoP(x0Nlim), times, derivSesam3a
-    , parms = parmsInit))
-    #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
-  xETest <- unlist(tail(resTest,1))
-  xEExp <- unlist(tail(resExp,1))
-  expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 1e-6)
-  expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
-  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
-  #rbind(xEExp[names(xETest)], xETest)
-  #
-  # from C to N limitation
-  x0CNLim <- x0; x0CNLim["I"] <- 0
-  times <- seq(0,1200, length.out = 2)
-  #times <- seq(0,1200, length.out = 101)
-  #times <- c(0,seq(140,220, length.out = 101))
-  resTest <- as.data.frame(lsoda( x0CNLim, times, derivSesam3P, parms = parmsInit))
-  resExp <- as.data.frame(lsoda(
-    getX0NoP(x0CNLim), times, derivSesam3a
-    , parms = parmsInit))
-    #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
-  xETest <- unlist(tail(resTest,1))
-  xEExp <- unlist(tail(resExp,1))
-  expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-4)
-  expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-5)
-  expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
-  rbind(xEExp[names(xETest)], xETest)
-})
-
-.tmp.f <- function(){
-  # plots of results
-  library(dplyr)
-  library(ggplot2)
-  res <- suppressWarnings(bind_rows(
-    cbind(resTest, scen = "Test"), cbind(resExp, scen = "Exp")))
-  ggplot(filter(res, time > 1), aes(time, B, color = scen)) + geom_line(alpha = 0.5)
-  ggplot(filter(res, time > 0), aes(time, alpha, color = scen)) + geom_point(alpha = 0.5)
-  ggplot(filter(res, time < 500 & time > 0), aes(time, alpha, color = scen)) + geom_point()
-  ggplot(filter(res, time < 500), aes(time, B, color = scen)) + geom_line()
-  ggplot(filter(res, time >= 0), aes(time, L, color = scen)) + geom_line()
-  ggplot(filter(res, time >= 0), aes(time, R, color = scen)) + geom_line()
-  ggplot(filter(res, time < 500), aes(time, respO, color = scen)) + geom_line()
-  ggplot(filter(res, time > 10 & time < 500), aes(time, ER, color = scen)) + geom_line()
-  ggplot(filter(res, time > 10 & time < 500), aes(time, EL, color = scen)) + geom_line()
-  ggplot(filter(res, time < 500), aes(time, alphaC, color = scen)) + geom_line()
-  ggplot(filter(res, time < 5000), aes(time, alphaN, color = scen)) + geom_line()
-  ggplot(filter(res, time > 01), aes(time, PhiB, color = scen, linetype = scen)) + geom_line()
-}
-
-
-
-
+# # substrate feedbacks ---------------------------------------------------------
+#
+#
+# test_that("same as sesam3a with substrate feedbacks", {
+#   parmsInit <- within(parms0, {isFixedI <- TRUE})
+#   ans0 <- derivSesam3P(0, x0, parms = parmsInit)
+#   times <- seq(0,800, length.out = 2)
+#   #times <- seq(0,800, length.out = 101)
+#   #times <- c(0,148:151)
+#   #times <- seq(0,2100, by = 2)
+#   #times <- seq(0,10000, length.out = 101)
+#   #ans1 <- derivSesam3P(0, x0, within(parmsInit, isRecover <- TRUE) )
+#   #
+#   resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsInit))
+#   resExp <- as.data.frame(lsoda(
+#     getX0NoP(x0), times, derivSesam3a
+#     , parms = parmsInit))
+#   #    , parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
+#   xETest <- unlist(tail(resTest,1))
+#   xEExp <- unlist(tail(resExp,1));
+#   xpESteady <- unlist(head(tail(resTest,2),1))	# the previous before end
+#   expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-4)
+#   expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+#   #rbind(xEExp[names(xETest)], xETest)
+#   .tmp.f <- function(){
+#     derivSesam3P(0, x0, within(parmsInit, isRecover <- TRUE))
+#   }
+#   #
+#   # N limitation
+#   resTest <- as.data.frame(lsoda( x0Nlim, times, derivSesam3P, parms = parmsInit))
+#   resExp <- as.data.frame(lsoda(
+#     getX0NoP(x0Nlim), times, derivSesam3a
+#     , parms = parmsInit))
+#     #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
+#   xETest <- unlist(tail(resTest,1))
+#   xEExp <- unlist(tail(resExp,1))
+#   expect_equal( xETest["alpha"], xEExp["alpha"], tolerance = 1e-6)
+#   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
+#   expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+#   #rbind(xEExp[names(xETest)], xETest)
+#   #
+#   # from C to N limitation
+#   x0CNLim <- x0; x0CNLim["I"] <- 0
+#   times <- seq(0,1200, length.out = 2)
+#   #times <- seq(0,1200, length.out = 101)
+#   #times <- c(0,seq(140,220, length.out = 101))
+#   resTest <- as.data.frame(lsoda( x0CNLim, times, derivSesam3P, parms = parmsInit))
+#   resExp <- as.data.frame(lsoda(
+#     getX0NoP(x0CNLim), times, derivSesam3a
+#     , parms = parmsInit))
+#     #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
+#   xETest <- unlist(tail(resTest,1))
+#   xEExp <- unlist(tail(resExp,1))
+#   expect_equal( xETest["B"], xEExp["B"], tolerance = 1e-4)
+#   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-5)
+#   expect_equal( getX0NoP(xETest[2:11]), xEExp[2:8], tolerance = 1e-6)
+#   rbind(xEExp[names(xETest)], xETest)
+# })
+#
+# .tmp.f <- function(){
+#   # plots of results
+#   library(dplyr)
+#   library(ggplot2)
+#   res <- suppressWarnings(bind_rows(
+#     cbind(resTest, scen = "Test"), cbind(resExp, scen = "Exp")))
+#   ggplot(filter(res, time > 1), aes(time, B, color = scen)) + geom_line(alpha = 0.5)
+#   ggplot(filter(res, time > 0), aes(time, alpha, color = scen)) + geom_point(alpha = 0.5)
+#   ggplot(filter(res, time < 500 & time > 0), aes(time, alpha, color = scen)) + geom_point()
+#   ggplot(filter(res, time < 500), aes(time, B, color = scen)) + geom_line()
+#   ggplot(filter(res, time >= 0), aes(time, L, color = scen)) + geom_line()
+#   ggplot(filter(res, time >= 0), aes(time, R, color = scen)) + geom_line()
+#   ggplot(filter(res, time < 500), aes(time, respO, color = scen)) + geom_line()
+#   ggplot(filter(res, time > 10 & time < 500), aes(time, ER, color = scen)) + geom_line()
+#   ggplot(filter(res, time > 10 & time < 500), aes(time, EL, color = scen)) + geom_line()
+#   ggplot(filter(res, time < 500), aes(time, alphaC, color = scen)) + geom_line()
+#   ggplot(filter(res, time < 5000), aes(time, alphaN, color = scen)) + geom_line()
+#   ggplot(filter(res, time > 01), aes(time, PhiB, color = scen, linetype = scen)) + geom_line()
+# }
+#
+#
+#
+#

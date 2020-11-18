@@ -68,7 +68,7 @@ derivSesam3P <- function(
     , B = B
     ,kmkN = kmN, aE =  parms$aE
     ,alpha = alpha
-    ,wELim = wELim
+    ,limE = limE
     ,beta = cbind(L = cnL, R = cpR, E = parms$cnE)[1,]
     ,gamma = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
   )
@@ -174,13 +174,6 @@ derivSesam3P <- function(
   #
   # further computations just for output for tacking the system
   limZ <- alpha * aeB / (parms$kmN + alpha * aeB)
-  rev
-  revRC <- dRPot / (parms$km*parms$kN + alphaC["R"]*aeB)
-  revLC <- dLPot / (parms$km*parms$kN + alphaC["L"]*aeB)
-  revRN <- dRPot/cnR / (parms$km*parms$kN + alphaN["R"]*aeB)
-  revLN <- dLPot/cnL / (parms$km*parms$kN + alphaN["L"]*aeB)
-  revRP <- dRPot/cpR / (parms$km*parms$kN + alpha["P"]["R"]*aeB)
-  revLP <- dLPot/cpL / (parms$km*parms$kN + alpha["P"]["L"]*aeB)
   # net mic mineralization/immobilization when accounting uptake mineralization
   PhiBU <- PhiB + PhiU
   # total mineralization flux including microbial turnover
@@ -211,23 +204,14 @@ derivSesam3P <- function(
     , PhiPTvr = as.numeric(PhiPTvr)
     , PhiPBU = as.numeric(PhiPB + PhiPU)
     , immoPPot = as.numeric(immoPPot)
-    , structure(resBalance$wELim, names = paste0("lim",names(resBalance$wELim)))
-    , structure(alphaTarget, paste0("alpha",names(alphaTarget)))
-    , alphaCR = as.numeric(alphaC["R"])
-    , alphaNR = as.numeric(alphaN["R"])
-    , alphaPR = as.numeric(alpha["P"]["R"])
-    , alphaPP = as.numeric(alpha["P"]["P"])
+    , structure(limE, names = paste0("lim",names(limE)))
+    , structure(alphaTarget, names = paste0("alpha",names(alphaTarget)))
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
     , cpR = as.numeric(cpR), cpL = as.numeric(cpL)
-    , limER = as.numeric(limER), limEL = as.numeric(limEL)
+    , structure(limZ, names = paste0("limZ",names(limZ)))
     , decR = as.numeric(decR), decL = as.numeric(decL)
     , tvrB = as.numeric(tvrB)
-    , revRC = as.numeric(revRC), revLC = as.numeric(revLC)
-    , revRN = as.numeric(revRN)
-    , revRP = as.numeric(revRP)
-    , revLN = as.numeric(revLN)
-    , revLP = as.numeric(revLP)
-    , CsynB = as.numeric(CsynB)
+    , synB = as.numeric(synB)
     , CsynBC = as.numeric(CsynBC)
     , CsynBN = as.numeric(CsynBN)
     , CsynBP = as.numeric(CsynBP)
@@ -271,17 +255,17 @@ computeSesam3PAllocationPartitioning <- function(
   ## to enzyme production per time
   ,alpha  ##<< numeric vector (L,R,LP,RP) of current community allocation
   ## coefficients in (0,1)
-  ,wELim   ##<< numeric vector (nElement) of weights of elemental limitations
+  ,limE   ##<< numeric vector (nElement) of weights of elemental limitations
   ,beta    ##<< numeric vector of C/N ratios of substrates and enzymes
   ,gamma   ##<< numeric vector of C/P ratios of substrates (L,R) and enzymes (E)
 ){
   synEnz <- aE*B
   cost <- (kmkN + alpha*synEnz) *
-    (wELim["C"] + wELim["N"]/beta["E"] + wELim["P"]/gamma["E"])
-  returnL <- dS["L"]*(wELim["C"] + wELim["N"]/beta["L"] + wELim["P"]/gamma["L"])
-  returnR <- dS["R"]*(wELim["C"] + wELim["N"]/beta["R"] + wELim["P"]/gamma["R"])
-  returnLP <- dSP["L"]*(wELim["P"])
-  returnRP <- dSP["R"]*(wELim["P"])
+    (limE["C"] + limE["N"]/beta["E"] + limE["P"]/gamma["E"])
+  returnL <- dS["L"]*(limE["C"] + limE["N"]/beta["L"] + limE["P"]/gamma["L"])
+  returnR <- dS["R"]*(limE["C"] + limE["N"]/beta["R"] + limE["P"]/gamma["R"])
+  returnLP <- dSP["L"]*(limE["P"])
+  returnRP <- dSP["R"]*(limE["P"])
   returnE <- structure(c(returnL, returnR, returnLP, returnRP),
                        names = c("L","R","LP","RP"))
   revenue <- returnE/cost[names(returnE)]

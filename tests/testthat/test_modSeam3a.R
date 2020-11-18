@@ -125,6 +125,7 @@ test_that("same as seam for fixed substrates", {
   }
   # relaxed precision because enzyme mass fluxes are different
   expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
+  rbind( xETest, xEExp[names(xETest)] )
   expect_true( all(abs(xETest - xEExp[names(xETest)])/pmax(1e-10,xEExp[names(xETest)]) < 0.01))
   .tmp.f <- function(){
     derivSeam2(0, xEExp[2:9], within(parmsInit, isRecover <- TRUE))
