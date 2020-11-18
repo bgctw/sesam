@@ -8,13 +8,14 @@ A fraction of the turnover is mineralized due to predation.
 
 # Scaling turnover rate with pool size
 We hypothesize that increasing the predation turnover rate with microbial biomass
-in SESAM4 helps to avoid the unreasonable long priming time scales observed with these 
-models.
+in SESAM4 helps to avoid the unreasonable long priming time scales observed with 
+these models.
 
 There are now three microbial turnover fluxes.
 
 - turnover by predation: $\operatorname{tvr}_{B,pred}$
-- turnover by starvation, i.e. uptake < enzyme synthesis + maintenance: $\operatorname{tvr}_{B,starv}$
+- turnover by starvation, i.e. uptake < enzyme synthesis + maintenance: 
+  $\operatorname{tvr}_{B,starv}$
 - turnover by other causes: $\operatorname{tvr}_{B}$
 
 $$
@@ -27,26 +28,28 @@ $$
 
 Parameter $B_0$ ensures that predation ceases if microbial biomass is too scarce.
 
-If C available for biomass synthesis is negtive, current microbial biomass becomes
-a source for enzyme production and associated catabolic requirements and for maintenance respiration.
+If C available for biomass synthesis is negative, current microbial biomass becomes
+a source for enzyme production and associated catabolic requirements and for 
+maintenance respiration.
 
 
 ## Tests
 simplified model with $\tau = 0$ and $B_0 = 0$.
 
 # Differential stoichiometry of lysed cell material
-Moreover, SESAM4 explicitly models the return of mircobial turnover to DOM and 
-to re-uptake. This shortcut C flux has not been explicitly presented in SEAM and SESAM3
-because it just scaled the parameters: turnover rate $\tau$, 
-catabolic C use efficiency $\epsilon$ with QSS for DOM where uptake equals DOM input fluxes
+Moreover, SESAM4 explicitly models the return of microbial turnover to DOM and 
+to re-uptake. This shortcut C flux has not been explicitly presented in SEAM and 
+SESAM3 because it just scaled the parameters: turnover rate $\tau$, 
+catabolic C use efficiency $\epsilon$ with QSS for DOM where uptake equals DOM 
+input fluxes
 
-SESAM4 implements different stoichiometry of lysed cell material returned to DOM and of 
-cell wall more C rich material transferred to residue pool, $R$. In order
+SESAM4 implements different stoichiometry of lysed cell material returned to DOM 
+and of cell wall more C rich material transferred to residue pool, $R$. In order
 to mass balance all element, the explicit flux is now necessary.
 
 If the stoichiometric E:C ratios of biomass, $\beta_B$, and cell wall material,
 $\beta_W$, and the fraction of cell wall material, $c_W$ are given, the 
-stoichiometic ratio of the lysed material can be computed as:
+stoichiometic ratio of the lysed material,$\beta_L$, can be computed as:
 
 $$
 \begin{align}
@@ -59,14 +62,13 @@ $$
 # Pool composition of uptake
 
 In quasi steady state for enzymes, a fraction of the produced enzymes are added
-to DOM and uptake, $u_C$, again. The composition of respiration and enzymes, $r_{ui}$ 
-(with assuming no fractionarion) is that
-of the composition of a mix of uptake, $r_{uC}$ and composition of internal microbial 
-recycling due to starvation, $r_i$, because the snythesizing substrate, is the 
-sum of uptake and internal recycling: $u_i = u_c + i$. 
+to DOM and uptake, $u_C$, again. The composition of respiration and enzymes, 
+$r_{ui}$ (with assuming no fractionation) is that
+of the composition of a mix of uptake, $r_{uC}$ and composition of internal 
+microbial recycling due to starvation, $r_i$, because the snythesizing substrate, 
+is the sum of uptake and internal recycling: $u_i = u_c + i$. 
 Hence the composition of uptake depends by enzyme turnover on the composition 
-of uptake.
-Hence, there is a more involved formula to compute the composition of the 
+of uptake and there is a more involved formula to compute the composition of the 
 uptake flux.
 
 ## Carbon 
@@ -81,7 +83,8 @@ r_{uC} &= \frac{1}{u_C} \frac{a  u_i + t_{ED} i r_{i}}{( u_i - t_{ED})} \\
 $$
 
 where $t_{BD} = tvr_{B,Org}(1-c_w)$ is the fraction of microbial turnover
-that is added to DOM and uptake again, and $t_{ED} = k_ {NB} a_E B$ is the fraction of enzyme turnover that is added to DOM, and with
+that is added to DOM and uptake again, and $t_{ED} = \kappa a_E B$ is the 
+fraction of enzyme turnover that is added to DOM, and with
 $$
 \begin{align}
 a &= \operatorname{dec}_R r_R + \operatorname{dec}_L r_L + t_{BD} r_B \\
@@ -107,27 +110,29 @@ $$
 a &= \operatorname{dec}_R r_R + \operatorname{dec}_L r_L + t_{BD} r_B  + i \, r_B\\
 \end{align}
 $$
-and $i$ is microbial starvation, biomass used to fuel enzyme synthesis and maintenance.
+and $i$ is microbial starvation, biomass used to fuel enzyme synthesis and 
+maintenance.
 
 ## Nitrogen
 For N its similar:
 
 $$
 \begin{align}
-s_N &= \nuN (\operatorname{dec}_R/\beta_R + \operatorname{dec}_L/\beta_L + t_{BD}/\beta_{BL}
+s_N &= \nu_N (\operatorname{dec}_R/\beta_R + \operatorname{dec}_L/\beta_L + t_{BD}/\beta_{BL}
  + t_{ED}/\beta_E) + i\beta_B  + \operatorname{imm}_N\\
-s_N r_{sN}  &= a_N  + \nuN \, t_{ED} r_{sN} /\beta_E \\
-r_{sN}  &= a_N/(s_N - \nuN \,t_{ED}/\beta_E) \\ 
+s_N r_{sN}  &= a_N  + \nu_N \, t_{ED} r_{sN} /\beta_E \\
+r_{sN}  &= a_N/(s_N - \nu_N \,t_{ED}/\beta_E) \\ 
 \end{align}
 $$
  with
 $$
 \begin{align}
-a_N &= \nuN( \operatorname{dec}_R r_R/\beta_R + \operatorname{dec}_L r_L/\beta_L 
+a_N &= \nu_N( \operatorname{dec}_R r_R/\beta_R + \operatorname{dec}_L r_L/\beta_L 
 + t_{BD} r_B/\beta_{BL} ) +  i \, r_B \beta_B + \operatorname{imm}_N r_I\\
 \end{align}
 $$
 
-where $\beta_{BL}$ is the C:N ratio of the turnover that is returned to DOM. It is usually more
-rich in N than $\beta_B$, and $\beta_S$ is the isotopic ratio of the OM flux available for 
-synthesis and mineralization, i.e. the sum of organic uptake, immobilization, and starvation.
+where $\beta_{BL}$ is the C:N ratio of the turnover that is returned to DOM. 
+It is usually more rich in N than $\beta_B$, and $\beta_S$ is the isotopic ratio 
+of the OM flux available for synthesis and mineralization, i.e. the sum of 
+organic uptake, immobilization, and starvation.

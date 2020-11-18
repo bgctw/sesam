@@ -40,16 +40,11 @@ derivSesam3B <- function(
   tvrERecycling <- parms$kNB*synE
   uNOrg <- parms$nuN*(decL/cnL + decR/cnR + tvrERecycling/cnE)
   uC <- decL + decR + tvrERecycling
-  CsynBC <- uC - rM - synE/parms$eps
-  CsynBN <- cnB/parms$eps*(uNOrg + immoNPot - synE/cnE)
-  CsynB <- min(CsynBC, CsynBN)
-  if (CsynB > 0) {
-    synB <- parms$eps*CsynB
-    rG <- (1 - parms$eps)*CsynB
-  } else {
-    synB <- CsynB # with negative biomass change, do growth respiration
-    rG <- 0
-  }
+  CsynBCt <- uC - rM - synE/parms$eps
+  CsynBC <- if(CsynBCt > 0) parms$eps*CsynBCt else CsynBCt
+  CsynBN <- cnB*(uNOrg + immoNPot - synE/cnE)
+  synB <- min(CsynBC, CsynBN)
+  rG <- if (synB > 0) (1 - parms$eps)/parms$eps*synB else 0
   PhiNB <- uNOrg - synB/cnB - synE/cnE
   alphaC <- computeSesam3sAllocationPartitioning(
     dR = dRPot, dL = dLPot, B = B
@@ -189,7 +184,7 @@ derivSesam3B <- function(
     , revRC = as.numeric(revRC), revLC = as.numeric(revLC)
     , revRN = as.numeric(revRN)
     , revLN = as.numeric(revLN)
-    , CsynB = as.numeric(CsynB)
+    , synB = as.numeric(synB)
     , CsynBC = as.numeric(CsynBC)
     , CsynBN = as.numeric(CsynBN)
     #, pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) )

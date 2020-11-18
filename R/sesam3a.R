@@ -37,17 +37,12 @@ derivSesam3a <- function(
   tvrERecycling <- parms$kNB*synE
   uNOrg <- parms$nuN*(decL/cnL + decR/cnR + tvrERecycling/cnE)
   uC <- decL + decR + tvrERecycling
-  CsynBC <- uC - rM - synE/parms$eps
+  CsynBCt <- uC - rM - synE/parms$eps
+  CsynBC <- if(CsynBCt > 0) parms$eps*CsynBCt else CsynBCt
   NsynBN <- (uNOrg + immoNPot - synE/cnE)
-  CsynBN <- if (NsynBN > 0) cnB/parms$eps*NsynBN else cnB*NsynBN
-  CsynB <- min(CsynBC, CsynBN)
-  if (CsynB > 0) {
-    synB <- parms$eps*CsynB
-    rG <- (1 - parms$eps)*CsynB
-  } else {
-    synB <- CsynB # with negative biomass change, do growth respiration
-    rG <- 0
-  }
+  CsynBN <- cnB*NsynBN
+  synB <- min(CsynBC, CsynBN)
+  rG <- if (synB > 0) (1 - parms$eps)/parms$eps*synB else 0
   PhiNB <- uNOrg - synB/cnB - synE/cnE
   alphaC <- computeSesam3sAllocationPartitioning(
     dR = dRPot, dL = dLPot, B = B
@@ -181,7 +176,7 @@ derivSesam3a <- function(
     , revRC = as.numeric(revRC), revLC = as.numeric(revLC)
     , revRN = as.numeric(revRN)
     , revLN = as.numeric(revLN)
-    , CsynB = as.numeric(CsynB)
+    , synB = as.numeric(synB)
     , CsynBC = as.numeric(CsynBC)
     , CsynBN = as.numeric(CsynBN)
     #, pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) )
@@ -227,9 +222,9 @@ computeOutputsSesam3 <- function(
   CsynBC <- uC - rM - synE/parms$eps
   NsynBN <- (uNOrg + immoNPot - synE/cnE)
   CsynBN <- ifelse(NsynBN > 0, cnB/parms$eps*NsynBN, cnB*NsynBN)
-  CsynB <- pmin(CsynBC, CsynBN)
-  synB <- ifelse(CsynB > 0, parms$eps*CsynB, CsynB )
-  rG <- ifelse(CsynB > 0, (1 - parms$eps)*CsynB, 0)
+  synB <- pmin(CsynBC, CsynBN)
+  synB <- ifelse(synB > 0, parms$eps*synB, synB )
+  rG <- ifelse(synB > 0, (1 - parms$eps)*synB, 0)
   PhiNB <- uNOrg - synB/cnB - synE/cnE
   alphaC <- computeSesam3sAllocationPartitioning(
     dR = dRPot, dL = dLPot, B = B
@@ -364,7 +359,7 @@ computeOutputsSesam3 <- function(
     , revRC = as.numeric(revRC), revLC = as.numeric(revLC)
     , revRN = as.numeric(revRN)
     , revLN = as.numeric(revLN)
-    , CsynB = as.numeric(CsynB)
+    , synB = as.numeric(synB)
     , CsynBC = as.numeric(CsynBC)
     , CsynBN = as.numeric(CsynBN)
     , plantNUp = plantNUp # inorganic N taken up by plant

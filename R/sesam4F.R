@@ -3,7 +3,7 @@
 # gC/m2 and gN/m2, /yr
 
 derivSesam4F <- function(
-  ### Soil Enzyme Steady Allocation model with detailed turnover
+  ### Soil Enzyme Steady Allocation model with detailed turnover and pool fractions
   t,xvec,parms
 ){
   # based on Sesam4a with tracking different fractions of pools
@@ -72,18 +72,19 @@ derivSesam4F <- function(
   #if (abs(uPOrg - uPOrg1) > 1e-14) stop("fracUPOrg error")
   #
   # elemental limitations by potential biomass synthesis and respiration
-  CsynBC <- uC - rM - synE/parms$eps
-  CsynBN <- cnB/parms$eps*(uNOrg + immoNPot - synE/cnE)
-  CsynBP <- cpB/parms$eps*(uPOrg + immoPPot - synE/cpE)
+  CsynBCt <- uC - rM - synE/parms$eps
+  CsynBC <- if(CsynBCt > 0) parms$eps*CsynBCt else CsynBCt
+  CsynBN <- cnB*(uNOrg + immoNPot - synE/cnE)
+  CsynBP <- cpB*(uPOrg + immoPPot - synE/cpE)
   CsynB <- min(CsynBC, CsynBN, CsynBP)
   if (CsynB > 0) {
     starvB <- 0
-    synB <- parms$eps*CsynB
+    synB <- CsynB
   } else {
     starvB <- -CsynB
     synB <- 0
   }
-  rG <- (1 - parms$eps)*synB
+  rG <- (1 - parms$eps)/parms$eps*synB
   #
   # microbial community composition
   alphaC <- computeSesam3sAllocationPartitioning(

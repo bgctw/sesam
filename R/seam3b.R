@@ -35,7 +35,8 @@ derivSeam3b <- function(
   synE <- parms$aE * B     # total enzyme production per microbial biomass
   #synE <- parms$aEu * uC       # total enzyme production per uptake
   # C required for biomass and growth respiration under C limitation
-  CsynBC <- uC - synE/parms$eps - rM
+  CsynBCt <- uC - synE/parms$eps - rM
+  CsynBC <- if(CsynBCt > 0) parms$eps*CsynBCt else CsynBCt
   #
   # Nitrogen balance
   decN <- decR/cnR + decL/cnL + tvrERecycling/parms$cnE
@@ -46,13 +47,13 @@ derivSeam3b <- function(
   PhiNU <- (1 - parms$nuN) * (decN - plantNUpOrg)
   # immobilization flux
   immoNPot <- parms$iBN * x["IN"]
-  uNSubstrate <- (decN - plantNUpOrg - PhiNU)    # plant uptake also of organic N
+  uNSubstrate <- (decN - plantNUpOrg - PhiNU) # plant uptake also of organic N
   uNPot <-  immoNPot + uNSubstrate
   NsynBN <- uNPot - synE/cnE
-  # C required for biomass growth and growth respiration under N limitation
-  CsynBN <- (NsynBN*cnB)/parms$eps
+  # C required for biomass growth under N limitation
+  CsynBN <- NsynBN*cnB
   #
-  # compute C available for biomass, this time without accounting immobilization flux
+  # compute C available for biomass, now without accounting immobilization flux
   NsynBNSubstrate <- uNSubstrate - synE/cnE
   CsynBNSubstrate <- (NsynBNSubstrate*cnB)/parms$eps
   #
@@ -60,18 +61,9 @@ derivSeam3b <- function(
   isLimN <- CsynBN <  CsynBC
   # N limited based on substrate uptake (without accounting for immobilization)
   isLimNSubstrate <-  CsynBNSubstrate < CsynBC
-  CsynB = if (isLimN ) CsynBN else CsynBC
+  synB = if (isLimN ) CsynBN else CsynBC
   #
-  # average cN reqruired according to enzyme allocation accoording to C efficiencies
-  #synE <- uC*parms$aE
-  #uCGrowth <- uC - synE/parms$eps - rM    # C for both growth and growth respiration
-  if (CsynB > 0) {
-      synB <- parms$eps*CsynB
-      rG <- (1 - parms$eps)*CsynB
-  }else{
-      synB <- CsynB    # negative
-      rG <- 0
-  }
+  rG <- if (synB > 0) (1 - parms$eps)/parms$eps*synB else 0
   # imbalance fluxes
   respSynE <- (1 - parms$eps)/parms$eps * synE
   respO <- uC - (synE + respSynE + synB + rG + rM)
@@ -83,7 +75,7 @@ derivSeam3b <- function(
   PhiNBU <- PhiNB + PhiNU
   respTvr <- (1 - parms$epsTvr) * tvrB
   PhiNTvr <- respTvr/parms$cnB
-  # net microbial mineralization/imm when taking into account uptake mineralization
+  # net microbial min/imm when taking into account uptake mineralization
   PhiNBU <- PhiNB + PhiNU
   # total mineralization flux including microbial turnover
   PhiNTotal <- PhiNBU + PhiNTvr
@@ -104,9 +96,10 @@ derivSeam3b <- function(
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
   #
-  # tvr feeding back to R pool, assume that N in SOM for resp (by epsTvr) is mineralized
+  # tvr to R pool, assume that N in SOM for resp (by epsTvr) is mineralized
   tvrC <- +parms$epsTvr*tvrB + (1 - parms$kNB)*(tvrER + tvrEL)
-  tvrN <- +parms$epsTvr*tvrB/parms$cnB + (1 - parms$kNB)*(tvrER + tvrEL)/parms$cnE
+  tvrN <- +parms$epsTvr*tvrB/parms$cnB +
+    (1 - parms$kNB)*(tvrER + tvrEL)/parms$cnE
   tvrExC <- 0     # fluxes leaving the system
   tvrExN <- 0
   #
@@ -191,7 +184,7 @@ derivSeam3b <- function(
     , revRN = as.numeric(revRN), revLN = as.numeric(revLN)
     , pCsyn = as.numeric(CsynBC / CsynBN)
     , CsynReq = as.numeric(CsynBN), Csyn = as.numeric(CsynBC)
-    , pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) )
+    , pNsyn = as.numeric(NsynBN / (CsynBC/cnB) )
     , NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
     , dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)
     , dIN = as.numeric(dIN)
@@ -204,7 +197,7 @@ derivSeam3b <- function(
 }
 
 balanceAlphaBetweenCNLimitationsExp <- function(
-  ### compute balance between alphaC and alphaN based on C and N based biomass synthesis
+  ### compute balance between alphaC and alphaN based on E_i biomass synthesis
   alphaC, alphaN, CsynBN, CsynBC, ..., delta = 20, tauB
 ){
   ##details<< if there is only small potential of immobilizalization,
@@ -224,7 +217,7 @@ balanceAlphaBetweenCNLimitationsExp <- function(
 }
 
 getKmKNParsFromKmN <- function(
-  ### get consistent parameters of the km and kN variant from SESAM kmN parameterization
+  ### get consistent parameters of the km and kN variant from SESAM kmN pars
   p            ##<< parameter list
   , kN = 60    ##<< turnover time of enzyme in 1/year
 ){

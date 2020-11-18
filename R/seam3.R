@@ -35,7 +35,8 @@ derivSeam3a <- function(
   synE <- parms$aE * B     # total enzyme production per microbial biomass
   #synE <- parms$aEu * uC       # total enzyme production per uptake
   # C required for biomass and growth respiration under C limitation
-  CsynBC <- uC - synE/parms$eps - rM
+  CsynBCt <- uC - synE/parms$eps - rM
+  CsynBC <- if(CsynBCt > 0) parms$eps*CsynBCt else CsynBCt
   #
   # Nitrogen balance
   decN <- decR/cnR + decL/cnL + tvrERecycling/parms$cnE
@@ -50,28 +51,22 @@ derivSeam3a <- function(
   uNPot <-  immoNPot + uNSubstrate
   NsynBN <- uNPot - synE/cnE
   # C required for biomass growth and growth respiration under N limitation
-  CsynBN <- (NsynBN*cnB)/parms$eps
+  CsynBN <- (NsynBN*cnB)
   #
   # compute C available for biomass, this time without accounting immobilization flux
   NsynBNSubstrate <- uNSubstrate - synE/cnE
-  CsynBNSubstrate <- (NsynBNSubstrate*cnB)/parms$eps
+  CsynBNSubstrate <- (NsynBNSubstrate*cnB)
   #
   # N limited taking immobilization into account
   isLimN <- CsynBN <  CsynBC
   # N limited based on substrate uptake (without accounting for immobilization)
   isLimNSubstrate <-  CsynBNSubstrate < CsynBC
-  CsynB = if (isLimN ) CsynBN else CsynBC
+  synB = if (isLimN) CsynBN else CsynBC
   #
   # average cN reqruired according to enzyme allocation accoording to C efficiencies
   #synE <- uC*parms$aE
   #uCGrowth <- uC - synE/parms$eps - rM    # C for both growth and growth respiration
-  if (CsynB > 0) {
-      synB <- parms$eps*CsynB
-      rG <- (1 - parms$eps)*CsynB
-  }else{
-      synB <- CsynB    # negative
-      rG <- 0
-  }
+  rG <- if (synB > 0) (1 - parms$eps)/parms$eps*synB else 0
   # imbalance fluxes
   respSynE <- (1 - parms$eps)/parms$eps * synE
   respO <- uC - (synE + respSynE + synB + rG + rM)
@@ -99,7 +94,7 @@ derivSeam3a <- function(
   alphaTarget <- fBalanceAlpha(
     alphaC, alphaN, CsynBN, CsynBC
     , tauB = parms$tau*B
-    , NsynBC = parms$eps*CsynBC/cnB, NsynBN)
+    , NsynBC = CsynBC/cnB, NsynBN)
   alpha <- x["alpha"]
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
@@ -191,7 +186,7 @@ derivSeam3a <- function(
     , revRN = as.numeric(revRN), revLN = as.numeric(revLN)
     , pCsyn = as.numeric(CsynBC / CsynBN)
     , CsynReq = as.numeric(CsynBN), Csyn = as.numeric(CsynBC)
-    , pNsyn = as.numeric(NsynBN / (parms$eps*CsynBC/cnB) )
+    , pNsyn = as.numeric(NsynBN / (CsynBC/cnB) )
     , NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
     , dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)
     , dIN = as.numeric(dIN)

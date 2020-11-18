@@ -246,6 +246,7 @@ test_that("mass balance with plant N uptake", {
   #times <- seq(0,1200, length.out = 101)
   #times <- c(0,seq(140,220, length.out = 101))
   resTest <- as.data.frame(lsoda( x0CNLim, times, derivSeam3a, parms = parmsInit))
+  expect_true(resTest$B[8] > 0)
 })
 
 

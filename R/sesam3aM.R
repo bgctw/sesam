@@ -31,29 +31,30 @@ derivSesam3aM <- function(
   #
   # difference of enzmye production cost and enzTvr uptake per B
   mE <- parms$aE*(1/parms$eps - kappaE)
-  CsynBC <- decL*x["L"] + decR*x["R"] - mE - parms$m
+  CsynBCt <- decL*x["L"] + decR*x["R"] - mE - parms$m
+  CsynBC <- ifelse(CsynBCt > 0, parms$eps*CsynBCt, CsynBCt)
   #
   #-- N fluxes
   outLN <- outL
   outRN <- outR
   # plant N uptake can have an upper absolute limit, compute rate per IN
-  outI <- min(parms$kIP, parms$plantNUpAbs/x["IN"]) + parms$lN + parms$iBN
+  outI <- min(parms$kINPlant, parms$plantNUpAbs/x["IN"]) + parms$lN + parms$iBN
   #
   uN <- parms$nuN*(decL*x["LN"] + decR*x["RN"] + kappaE*parms$aE/cnE)*cnB +
     parms$iBN*x["IN"]/(B/cnB)
   NsynBN <- uN - parms$aE*cnB/cnE
-  CsynBN <- if (NsynBN > 0) NsynBN/parms$eps else NsynBN  #NsynBN/cnB
+  CsynBN <- NsynBN  # *B_N*cnB/BC: same proportion, see Sesam3MatrixForm.Rmd
   #
-  #-- depending on CsynB both C anc N
-  CsynB <- min(CsynBC, CsynBN)
+  #-- depending on synB both C anc N
+  synB <- min(CsynBC, CsynBN)
   #
-  rG <- if (CsynB > 0) (1 - parms$eps)*CsynB else 0
-  rO <- CsynBC - CsynB
+  rG <- if (synB > 0) (1 - parms$eps)/parms$eps*synB else 0
+  rO <- CsynBCt - (synB + rG)
   outB <- parms$tau + parms$m + mE + rG + rO
   T["L","B"] <- T["R","B"] <- 1
   T["B","R"] <- (parms$epsTvr*parms$tau + (1 - kappaE)*parms$aE) / outB
   #
-  MImb <- NsynBN - (CsynB - rG)
+  MImb <- NsynBN - synB # *B/beta_B/B_N: see Sesam3MatrixForm.Rmd
   tvrEN <- parms$aE*cnB/cnE
   outBNEnzR <- tvrEN*(1 - kappaE)
   outBNEnzI <- (1 - parms$nuN)*tvrEN*kappaE
@@ -69,12 +70,13 @@ derivSesam3aM <- function(
     T["B","R"] <- T["BN","RN"] <- 0
   }
   #
-  IN <- c(B = 0, R = parms$iR, RN = parms$iR/parms$cnIR
+  # I,N here refer to inputs and transfer matrices of Sierra
+  I <- c(B = 0, R = parms$iR, RN = parms$iR/parms$cnIR
          , L = parms$iL, LN = parms$iL/parms$cnIL
          , IN = parms$iIN, alpha = 0, BN = 0)
   N <- setNames(c(outB, outR, outRN, outL, outLN, outI, 0, outBN), names(x))
   loss <- N*x
-  dx <- setNames(as.vector(t(T)%*%(N*as.matrix(x, ncol=1))), names(x)) + IN
+  dx <- setNames(as.vector(t(T)%*%(N*as.matrix(x, ncol = 1))), names(x)) + I
   #
   #--- community composition
   dRPot <- parms$kR * x["R"]
@@ -93,7 +95,7 @@ derivSesam3aM <- function(
   alphaTarget <- balanceAlphaBetweenCNLimitationsExp(
     alphaC, alphaN, CsynBN*B, CsynBC*B, tauB = parms$tau*B  )
   # microbial community change as fast as microbial turnover
-  dAlpha <- dx["alpha"] <- (alphaTarget - alpha) *  (parms$tau + abs(CsynB-rG))
+  dAlpha <- dx["alpha"] <- (alphaTarget - alpha) *  (parms$tau + abs(synB))
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate

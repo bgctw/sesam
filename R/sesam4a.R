@@ -57,20 +57,21 @@ derivSesam4a <- function(
   uPOrg <- parms$nuP*(decL/cpL + decR/cpR + tvrERecycling/cpE +
                         tvrBOrg*(1 - cW)/cpBL)
   uC <- decL + decR + tvrERecycling + tvrBOrg*(1 - cW)
-  CsynBC <- uC - rM - synE/parms$eps
-  CsynBN <- cnB/parms$eps*(uNOrg + immoNPot - synE/cnE)
-  CsynBP <- cpB/parms$eps*(uPOrg + immoPPot - synE/cpE)
+  CsynBCt <- uC - rM - synE/parms$eps
+  CsynBC <- if(CsynBCt > 0) parms$eps*CsynBCt else CsynBCt
+  CsynBN <- cnB*(uNOrg + immoNPot - synE/cnE)
+  CsynBP <- cpB*(uPOrg + immoPPot - synE/cpE)
   CsynB <- min(CsynBC, CsynBN, CsynBP)
   if (CsynB > 0) {
     starvB <- 0
-    synB <- parms$eps*CsynB
+    synB <- CsynB
   } else {
     # with negative biomass change
     # microbial recycling
     starvB <- -CsynB #?/parms$eps
     synB <- 0
   }
-  rG <- (1 - parms$eps)*synB
+  rG <- (1 - parms$eps)/parms$eps*synB
   PhiNB <- uNOrg + starvB/cnB - synB/cnB - synE/cnE
   PhiPB <- uPOrg + starvB/cpB - synB/cpB - synE/cpE
   alphaC <- computeSesam3sAllocationPartitioning(
@@ -277,7 +278,7 @@ derivSesam4a <- function(
     , revRC = as.numeric(revRC), revLC = as.numeric(revLC)
     , revRN = as.numeric(revRN)
     , revLN = as.numeric(revLN)
-    , CsynB = as.numeric(CsynB)
+    , CsynB = as.numeric(CsynB) # may be negative
     , CsynBC = as.numeric(CsynBC)
     , CsynBN = as.numeric(CsynBN)
     , CsynBP = as.numeric(CsynBP)
