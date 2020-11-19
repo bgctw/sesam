@@ -62,14 +62,14 @@ derivSesam3P <- function(
   limE <- computeElementLimitations(
     cbind(C = CsynBC, N = CsynBN, P = CsynBP)[1,]
     , tauB = parms$tau*B)
-  alphaTarget <- computeSesam3PAllocationPartitioning(
+  alphaTarget <- computeSesam4bAllocationPartitioning(
     dS = cbind(R = dRPot, L = dLPot)[1,]
     ,dSP = cbind(R = dRPPot, L = dLPPot)[1,]
     , B = B
     ,kmkN = kmN, aE =  parms$aE
     ,alpha = alpha
     ,limE = limE
-    ,betaN = cbind(L = cnL, R = cpR, E = parms$cnE)[1,]
+    ,betaN = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
     ,betaP = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
   )
   # microbial community change as fast as microbial turnover
@@ -205,10 +205,10 @@ derivSesam3P <- function(
     , PhiPBU = as.numeric(PhiPB + PhiPU)
     , immoPPot = as.numeric(immoPPot)
     , structure(limE, names = paste0("lim",names(limE)))
+    , structure(limZ, names = paste0("limZ",names(limZ)))
     , structure(alphaTarget, names = paste0("alpha",names(alphaTarget)))
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
     , cpR = as.numeric(cpR), cpL = as.numeric(cpL)
-    , structure(limZ, names = paste0("limZ",names(limZ)))
     , decR = as.numeric(decR), decL = as.numeric(decL)
     , tvrB = as.numeric(tvrB)
     , synB = as.numeric(synB)
@@ -224,54 +224,4 @@ derivSesam3P <- function(
   ))
 }
 
-computeElementLimitations <- function(
-  ### compute element limitations
-  CsynBE   ##<< numeric vector of carbon available for biomass synthesis
-  , tauB   ##<< scalar typical microbial turnover flux for scaling
-  , delta = 10  ##<< scalar smoothing factor, the higher, the steeper the transition
-){
-  ##details<< Select the alpha corresponding to the smallest CsynBE.
-  ## However, if elemental limitations are close,
-  ## do a smooth transition between corresponding smallest alpha values
-  wELim <- sapply( seq_along(CsynBE), function(iE){
-    wELimi <- min( .Machine$double.xmax
-                   , exp( delta/tauB*(min(CsynBE[-iE]) - CsynBE[iE])))
-  })
-  names(wELim) <- names(CsynBE)
-  wELimNorm <- wELim/sum(wELim)
-  ##value<< numeric vector: fractional element limitations with names
-  ## corresponding to names of CsynBE
-}
-
-#' @export
-computeSesam3PAllocationPartitioning <- function(
-  ###  allocation partitioning alpha of four enzymes and biomineralization
-  dS    ##<< numeric vector (L,R) of potential depolymerization C-fluxes
-  ,dSP  ##<< numeric vector of potential biomineralizationdepolymerization P-fluxes
-  ,B		##<< numeric vector of microbial biomass carbon
-  ,kmkN	##<< numeric vector of product of (half-saturation constant in
-  ## decomposition equation) x (enzyme turnover rate)
-  ,aE		##<< numeric vector of proportion of microbial biomass allocated
-  ## to enzyme production per time
-  ,alpha  ##<< numeric vector (L,R,LP,RP) of current community allocation
-  ## coefficients in (0,1)
-  ,limE   ##<< numeric vector (nElement) of weights of elemental limitations
-  ,betaN    ##<< numeric vector of C/N ratios of substrates and enzymes
-  ,betaP   ##<< numeric vector of C/P ratios of substrates (L,R) and enzymes (E)
-){
-  synEnz <- aE*B
-  cost <- (kmkN + alpha*synEnz) *
-    (limE["C"] + limE["N"]/betaN["E"] + limE["P"]/betaP["E"])
-  returnL <- dS["L"]*(limE["C"] + limE["N"]/betaN["L"] + limE["P"]/betaP["L"])
-  returnR <- dS["R"]*(limE["C"] + limE["N"]/betaN["R"] + limE["P"]/betaP["R"])
-  returnLP <- dSP["L"]*(limE["P"])
-  returnRP <- dSP["R"]*(limE["P"])
-  returnE <- structure(c(returnL, returnR, returnLP, returnRP),
-                       names = c("L","R","LP","RP"))
-  revenue <- returnE/cost[names(returnE)]
-  alpha <- revenue/sum(revenue)
-  alpha
-  ##value<< numeric vector of revenue-optimal alpha for enzymes L,R,LP,RP
-}
-
-
+# moved computation of elemental limitations to sesam4b

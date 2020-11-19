@@ -76,15 +76,9 @@ derivSesam4F <- function(
   CsynBC <- if(CsynBCt > 0) parms$eps*CsynBCt else CsynBCt
   CsynBN <- cnB*(uNOrg + immoNPot - synE/cnE)
   CsynBP <- cpB*(uPOrg + immoPPot - synE/cpE)
-  CsynB <- min(CsynBC, CsynBN, CsynBP)
-  if (CsynB > 0) {
-    starvB <- 0
-    synB <- CsynB
-  } else {
-    starvB <- -CsynB
-    synB <- 0
-  }
-  rG <- (1 - parms$eps)/parms$eps*synB
+  synB <- min(CsynBC, CsynBN, CsynBP)
+  starvB <- if (synB > 0) 0 else -synB
+  rG <- if (synB > 0) (1 - parms$eps)/parms$eps*synB else 0
   #
   # microbial community composition
   alphaC <- computeSesam3sAllocationPartitioning(
@@ -109,12 +103,12 @@ derivSesam4F <- function(
   )
   alphaTarget <- resBalance$alpha
   # microbial community change as fast as microbial turnover
-  dAlpha <- (alphaTarget - alpha) * (synB + starvB + tvrB + tvrBPred)/B
+  dAlpha <- (alphaTarget - alpha) * (synB + tvrB + tvrBPred)/B
   #
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
-  respO <- uC + starvB - (synE/parms$eps + synB + rG + rM)
-  PhiNB <- uNOrg + starvB/cnB - synB/cnB - synE/cnE
-  PhiPB <- uPOrg + starvB/cpB - synB/cpB - synE/cpE
+  respO <- uC - (synE/parms$eps + synB + rG + rM)
+  PhiNB <- uNOrg - synB/cnB - synE/cnE
+  PhiPB <- uPOrg - synB/cpB - synE/cpE
   #
   tvrN <-  +cW*tvrBOrg/parms$cnBW   + (1 - parms$kNB)*synE/parms$cnE
   tvrP <-  +cW*tvrBOrg/parms$cpBW   + (1 - parms$kNB)*synE/parms$cpE
@@ -172,20 +166,20 @@ derivSesam4F <- function(
   tvrP <- cW*tvrBOrg/parms$cpBW*x$rel[["BP"]] +
     (1 - parms$kNB)*synE/parms$cpE*relSP
   .bookmarkDB <- function(){}
-  # dB <- uC*relUC - (respB + synE)*relSC -
+  # dBC <- uC*relUC - (respB + synE)*relSC -
   #   (tvrB + tvrBPred)*x$rel[["BC"]]
-  dB <- (sC - respB - synE)*relSC +
+  dBC <- (sC - respB - synE)*relSC +
     (-tvrB - tvrBPred - starvB)*x$rel[["BC"]]
   dBN <- (sN - minN - synE/cnE)*relSN +
     (-tvrB - tvrBPred - starvB)/cnB*x$rel[["BN"]]
   dBP <- (sP - minP - synE/cpE)*relSP +
     (-tvrB - tvrBPred - starvB)/cpB*x$rel[["BP"]]
-  dBTot <- sum(dB*x$units$C)
-  #if ((xOrig$frac["BC"] <= 1e-16) && (dBTot < 0)) dB[] <- dBN[] <- dBP[] <- dBTot <- 0
-  dL <- -decL*x$rel[["LC"]]  + parms$iL*parms$relIL$C
+  dBTot <- sum(dBC*x$units$C)
+  #if ((xOrig$frac["BC"] <= 1e-16) && (dBTot < 0)) dBC[] <- dBN[] <- dBP[] <- dBTot <- 0
+  dLC <- -decL*x$rel[["LC"]]  + parms$iL*parms$relIL$C
   dLN <- -decL/cnL*x$rel[["LC"]] + parms$iL/parms$cnIL*parms$relIL$N
   dLP <- -decL/cpL*x$rel[["LC"]] + parms$iL/parms$cpIL*parms$relIL$P
-  dR <- -decR*x$rel[["RC"]]  + parms$iR*parms$relIR$C  + tvrC
+  dRC <- -decR*x$rel[["RC"]]  + parms$iR*parms$relIR$C  + tvrC
   dRN <- -decR/cnR*x$rel[["RN"]]  + parms$iR/parms$cnIR*parms$relIR$N  + tvrN
   dRP <- -decR/cpR*x$rel[["RP"]]  + parms$iR/parms$cpIR*parms$relIR$P  + tvrP
   # here plant uptake as absolute parameter
@@ -199,7 +193,7 @@ derivSesam4F <- function(
   dLeachN <- leachN*x$rel[["IN"]]
   dLeachP <- leachP*x$rel[["IP"]]
   .tmp.f.displaySumDeriv <- function(){
-    c( BC = sum(dB*x$units$C), RC = sum(dR*x$units$C), LC = sum(dL*x$units$C)
+    c( BC = sum(dBC*x$units$C), RC = sum(dRC*x$units$C), LC = sum(dLC*x$units$C)
        , RN = sum(dRN*x$units$N), LN = sum(dLN*x$units$N), IN = sum(dIN*x$units$N)
        , RP = sum(dRP*x$units$P), LP = sum(dLP*x$units$P), IP = sum(dIP*x$units$P)
        , resp = sum(dResp*x$units$C
@@ -209,19 +203,19 @@ derivSesam4F <- function(
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
-    dR[] <- dL[] <- dRN[] <- dLN[] <- dRP[] <- dLP[] <- dIN[] <- dIP[] <- 0
+    dRC[] <- dLC[] <- dRN[] <- dLN[] <- dRP[] <- dLP[] <- dIN[] <- dIP[] <- 0
   } else if (isTRUE(parms$isTvrNil)) {
     # scenario of enzymes and biomass not feeding back to R
     # subtract from R again an regard in mass balance check
     tvrExC <- tvrC; tvrExN <- tvrN; tvrExP <- tvrP
-    dR[] <- dR - tvrC
+    dRC[] <- dRC - tvrC
     dRN[] <- dRN - tvrN
     dRP[] <- dRP - tvrP
   }
   #
   # make sure same order as stateNames in x (C, N P, scalars)
   resDeriv <- structure(as.numeric(
-    c( dB, dR, dL, dResp
+    c( dBC, dRC, dLC, dResp
        , dBN, dRN, dLN, dIN, dLeachN
        , dBP, dRP, dLP, dIP, dLeachP
        , dAlpha))
@@ -230,17 +224,17 @@ derivSesam4F <- function(
   #
   # checking the mass balance of fluxes
   # biomass mass balance
-  if (diff( unlist(c(uC = uC + starvB, usage = respB + synB + synE )))^2 > sqrEps )  stop(
+  if (diff( unlist(c(uC = uC, usage = respB + synB + synE )))^2 > sqrEps )  stop(
     "biomass mass balance C error")
   if (diff( unlist(
-    c(sN = uNOrg + starvB/cnB, usage = synE/parms$cnE + synB/parms$cnB + PhiNB )))^2 >
+    c(sN = uNOrg, usage = synE/parms$cnE + synB/parms$cnB + PhiNB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   if (diff( unlist(
-    c(uP = uPOrg + starvB/cpB, usage = synE/parms$cpE + synB/parms$cpB + PhiPB )))^2 >
+    c(uP = uPOrg, usage = synE/parms$cpE + synB/parms$cpB + PhiPB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance P error")
-  if ((sum(dB*x$units$C) - parms$cnB*sum(dBN*x$units$N)) > sqrEps) stop(
+  if ((sum(dBC*x$units$C) - parms$cnB*sum(dBN*x$units$N)) > sqrEps) stop(
     "biomass CN error")
-  if ((sum(dB*x$units$C) - parms$cpB*sum(dBP*x$units$P)) > sqrEps) stop(
+  if ((sum(dBC*x$units$C) - parms$cpB*sum(dBP*x$units$P)) > sqrEps) stop(
     "biomass CP error")
   # biomass turnover mass balance
   if (diff( unlist(c(tvrB + tvrBPred, usage = respTvr + tvrBOrg )))^2 > sqrEps )  stop(
@@ -260,7 +254,7 @@ derivSesam4F <- function(
   if (!isTRUE(parms$isFixedS)) {
     .bookmarkDCBalance <- function(){}
     if (any(abs(
-      (dB + dR + dL + tvrExC + dResp) -
+      (dBC + dRC + dLC + tvrExC + dResp) -
       (parms$iR*parms$relIR$C + parms$iL*parms$relIL$C)
       ) > sqrEps))  stop("mass balance dC error")
     if (any(abs(
@@ -323,14 +317,13 @@ derivSesam4F <- function(
     , cpR = as.numeric(cpR), cpL = as.numeric(cpL)
     , limER = as.numeric(limER), limEL = as.numeric(limEL)
     , decR = as.numeric(decR), decL = as.numeric(decL)
-    , synB = as.numeric(synB)
     , starvB = as.numeric(starvB)
     , tvrB = as.numeric(tvrB)
     , tvrBPred = as.numeric(tvrBPred)
     , revRC = as.numeric(revRC), revLC = as.numeric(revLC)
     , revRN = as.numeric(revRN)
     , revLN = as.numeric(revLN)
-    , CsynB = as.numeric(CsynB)
+    , synB = as.numeric(synB)
     , CsynBC = as.numeric(CsynBC)
     , CsynBN = as.numeric(CsynBN)
     , CsynBP = as.numeric(CsynBP)

@@ -23,6 +23,7 @@ $$
 \operatorname{tvr}_{B,pred} &= \tau_P (B-B_0) B \\
 \operatorname{tvr}_{B,starv} &= min(0, -\operatorname{syn}_B) \\
 \operatorname{tvr}_{B} &= \tau B \\
+\operatorname{tvr}_{B,Org} &= \operatorname{tvr}_{B} + \epsilon_{tvr} \operatorname{tvr}_{B,pred}
 \end{align}
 $$
 
@@ -32,6 +33,9 @@ If C available for biomass synthesis is negative, current microbial biomass beco
 a source for enzyme production and associated catabolic requirements and for 
 maintenance respiration.
 
+A fraction $1 - \epsilon_{tvr}$ is mineralized. The other turnover flux, 
+$\operatorname{tvr}_{B,Org}$ is partitioned between reuptake of DOM and the 
+residue pool, $R$ described below. The starvation 
 
 ## Tests
 simplified model with $\tau = 0$ and $B_0 = 0$.
