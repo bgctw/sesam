@@ -342,7 +342,7 @@ computeSesam4bAllocationPartitioning <- function(
   revL = dS["L"]/(kmkN + (1 - alpha["R"])*aE*B)
   revR = dS["R"]/(kmkN + alpha["R"]*aE*B)
   c(revL, revR)
-  alphaTarget = revR/(revL + revR)
+  (alphaTarget_old = revR/(revL + revR))
 
 }
 
