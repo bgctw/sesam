@@ -141,6 +141,12 @@ derivSesam3a <- function(
   revLC <- dLPot / (parms$km*parms$kN + (1 - alphaC)*aeB)
   revRN <- dRPot/cnR / (parms$km*parms$kN + alphaN*aeB)
   revLN <- dLPot/cnL / (parms$km*parms$kN + alphaN*aeB)
+  tauB <- parms$tau*B; delta <- 20
+  limE0 <- c(
+    C = pmin( .Machine$double.xmax, exp( delta/tauB*(CsynBN - CsynBC))),
+    N = pmin( .Machine$double.xmax, exp( delta/tauB*(CsynBC - CsynBN)))
+  )
+  limE <- limE0/sum(limE0)
   # net mic mineralization/immobilization when accounting uptake mineralization
   PhiNBU <- PhiNB + PhiNU
   # total mineralization flux including microbial turnover
@@ -171,6 +177,7 @@ derivSesam3a <- function(
     , alphaC = as.numeric(alphaC), alphaN = as.numeric(alphaN)
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
     , limER = as.numeric(limER), limEL = as.numeric(limEL)
+    , structure(limE, names = paste0("lim",names(limE)))
     , decR = as.numeric(decR), decL = as.numeric(decL)
     , tvrB = as.numeric(tvrB)
     , revRC = as.numeric(revRC), revLC = as.numeric(revLC)
@@ -325,6 +332,12 @@ computeOutputsSesam3 <- function(
   revLC <- dLPot / (parms$km*parms$kN + (1 - alphaC)*aeB)
   revRN <- dRPot/cnR / (parms$kmN + alphaN*aeB)
   revLN <- dLPot/cnL / (parms$kmN + alphaN*aeB)
+  tauB <- parms$tau*B; delta <- 20
+  limE0 <- c(
+    C = pmin( .Machine$double.xmax, exp( delta/tauB*(CsynBN - CsynBC))),
+    N = pmin( .Machine$double.xmax, exp( delta/tauB*(CsynBC - CsynBN)))
+  )
+  limE <- limE0/sum(limE0)
   # net mic mineralization/immobilization when accounting uptake mineralization
   PhiNBU <- PhiNB + PhiNU
   # total mineralization flux including microbial turnover
@@ -354,6 +367,7 @@ computeOutputsSesam3 <- function(
     , alphaC = as.numeric(alphaC), alphaN = as.numeric(alphaN)
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
     , limER = as.numeric(limER), limEL = as.numeric(limEL)
+    , structure(limE, names = paste0("lim",names(limE)))
     , decR = as.numeric(decR), decL = as.numeric(decL)
     , tvrB = as.numeric(tvrB)
     , revRC = as.numeric(revRC), revLC = as.numeric(revLC)

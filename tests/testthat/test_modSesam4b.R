@@ -350,44 +350,50 @@ testParmsScen <- function(parmsInit){
   expect_equal( getX0SingleAlpha(getX0NoP(getX0NoC(xETest[2:15]))), xEExp[2:8],
                 tolerance = 1e-4)
   #
-  message("implement tests on NP colimitation and microbial starvation")
-  .tmp.f <- function(){
-    #
-    # NP co-limitation
-    x0Plim <- x0Nlim; x0Plim["IP"] <- 0
-    parmsInitPlim <- within(parmsInit, cpIL <- 160)
-    #times <- seq(0,2100, length.out = 101)
-    resExp <- as.data.frame(lsoda(
-      getX0SingleAlpha(getX0NoP(getX0NoC(x0Plim))), times, derivSesam3a
-      , parms = within(parmsInitPlim, {epsTvr <- epsPred})))
-    #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
-    xEExp <- unlist(tail(resExp,1))
-    resTest <- as.data.frame(lsoda(
-      x0Plim, times, derivSesam4b
-      , parms = within(parmsInitPlim,{tauP <- tau/xEExp["B"]; tau <- 0})))
-    xETest <- unlist(tail(resTest,1))
-    expect_true( xETest["alpha"] < xEExp["alpha"])
-    # interestingly this leads to slightly higher biomass under colimitation
-    # expect_true( xETest["BC"] < xEExp["B"])
-    expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-2)
-    #expect_equal( getX0SingleAlpha(getX0NoP(getX0NoC(xETest[2:15])), xEExp[2:8], tolerance = 1e-6)
-    #
-    # Microbial starvation
-    x0Starv <- x0; x0Starv["BC"] <- 80
-    times <- seq(0, 2100, length.out = 2)
-    #times <- seq(0,2100, length.out = 101)
-    resExp <- as.data.frame(lsoda(
-      getX0SingleAlpha(getX0NoP(getX0NoC(x0Starv))), times, derivSesam3a
-      , parms = within(parmsInit, {epsTvr <- epsPred})))
-    #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
-    xEExp <- unlist(tail(resExp,1))
-    resTest <- as.data.frame(lsoda(
-      x0Starv, times, derivSesam4b
-      , parms = within(parmsInit,{tauP <- tau/xEExp["B"]; tau <- 0})))
-    xETest <- unlist(tail(resTest,1))
-    expect_equal( xETest["alphaC"], xEExp["alphaC"], tolerance = 1e-6)
-    expect_equal( getX0SingleAlpha(getX0NoP(getX0NoC(xETest[2:15]))), xEExp[2:8], tolerance = 1e-6)
-  }
+  # NP co-limitation
+  # make R more attractive for phosphorous limitation, omit biomineralization
+  # near colimitation almost no change in alpha
+  parmsInitPlim <- within(parmsInit,{ cpIL <- 220; cpIR <- 20; cpB <- cpBW <- 50; kLP <- kRP <- 0})
+  #parmsInitPlim <- within(parmsInit,{ cpIL <- 330; cpIR <- 20; cpB <- cpBW <- 50})
+  x0Plim <- x0Nlim; x0Plim["IP"] <- 0;
+  x0Plim["LP"] <- x0Plim["LC"]/parmsInitPlim$cpIL
+  x0Plim["RP"] <- x0Plim["RC"]/parmsInitPlim$cpIR
+  ans0 <- derivSesam4b(0, x0Plim, parms = within(
+    parmsInitPlim, {tauP <- tau/x0["BC"]; tau <- 0}))
+  ans0E <- derivSesam3a(0, getX0SingleAlpha(getX0NoC(x0Plim)), parms = within(
+    parmsInitPlim,{epsTvr <- epsPred}))
+  c(ans0[[2]]["alphaTargetR"], ans0E[[2]]["alphaTarget"])
+  expect_true(ans0[[2]]["alphaTargetR"] / ans0E[[2]]["alphaTarget"] > 1.1)
+  #times <- seq(0,2100, length.out = 101)
+  resExp <- as.data.frame(lsoda(
+    getX0SingleAlpha(getX0NoP(getX0NoC(x0Plim))), times, derivSesam3a
+    , parms = within(parmsInitPlim, {epsTvr <- epsPred})))
+  xEExp <- unlist(tail(resExp,1))
+  resTest <- as.data.frame(lsoda(
+    x0Plim, times, derivSesam4b
+    , parms = within(parmsInitPlim,{tauP <- tau/xEExp["B"]; tau <- 0})))
+  xETest <- unlist(tail(resTest,1))
+  c(xETest["alphaTargetR"], xEExp["alphaTarget"])
+  c(xETest["BC"], xEExp["B"])
+  expect_true( xETest["alphaR"] > xEExp["alpha"])
+  expect_true( xETest["BC"] < xEExp["B"]) # more limited
+  #
+  # Microbial starvation (negative biomass synthesis)
+  x0Starv <- x0; x0Starv["BC"] <- 80 # initially very high biomass
+  times <- seq(0, 2100, length.out = 2)
+  # due to predation increases with biomass, biomass decline is faster with v4
+  #times <- seq(0,2, length.out = 101)
+  resExp <- as.data.frame(lsoda(
+    getX0SingleAlpha(getX0NoP(getX0NoC(x0Starv))), times, derivSesam3a
+    , parms = within(parmsInit, {epsTvr <- epsPred})))
+  #, parms = within(parmsInit, isEnzymeMassFlux <- FALSE)))
+  xEExp <- unlist(tail(resExp,1))
+  resTest <- as.data.frame(lsoda(
+    x0Starv, times, derivSesam4b
+    , parms = within(parmsInit,{tauP <- tau/xEExp["B"]; tau <- 0})))
+  xETest <- unlist(tail(resTest,1))
+  expect_equal( getX0SingleAlpha(getX0NoP(getX0NoC(xETest[2:15]))),
+                xEExp[2:8], tolerance = 1e-4)
 }
 
 .tmp.f <- function(){
@@ -404,7 +410,9 @@ testParmsScen <- function(parmsInit){
   ggplot(filter(res, time >= 0), aes(time, alphaTargetR, color = scen)) + geom_line(alpha = 0.5)
   ggplot(filter(res, time >= 0), aes(time, limN, color = scen)) + geom_line(alpha = 0.5)
 
-  ggplot(filter(res, time > 0), aes(time, BC, color = scen)) + geom_line(alpha = 0.5)
+  ggplot(filter(res, time >= 0), aes(time, BC, color = scen)) + geom_line(alpha = 0.5)
+  ggplot(filter(res, time >= 0), aes(time, synB, color = scen)) + geom_line(alpha = 0.5)
+  ggplot(filter(res, time > 0), aes(time, IP, color = scen)) + geom_line(alpha = 0.5)
   ggplot(filter(res, time > 0), aes(time, alpha, color = scen)) + geom_point(alpha = 0.5)
   ggplot(filter(res, time < 500 & time > 0), aes(time, alpha, color = scen)) + geom_point()
   ggplot(filter(res, time < 500), aes(time, BC, color = scen)) + geom_line()
@@ -419,11 +427,17 @@ testParmsScen <- function(parmsInit){
 }
 
 .tmp.f <- function(){
+  parmsTmp <- parmsInit
+  parmsTmp <- parmsInitPlim
   # inspect derivative in steady state of C limitation
   ans0 <- derivSesam4b(0, xETest[2:15], parms = within(
-    parmsInit, {tauP <- tau/xEExp["B"]; tau <- 0}))
+    parmsTmp, {tauP <- tau/xEExp["B"]; tau <- 0}))
   ans0E <- derivSesam3a(0, getX0SingleAlpha(getX0NoC(xETest[2:15])),
-                        parms = within(parmsInit,{epsTvr <- epsPred}))
+                        parms = within(parmsTmp,{epsTvr <- epsPred}))
+  c(ans0[[2]]["alphaTargetR"], ans0E[[2]]["alphaTarget"])
+  ans0[[2]][c("limC","limN","limP")]
+  ans0E[[2]][c("limC","limN")]
+
   names4A <- names(getX0SingleAlpha(getX0NoP(ans0[[1]])))
   rbind(getX0SingleAlpha(getX0NoP(ans0[[1]])),
         structure(ans0E[[1]], names = names4A))

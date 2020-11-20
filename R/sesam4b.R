@@ -295,7 +295,7 @@ computeElementLimitations <- function(
 computeSesam4bAllocationPartitioning <- function(
   ###  allocation partitioning alpha of four enzymes and biomineralization
   dS    ##<< numeric vector (L,R) of potential depolymerization C-fluxes
-  ,dSP  ##<< numeric vector of potential biomineralizationdepolymerization P-fluxes
+  ,dSP  ##<< numeric vector of potential biomineralization P-fluxes
   ,B		##<< numeric vector of microbial biomass carbon
   ,kmkN	##<< numeric vector of product of (half-saturation constant in
   ## decomposition equation) x (enzyme turnover rate)
@@ -307,6 +307,13 @@ computeSesam4bAllocationPartitioning <- function(
   ,betaN    ##<< numeric vector of C/N ratios of substrates and enzymes
   ,betaP   ##<< numeric vector of C/P ratios of substrates (L,R) and enzymes (E)
 ){
+  #limE <- limEP <- c(C = 0, N = 0, P = 1)
+  #limE <- limE0 <- c(C = 0, N = 0.408838431792989, P = 0.591161568206928  )
+  #limE <- limE0 <- c(C = 0, N = 0.226012593299406, P = 0.773987406700594  )
+  #limE <- limE0 <- c(C = 0.000435098291453755, N = 0.563867465009725, P = 0.435697436698822  )
+  #limE["N"] <- limE["N"] + limE["P"]; limE["P"] <- 0
+  #limE <- c(C = 0, N = 0.563867465009725, P = 0.435697436698822)
+  #limE <- limEN <- c(C = 0, N = 1, P = 0)
   if (any(sort(c(names(dS),names(dSP))) != sort(names(alpha)))) stop(
     "expected names in c(dS, dSP) to match names(alpha) but got ",
     c(names(dS),names(dSP)), " versus ", names(alpha))
