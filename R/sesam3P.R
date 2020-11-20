@@ -64,7 +64,7 @@ derivSesam3P <- function(
     , tauB = parms$tau*B)
   alphaTarget <- computeSesam4bAllocationPartitioning(
     dS = cbind(R = dRPot, L = dLPot)[1,]
-    ,dSP = cbind(R = dRPPot, L = dLPPot)[1,]
+    ,dSP = cbind(RP = dRPPot, LP = dLPPot)[1,]
     , B = B
     ,kmkN = kmN, aE =  parms$aE
     ,alpha = alpha

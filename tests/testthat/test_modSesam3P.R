@@ -116,6 +116,7 @@ test_that("same as sesam3a for fixed substrates", {
     iR <- 160
   })
   ans0 <- derivSesam3P(0, x0, parms = parms0)
+  expect_true(length(ans0))
   # ans0 <- derivSesam3P(0, x0, parms = parmsFixedS)
   # times <- seq(0, 2100, length.out = 2)
   # #times <- seq(0,2100, length.out = 101)

@@ -183,7 +183,7 @@ derivSesam3a <- function(
     #, NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
     #, dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)
     #, dIN = as.numeric(dIN)
-    , uC = as.numeric(uC), synB = as.numeric(synB)
+    , uC = as.numeric(uC)
     #, decN = as.numeric(decN)
     , plantNUp = plantNUp
   ))
