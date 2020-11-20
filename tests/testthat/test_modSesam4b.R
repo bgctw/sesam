@@ -56,6 +56,8 @@ parms0 <- list(
   , B0 = 0  # minimal biomass, below which predation rate is zero
   , tauP = 0.1 # slope of predation rate with biomass
   , kSP = 1/30 # 1/x years
+  , pESP = 0.01  # /year production of phospatase by plants, small to check balance
+  , nuPP = 0.05 # most of the phosphats to to mineral pool
 )
 parms0 <- within(parms0,{
   #kmR <- kmL <- km
@@ -69,6 +71,7 @@ parms0 <- within(parms0,{
   kIPPlant <- kINPlant  # plant uptake rate of P equals that of N
   iIP <- lN      # assume no P inputs compensate for leaching
   kLP <- kRP <- kSP
+  pELP <- pERP <- pESP
 })
 # for compatibility set
 # C:N:P ratio of cell walls to that of biomass
@@ -147,7 +150,7 @@ x0Nlim <- c( #aE = 0.001*365
   , leachP = 0               ##<< cumulated P losses by leaching
 )
 
-# AllocationPartitioning --------------------------------------------------
+# Allocation Partitioning --------------------------------------------------
 
 
 test_that("computeSesam4bAllocationPartitioning carbon limited",{
@@ -295,7 +298,7 @@ test_that("computeElementLimitations",{
 })
 
 
-# Fixed substrate ---------------------------------------------------------
+# CN limitations----------------------------------------------------
 testParmsScen <- function(parmsInit){
   ans0 <- derivSesam4b(0, x0, parms = within(
     parmsInit, {tauP <- tau/x0["BC"]; tau <- 0}))
@@ -398,6 +401,7 @@ testParmsScen <- function(parmsInit){
                 xEExp[2:8], tolerance = 1e-1)
 }
 
+### plotting results --------------------------------
 .tmp.f <- function(){
   # plots of results
   library(dplyr)
@@ -408,15 +412,19 @@ testParmsScen <- function(parmsInit){
     cbind(resTest, scen = "Test")
     ,cbind(rename(resExp, BC = B, LC = L, RC = R, alphaR = alpha), scen = "Exp")
     )
+  res <- bind_rows(
+    cbind(resTest, scen = "Test")
+    #,cbind(rename(resExp, BC = B, LC = L, RC = R, alphaR = alpha), scen = "Exp")
+  )
   ggplot(filter(res, time >= 0), aes(time, alphaR, color = scen)) + geom_line(alpha = 0.5)
   ggplot(filter(res, time >= 0), aes(time, alphaTargetR, color = scen)) + geom_line(alpha = 0.5)
   ggplot(filter(res, time >= 0), aes(time, limN, color = scen)) + geom_line(alpha = 0.5)
   ggplot(filter(res, time >= 0), aes(time, limC, color = scen)) + geom_line(alpha = 0.5)
+  ggplot(filter(res, time >= 0), aes(time, limP, color = scen)) + geom_line(alpha = 0.5)
 
   ggplot(filter(res, time >= 0), aes(time, BC, color = scen)) + geom_line(alpha = 0.5)
   ggplot(filter(res, time >= 0), aes(time, synB, color = scen)) + geom_line(alpha = 0.5)
   ggplot(filter(res, time > 0), aes(time, IP, color = scen)) + geom_line(alpha = 0.5)
-  ggplot(filter(res, time > 0), aes(time, alpha, color = scen)) + geom_point(alpha = 0.5)
   ggplot(filter(res, time < 500 & time > 0), aes(time, alpha, color = scen)) + geom_point()
   ggplot(filter(res, time < 500), aes(time, BC, color = scen)) + geom_line()
   ggplot(filter(res, time >= 0), aes(time, LC, color = scen)) + geom_line()
@@ -501,6 +509,58 @@ test_that("same as sesam2 with substrate feedbacks", {
   expect_equal( xETest["alphaN"], xEExp["alphaN"], tolerance = 1e-6)
   expect_equal( getX0SingleAlpha(getX0NoP(getX0NoC(xETest[2:15]))), xEExp[2:8], tolerance = 1e-6)
 })
+}
+
+
+# P Biomineralization -----------------------------------------------------
+parms0PBiomin <- within(parms0,{
+  cpIL <- 220; cpIR <- 20; cpB <- cpBW <- 50; kLP <- kRP <- 1/30
+})
+x0P <- x0Nlim
+x0P["alphaRP"] <- 0.1
+x0P["alphaL"] <- x0P["alphaL"]*(1 - x0P["alphaRP"])
+x0P["alphaR"] <- x0P["alphaR"]*(1 - x0P["alphaRP"])
+
+test_that("same as sesam2 with biomineralization", {
+  ans0 <- derivSesam4b(0, x0P, parms = within(
+    parms0PBiomin, {tauP <- tau/x0P["BC"]; tau <- 0}))
+  parmsInit <- within(parms0PBiomin,{isFixedS <- TRUE })
+})
+
+testParmsScenBiomin <- function(parmsInit){
+  ans0 <- derivSesam4b(0, x0P, parms = within(
+    parmsInit, {tauP <- tau/x0P["BC"]; tau <- 0}))
+  times <- seq(0, 2100, length.out = 2)
+  #times <- seq(0,2100, length.out = 101)
+  #times <- seq(0,2, length.out = 101)
+  resTest <- as.data.frame(lsoda(
+    x0, times, derivSesam4b, parms = within(
+      parmsInit,{tauP <- tau/x0P["BC"]; tau <- 0})))
+  xETest <- unlist(tail(resTest,1))
+  #
+  # N limitation
+  ans0 <- derivSesam4b(0, x0Nlim, parms = within(
+    parmsInit, {tauP <- tau/x0P["BC"]; tau <- 0}))
+  resTest <- as.data.frame(lsoda(
+    x0Nlim, times, derivSesam4b
+    , parms = within(parmsInit,{tauP <- tau/xEExp["B"]; tau <- 0})))
+  xETest <- unlist(tail(resTest,1))
+  #
+  # NP co-limitation
+  # make R more attractive for phosphorous limitation, omit biomineralization
+  # near colimitation almost no change in alpha
+  parmsInitPlim <- within(parmsInit,{ cpIL <- 220; cpIR <- 20; cpB <- cpBW <- 50; kLP <- kRP <- 0})
+  #parmsInitPlim <- within(parmsInit,{ cpIL <- 330; cpIR <- 20; cpB <- cpBW <- 50})
+  x0Plim <- x0Nlim; x0Plim["IP"] <- 0;
+  x0Plim["LP"] <- x0Plim["LC"]/parmsInitPlim$cpIL
+  x0Plim["RP"] <- x0Plim["RC"]/parmsInitPlim$cpIR
+  ans0 <- derivSesam4b(0, x0Plim, parms = within(
+    parmsInitPlim, {tauP <- tau/x0P["BC"]; tau <- 0}))
+  #times <- seq(0,2100, length.out = 101)
+  resTest <- as.data.frame(lsoda(
+    x0Plim, times, derivSesam4b
+    , parms = within(parmsInitPlim,{tauP <- tau/xEExp["B"]; tau <- 0})))
+  xETest <- unlist(tail(resTest,1))
 }
 
 

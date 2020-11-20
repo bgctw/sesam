@@ -12,7 +12,7 @@ derivSesam4b <- function(
   # compute steady state enzyme levels for N and for C limitation
   dRPot <- parms$kR * x["RC"]
   dLPot <- parms$kL * x["LC"]
-  dLPPot <- parms$kLP * x["LP"] # potential biomineralization
+  dLPPot <- parms$kLP * x["LP"] # potential biomineralization attacking P part
   dRPPot <- parms$kRP * x["RP"]
   immoNPot <- parms$iBN * x["IN"]
   immoPPot <- parms$iBP * x["IP"]
@@ -35,6 +35,9 @@ derivSesam4b <- function(
   cpBL <- if (cW == 1 ) cpB else (1 - cW)/(1/cpB - cW/cpBW)
   alpha <- cbind(L = x["alphaL"], R = x["alphaR"], LP = NA, RP = x["alphaRP"])[1,]
   alpha["LP"] <- 1 - sum(alpha, na.rm = TRUE)
+  if (any(alpha < -1e-8)) stop(
+    "expected all alpha in [0..1] but was ", paste0(alpha,sep = ","))
+  alpha <- pmax(alpha,0)      # no negative community compositions
   B <- x["BC"]
   aeB <- parms$aE*B        # aeB without associanted growth respiration
   kmN <- parms$kmN #parms$km*parms$kN
@@ -44,8 +47,8 @@ derivSesam4b <- function(
   # enzyme limitations of decomposition
   decL <- dLPot * alpha["L"]*aeB/(kmN + alpha["L"]*aeB)
   decR <- dRPot * alpha["R"]*aeB/(kmN + alpha["R"]*aeB)
-  decLP <- dLPPot * alpha["LP"]*aeB/(kmN + alpha["LP"]*aeB)
-  decRP <- dRPPot * alpha["RP"]*aeB/(kmN + alpha["RP"]*aeB)
+  decLP <- dLPPot * (alpha["LP"]*aeB + parms$pELP)/(kmN + alpha["LP"]*aeB + parms$pELP)
+  decRP <- dRPPot * (alpha["RP"]*aeB + parms$pERP)/(kmN + alpha["RP"]*aeB + parms$pERP)
   #
   # microbial turnover , partly feeds back to uptake
   tvrB <- parms$tau*B      # without predation/mineralization
@@ -60,17 +63,19 @@ derivSesam4b <- function(
   uNOrg <- parms$nuN*(decNLR + decNE + decNB)
   #uNOrg <- parms$nuN*(decL/cnL + decR/cnR + tvrERecycling/cnE +
   #tvrBOrg*(1 - cW)/cnBL)
-  uPOrg <- parms$nuP*(decL/cpL + decR/cpR + tvrERecycling/cpE +
-                        tvrBOrg*(1 - cW)/cpBL)
+  decP <- decL/cpL + decR/cpR + tvrERecycling/cpE
+  decPP <- decLP + decRP
+  uPOrg <- parms$nuP*(decP + tvrBOrg*(1 - cW)/cpBL)
+  uPP <- parms$nuPP*(decPP)
   uC <- decL + decR + tvrERecycling + tvrBOrg*(1 - cW)
   CsynBCt <- uC - rM - synE/parms$eps
   CsynBC <- if(CsynBCt > 0) parms$eps*CsynBCt else CsynBCt
   CsynBN <- cnB*(uNOrg + immoNPot - synE/cnE)
-  CsynBP <- cpB*(uPOrg + immoPPot - synE/cpE)
+  CsynBP <- cpB*(uPOrg + uPP + immoPPot - synE/cpE)
   synB <- synB <- min(CsynBC, CsynBN, CsynBP)
   rG <- if (synB > 0) (1 - parms$eps)/parms$eps*synB else 0
   PhiNB <- uNOrg - synB/cnB - synE/cnE
-  PhiPB <- uPOrg - synB/cpB - synE/cpE
+  PhiPB <- uPOrg + uPP - synB/cpB - synE/cpE
   # community composition and enzyme allocation
   limE <- computeElementLimitations(
     cbind(C = CsynBC, N = CsynBN, P = CsynBP)[1,]
@@ -113,9 +118,10 @@ derivSesam4b <- function(
   }
   PhiNU <- (1 - parms$nuN)*(decL/cnL + decR/cnR + tvrERecycling/cnE +
                             tvrBOrg*(1 - cW)/cnBL)
+  #
   leachP <- parms$lP*x["IP"]
-  PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE +
-                              tvrBOrg*(1 - cW)/cpBL)
+  PhiPU <-  (1 - parms$nuP)*(decP + tvrBOrg*(1 - cW)/cpBL) +
+    (1 - parms$nuPP)*(decPP)
   immoN <- max(0,-PhiNB); minN <- max(0,PhiNB)
   immoP <- max(0,-PhiPB); minP <- max(0,PhiPB)
   respB <- (synE)/parms$eps*(1 - parms$eps)  + rG + rM + respO
@@ -125,13 +131,14 @@ derivSesam4b <- function(
   if ((xOrig["BC"] <= 1e-16) && (dB < 0)) dB <- 0
   dL <- -decL  + parms$iL
   dLN <- -decL/cnL   + parms$iL/parms$cnIL
-  dLP <- -decL/cpL   + parms$iL/parms$cpIL
+  dLP <- -decL/cpL   + parms$iL/parms$cpIL - decLP
   dR <- -decR  + parms$iR  + tvrC
   dRN <- -decR/cnR  + parms$iR/parms$cnIR  + tvrN
-  dRP <- -decR/cpR  + parms$iR/parms$cpIR  + tvrP
+  dRP <- -decR/cpR  + parms$iR/parms$cpIR  + tvrP - decRP
   # here plant uptake as absolute parameter
   dIN <-  +parms$iIN  - plantNUp  - leachN  + PhiNU  + PhiNB  + PhiNTvr
-  dIP <-  +parms$iIP  - parms$kIPPlant*x["IP"]  - leachP  + PhiPU  + PhiPB  + PhiPTvr
+  dIP <-  +parms$iIP  - parms$kIPPlant*x["IP"]  - leachP  +
+    PhiPU  + PhiPB  + PhiPTvr
   dResp <- resp
   dLeachN <- leachN
   dLeachP <- leachP
@@ -171,9 +178,9 @@ derivSesam4b <- function(
       + synB/parms$cnB + PhiNB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   if (diff( unlist(
-    c(uP = uPOrg, usage = synE/parms$cpE
+    c(uP = uPOrg + uPP, usage = synE/parms$cpE
       + synB/parms$cpB + PhiPB )))^2 >
-    .Machine$double.eps)  stop("biomass mass balance N error")
+    .Machine$double.eps)  stop("biomass mass balance P error")
   # biomass turnover mass balance
   if (diff( unlist(
     c(tvrB + tvrBPred, usage = respTvr + tvrBOrg )))^2 > sqrEps )  stop(
