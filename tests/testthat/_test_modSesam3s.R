@@ -35,11 +35,11 @@ parms0 <- list(
   #,plantNUp = 300/70*1/4  ##<< plant N uptake balancing N inputs
   ,plantNUp = 0   ##<< plant N uptake balancing N inputs
   ,useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
-  ,kIPlant = 10.57 #0.0289652*365         ##<< plant uptake iP I
-  ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
-  ,iI = 0         ##<< input of mineral N
-  ,l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I
-  ,nu = 0.9       ##<< microbial N use efficiency
+  ,kINPlant = 10.57 #0.0289652*365         ##<< plant uptake iP IN
+  ,iBN = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iBN IN
+  ,iIN = 0         ##<< input of mineral N
+  ,lN = 0.96 #0.00262647*365       ##<< leaching rate of mineralN lN IN
+  ,nuN = 0.9       ##<< microbial N use efficiency
   , isEnzymeMassFlux = TRUE  ##<< set to FALSE to neglect C and N mass fluxes by enzymes
 )
 parms0 <- within(parms0,{
@@ -48,8 +48,8 @@ parms0 <- within(parms0,{
   cnER <- cnEL <- cnE
   kNR <- kNL <- kN
   plantNUpAbs <- iL / cnIL	# same litter input as plant uptake
-  kIPlant <- plantNUpAbs <- 0			# no plant uptake
-  kIPlant <- 0			# no plant uptake
+  kINPlant <- plantNUpAbs <- 0			# no plant uptake
+  kINPlant <- 0			# no plant uptake
 })
 
 parms <- parms0
@@ -60,7 +60,7 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   , RN = 7000/parms0$cnIR    ##<< N rich substrate N pool
   , L = 200                  ##<< N poor substrate
   , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
-  , I =  1                   ##<< inorganic pool
+  , IN =  1                   ##<< inorganic pool
   , alpha = 0.5              ##<< initial community composition
 )
 x <- x0
@@ -69,7 +69,7 @@ x0Seam3 <- c(x0
              , ER  = 1.5*parms0$km                  ##<< total enzyme pool
              , EL  = 1.5*parms0$km                   ##<< total enzyme pool
              # make sure to have same order as derivative of Seam3
-)[c("B","ER","EL","R","RN","L","LN","I","alpha")]
+)[c("B","ER","EL","R","RN","L","LN","IN","alpha")]
 #x0Seam3
 
 x0Nlim <- c( #aE = 0.001*365
@@ -78,14 +78,14 @@ x0Nlim <- c( #aE = 0.001*365
   , RN = 1000/parms0$cnIR    ##<< N rich substrate N pool
   , L = 200                  ##<< N poor substrate
   , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
-  , I =  0                   ##<< inorganic pool
+  , IN =  0                   ##<< inorganic pool
   , alpha = 0.5              ##<< initial community composition
 )
 x0NlimSeam3 <- c(x0Nlim
                  , ER  = 1.5*parms0$km                  ##<< total enzyme pool
                  , EL  = 1.5*parms0$km                   ##<< total enzyme pool
                  # make sure to have same order as derivative of Seam3
-)[c("B","ER","EL","R","RN","L","LN","I","alpha")]
+)[c("B","ER","EL","R","RN","L","LN","IN","alpha")]
 
 
 test_that("same as seam for fixed substrates", {
@@ -188,8 +188,8 @@ test_that("same as seam with substrate feedbacks", {
   rbind(xEExp[names(xETest)], xETest, xETestNoEnz)
   #
   # from C to N limitation
-  x0CNLim <- x0; x0CNLim["I"] <- 0
-  x0CNLimSeam3 <- x0Seam3; x0CNLimSeam3["I"] <- 0
+  x0CNLim <- x0; x0CNLim["IN"] <- 0
+  x0CNLimSeam3 <- x0Seam3; x0CNLimSeam3["IN"] <- 0
   times <- seq(0,1200, length.out = 2)
   #times <- seq(0,1200, length.out = 101)
   #times <- c(0,seq(140,220, length.out = 101))
@@ -227,7 +227,7 @@ test_that("same as seam with substrate feedbacks", {
   ggplot(filter(res, time > 10 & time < 500), aes(time, EL, color = scen)) + geom_line()
   ggplot(filter(res, time < 500), aes(time, alphaC, color = scen)) + geom_line()
   ggplot(filter(res, time < 5000), aes(time, alphaN, color = scen)) + geom_line()
-  ggplot(filter(res, time > 01), aes(time, PhiB, color = scen, linetype = scen)) + geom_line()
+  ggplot(filter(res, time > 01), aes(time, PhiNB, color = scen, linetype = scen)) + geom_line()
 }
 
 

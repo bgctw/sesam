@@ -11,7 +11,7 @@ deriv_inorg_nitrogen_ECA <-function(t, x, p){
   # microbial nitrogen part
   decN <- dec/p$cnIS
   tvrN <- tvr/p$cnB
-  immoNPot <- p$iB * x["IN"]
+  immoNPot <- p$iBN * x["IN"]
   synBC_N <- (decN + immoNPot - tvrN)*p$cnB # biomass synthesis constraint by N
   # growth limited either C or N
   synBC <- min(synBC_C, synBC_N) # biomass growth limited by either C or N

@@ -13,10 +13,10 @@ P inside microbial biomass. Assimilated P is incorporated into biomass or minera
 
 # Phosphorous fluxes
 P fluxes and pools are derived by dividing the respective fluxes with the
-C/P ratio, $\gamma$, of their source.
+C/P ratio, $\betaP$, of their source.
 
-It follows the derivation of N fluxes with replacing the C/N ratio, $\beta$, by
-C/P ratios, $\gamma$, and N mineralization/immobilization flux $\Phi$ by 
+It follows the derivation of N fluxes with replacing the C/N ratio, $\betaN$, by
+C/P ratios, $\betaP$, and N mineralization/immobilization flux $\Phi$ by 
 P mineralization/immobilization flux $\Phi_P$.
 
 The C/P ratios $\gamma_B$ and $\gamma_E$ of the microbial biomass and 
@@ -33,7 +33,7 @@ $$
 & \qquad (1 -\kappa_E) (\operatorname{tvr}_{ER} +
 \operatorname{tvr}_{EL})/\gamma_{E} 
 \\
-\frac{dI_P}{dt} &= +i_{IP} -k_{IP} -l I_P +\Phi_P
+\frac{dI_P}{dt} &= +i_{IP} -k_{IP} -lN IN_P +\Phi_P
 \\
 \Phi_P &= \Phi_{Pu} +\Phi_{PB} + \Phi_{P\operatorname{tvr}}
 \\
@@ -42,12 +42,12 @@ $$
 \end{align}
 $$
 
-\noindent where the balance of the inorganic dissolved P pool $I_P$ sums
-inorganic inputs $i_I$,e.g. by weathering, plant uptake $k_{IP}$, leaching $l I$, 
+\noindent where the balance of the inorganic dissolved P pool $IN_P$ sums
+inorganic inputs $i_I$,e.g. by weathering, plant uptake $k_{IP}$, leaching $lN IN$, 
 and the exchange flux with soil microbial biomass, $\Phi_P$. The latter is
 the sum of the P mineralization outside microbial cells, $\Phi_{Pu}$, mineralisation-immobilisation imbalance flux,
 $\Phi_ {PB}$ (\ref{eq:PhiPB}), and mineralisation of a part of microbial
-turnover ,$\Phi_{P\operatorname{tvr}}$ (\ref{eq:PhiTvr}, section \ref{sec:Tvr}).
+turnover ,$\Phi_{P\operatorname{tvr}}$ (\ref{eq:PhiNTvr}, section \ref{sec:Tvr}).
 
 Organic P uptake, $u_{P,OM}$, was modelled as a parallel scheme (PAR),
 where a part of the depolimerized organic P that is assimilated by microbial biomass, and the other part is mineralised.
@@ -63,7 +63,7 @@ u_P &= nu_P u_{P,OM} + u_{P\operatorname{imm,Pot}}
 u_{P,OM} &= \operatorname{dec}_L/\gamma_L + \operatorname{dec}_R/\gamma_R +
 \kappa_E (\operatorname{tvr}_{ER} + \operatorname{tvr}_{EL})/\gamma_E
 \\
-u_{P \operatorname{imm,Pot}} &= i_{PB} I_P 
+u_{P \operatorname{imm,Pot}} &= i_{PB} IN_P 
 \text{,}
 \end{align}
 $$

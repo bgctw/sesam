@@ -49,14 +49,14 @@ parmsModel <- list(
   #,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (part by predators 
   ,epsTvr = 0.45   ##<< carbon use efficiency of microbial tvr (part by predators 
   ## which respire and corresponding amount of N must be mineralized)
-  #,iB = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
-  ,iB = 0.4 ##<< potential immobilization flux rate 
-  ## (immoPot = iB I)
-  ,l = 0.96       #0.00262647*365     ##<< leaching rate of mineralN l I
-  ,nu = 0.9     # microbial N use efficiency accounting for apparent 
+  #,iBN = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
+  ,iBN = 0.4 ##<< potential immobilization flux rate 
+  ## (immoNPot = iBN IN)
+  ,lN = 0.96       #0.00262647*365     ##<< leaching rate of mineralN lN IN
+  ,nuN = 0.9     # microbial N use efficiency accounting for apparent 
   ## minceralization of N during uptake in heterogeneous soils
   , isEnzymeMassFlux = TRUE  ##<< compute enzyme mass fluxes
-  ,kIPlant = 10.57 #0.0289652*365          ##<< plant uptake iP I
+  ,kINPlant = 10.57 #0.0289652*365          ##<< plant uptake iP IN
 )
 drivers <- list(
   iR = 0          ##<< input of residue litter
@@ -66,10 +66,10 @@ drivers <- list(
   ## N poor substrate, here no inorganic N supply, 
   ,plantNUp = 0   ##<< pland uptake of organic N
   ## currently as absolute flux
-  ,iI = 0         ##<< input of mineral N
+  ,iIN = 0         ##<< input of mineral N
 )
 parms0 <- within( c(parmsModel, drivers), {
-  kIPlant <- 0
+  kINPlant <- 0
   plantNUpAbs <- iL/cnIL
 })
 #
@@ -79,7 +79,7 @@ x0 <- x0Explicit <- c( #aE = 0.001*365
         ,RN = 1100/parms0$cnIR   ##<< N rich substrate N pool
         ,L = 100                 ##<< N poor substrate
         ,LN = 100/parms0$cnIL    ##<< N poor substrate N pool
-        ,I =  2                ##<< inorganic pool gN/m2
+        ,IN =  2                ##<< inorganic pool gN/m2
         , alpha = 0.5            ##<< microbial community partitioning [0,1]
 )
 #x0B <- x0SteadyA[setdiff(names(x0),"B")]
@@ -96,7 +96,7 @@ runFaceSimulation <- function(
   . <- scen
   res <- res1 <- as.data.frame(lsoda( .$x0, times, .$mod, parms = .$parms))
   xE <- unlist(tail(res,1))
-  #xE["I"] <- 0.04  # decrease I pool # does not help filled up by mircobial tvr
+  #xE["IN"] <- 0.04  # decrease IN pool # does not help filled up by mircobial tvr
   #
   # t1S years of steady state recorded
   # res <- res1S <- as.data.frame(lsoda( 
@@ -131,7 +131,7 @@ runFaceSimulation <- function(
 
 ```{r eval=FALSE, include=FALSE}
 resc <- runFaceSimulation(scen)
-plot(R ~ time, resc, type = "l")
+plot(R ~ time, resc, type = "lN")
 ```
 
 ## setup distribution of parameters

@@ -31,7 +31,7 @@ themeDefault <- theme_classic()
 ## The model
 $$
 \begin{align}
-dS/dt &= I - f(S)g(B) + \tau B\\
+dS/dt &= IN - f(S)g(B) + \tau B\\
 dB/dt &= \epsilon f(S)g(B) - \tau B
 \end{align}
 $$
@@ -40,10 +40,10 @@ $$
 Steady state of S by setting derivatives to zero and adding the two equations:
 $$
 \begin{align}
-0 &= I + (\epsilon - 1) f(S^*)g(B^*) \\
-f(S^*) &= \frac{I}{(1-\epsilon) g(B^*)} \\
-S^* &= f^{-1}\left( \frac{I}{(1-\epsilon) g(B^*)} \right) \\
-\frac{dS}{dt} &= (f^{-1})' \left( \frac{I}{(1-\epsilon) g(B^*)} \right) \frac{I}{(1-\epsilon)^2 g(B^*)}\\
+0 &= IN + (\epsilon - 1) f(S^*)g(B^*) \\
+f(S^*) &= \frac{IN}{(1-\epsilon) g(B^*)} \\
+S^* &= f^{-1}\left( \frac{IN}{(1-\epsilon) g(B^*)} \right) \\
+\frac{dS}{dt} &= (f^{-1})' \left( \frac{IN}{(1-\epsilon) g(B^*)} \right) \frac{IN}{(1-\epsilon)^2 g(B^*)}\\
 \end{align}
 $$
 
@@ -53,7 +53,7 @@ $$
 y &= f(S) = kS \\
 f^{-1}(y) &= y/k \\
 (f^{-1})'(y) &= 1/k \\
-S^* &=  \frac{I}{k (1-\epsilon) g(B^*)}  \\
+S^* &=  \frac{IN}{k (1-\epsilon) g(B^*)}  \\
 \end{align}
 $$
 Steady state stocks increase with decreasing steady state biomass if $g$ is 
@@ -64,9 +64,9 @@ Steady state for Biomass B:
 $$
 \begin{align}
 0 &= \epsilon \, k S^* g(B^*) - \tau B^* \\
-0 &= \epsilon \, k \frac{I}{k (1-\epsilon) g(B^*)} g(B^*) - \tau B^* \\
-0 &= \epsilon \, \frac{I}{(1-\epsilon) }  - \tau B^* \\
-B^* &= \frac{\epsilon}{(1-\epsilon)} \frac{I}{\tau} \\
+0 &= \epsilon \, k \frac{IN}{k (1-\epsilon) g(B^*)} g(B^*) - \tau B^* \\
+0 &= \epsilon \, \frac{IN}{(1-\epsilon) }  - \tau B^* \\
+B^* &= \frac{\epsilon}{(1-\epsilon)} \frac{IN}{\tau} \\
 \end{align}
 $$
 
@@ -76,13 +76,13 @@ on $g(B)$.
 With $g(B) = B/(k_M + B)$:
 $$
 \begin{align}
-S^* &=  \frac{I}{k (1-\epsilon) g(B^*)}  \\
-    &=  \frac{I}{k (1-\epsilon)}  \frac{k_M+B^*}{B^*}\\
-    &=  \frac{I}{k (1-\epsilon)}  \frac{k_M+\frac{\epsilon}{(1-\epsilon)}
-        \frac{I}{\tau}}{\frac{\epsilon}{(1-\epsilon)} \frac{I}{\tau}}\\
-    &= \frac{k_M+ \frac{\epsilon}{(1-\epsilon)} \frac{I}{\tau}}{k \epsilon / \tau} \\
-    &= \frac{\tau k_M+ \frac{\epsilon}{(1-\epsilon)} I}{k \epsilon} \\
-    &= \frac{1}{k }\left( \frac{\tau k_M}{\epsilon }+ \frac{I}{(1-\epsilon)} \right)\\
+S^* &=  \frac{IN}{k (1-\epsilon) g(B^*)}  \\
+    &=  \frac{IN}{k (1-\epsilon)}  \frac{k_M+B^*}{B^*}\\
+    &=  \frac{IN}{k (1-\epsilon)}  \frac{k_M+\frac{\epsilon}{(1-\epsilon)}
+        \frac{IN}{\tau}}{\frac{\epsilon}{(1-\epsilon)} \frac{IN}{\tau}}\\
+    &= \frac{k_M+ \frac{\epsilon}{(1-\epsilon)} \frac{IN}{\tau}}{k \epsilon / \tau} \\
+    &= \frac{\tau k_M+ \frac{\epsilon}{(1-\epsilon)} IN}{k \epsilon} \\
+    &= \frac{1}{k }\left( \frac{\tau k_M}{\epsilon }+ \frac{IN}{(1-\epsilon)} \right)\\
 \end{align}
 $$
 On increasing $\epsilon$, the first biomass related part decreases
@@ -93,10 +93,10 @@ increase. Between there is a minimum obtained when
 
 $$
 \begin{align}
-f(\epsilon) &= \frac{\tau k_M}{\epsilon }+ \frac{I}{(1-\epsilon)} \to min\\
-f'(\epsilon) &= -\frac{\tau k_M}{\epsilon^2 }+ \frac{I}{(1-\epsilon)^2} \to min\\
-0 &= (\epsilon -1)^2 \tau k_M +  \epsilon^2 I \\
-0 &= (I + \tau k_M) \epsilon^2 -2 \tau k_M \epsilon + \tau k_M\\
+f(\epsilon) &= \frac{\tau k_M}{\epsilon }+ \frac{IN}{(1-\epsilon)} \to min\\
+f'(\epsilon) &= -\frac{\tau k_M}{\epsilon^2 }+ \frac{IN}{(1-\epsilon)^2} \to min\\
+0 &= (\epsilon -1)^2 \tau k_M +  \epsilon^2 IN \\
+0 &= (IN + \tau k_M) \epsilon^2 -2 \tau k_M \epsilon + \tau k_M\\
 \end{align}
 $$
 
@@ -117,15 +117,15 @@ recover()
 
 
 ```{r echo=FALSE}
-I <- 100
+IN <- 100
 tau <- 12
 k <- 1/5
-B <- eps/(1 - eps) * I/tau
+B <- eps/(1 - eps) * IN/tau
 kM <- quantile(B, 0.8)
 tkm <- tau*kM
-#epsMin <- .solveSquare(I + tkm, -2*tkm, tkm )
-S <- S1 <- I/(k*(1 - eps))*(kM + B)/B
-#S <- S2 <- 1/k*(tau*kM/eps + I/(1 - eps))
+#epsMin <- .solveSquare(IN + tkm, -2*tkm, tkm )
+S <- S1 <- IN/(k*(1 - eps))*(kM + B)/B
+#S <- S2 <- 1/k*(tau*kM/eps + IN/(1 - eps))
 ds <- data.frame(eps,B,S)
 ggplot(ds, aes(eps,B)) + geom_line() + geom_point() +
   themeDefault

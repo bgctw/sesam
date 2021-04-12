@@ -87,14 +87,14 @@ parmsModel <- list(
   #,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (part by predators 
   ,epsTvr = 0.45   ##<< carbon use efficiency of microbial tvr (part by predators 
   ## which respire and corresponding amount of N must be mineralized)
-  #,iB = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
-  ,iB = 0.4 ##<< potential immobilization flux rate 
-  ## (immoPot = iB I)
-  ,l = 0.96       #0.00262647*365     ##<< leaching rate of mineralN l I
-  ,nu = 0.9     # microbial N use efficiency accounting for apparent 
+  #,iBN = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
+  ,iBN = 0.4 ##<< potential immobilization flux rate 
+  ## (immoNPot = iBN IN)
+  ,lN = 0.96       #0.00262647*365     ##<< leaching rate of mineralN lN IN
+  ,nuN = 0.9     # microbial N use efficiency accounting for apparent 
   ## minceralization of N during uptake in heterogeneous soils
   , isEnzymeMassFlux = TRUE  ##<< compute enzyme mass fluxes
-  ,kIPlant = 10.57 #0.0289652*365     ##<< plant uptake rate first order of I
+  ,kINPlant = 10.57 #0.0289652*365     ##<< plant uptake rate first order of IN
 )
 
 parmsModel <- within(parmsModel, {
@@ -116,13 +116,13 @@ drivers <- list(
   ## N poor substrate, here no inorganic N supply, 
   ,plantNUp = 0   ##<< pland uptake of organic N
   ## currently as absolute flux
-  ,iI = 0         ##<< input of mineral N
+  ,iIN = 0         ##<< input of mineral N
 )
 parms0 <- within( c(parmsModel, drivers), {
   # change inorganic pool only by mobilization/immobilization flux
-  kIPlant <- 0
+  kINPlant <- 0
   plantNUpAbs <- 0#iL/cnIL
-  l <- 0 
+  lN <- 0 
   #isFixedI <- TRUE
 })
 parms0Noenz <- within(parms0, isEnzymeMassFlux <- FALSE)
@@ -140,10 +140,10 @@ x0 <- x0Explicit <- c( #aE = 0.001*365
         ,RN = 1100/parms0$cnIR   ##<< N rich substrate N pool
         ,L = 10#100                 ##<< N poor substrate
         ,LN = 10/parms0$cnIL #100/parms0$cnIL    ##<< N poor substrate N pool
-        ,I =  0.04                ##<< inorganic pool gN/m2
+        ,IN =  0.04                ##<< inorganic pool gN/m2
         , alpha = 0.5            ##<< microbial community partitioning [0,1]
 )
-x0Steady <- x0Explicit[c("B","R","RN","L","LN","I")]
+x0Steady <- x0Explicit[c("B","R","RN","L","LN","IN")]
 x0SteadyA <- c(x0Steady,alpha = 0.5)
 x0B <- x0SteadyA[setdiff(names(x0SteadyA),"B")]
 ```
@@ -158,7 +158,7 @@ simLPulse <- function(x0, parms, cn0=75){
   # res <- res1 <- as.data.frame(lsoda( x0, times, derivSesam3a, parms = parms))
   # #plot(R~time, res)
   # xE <- unlist(tail(res,1))
-  # #xE["I"] <- 0.04  # decrease I pool # does not help filled up by mircobial tvr
+  # #xE["IN"] <- 0.04  # decrease IN pool # does not help filled up by mircobial tvr
   #
   # increase L, no L input any more
   parms$iL <- 0
@@ -168,7 +168,7 @@ simLPulse <- function(x0, parms, cn0=75){
   x0P["LN"] <- 100/cn0
   x0P["R"] <- 1200
   x0P["RN"] <- 1200/parms$cnB
-  x0P["I"] <- 1
+  x0P["IN"] <- 1
   timesP <- c(0,exp(seq(log(0.002),log(10), length.out = 200)))
   res <- resP <- as.data.frame(lsoda( x0P, timesP, derivSesam3a, parms = parms))
 }
@@ -198,9 +198,9 @@ resP <- rbind(
 
 ```{r}
 vars <- c("L","R","alpha","B", "cueDef", "cueSyn") 
-#vars <- c("L","R","alpha","B", "I","cueDef", "cueSyn") 
+#vars <- c("L","R","alpha","B", "IN","cueDef", "cueSyn") 
 #vars <- c("L","R","alpha","B","RL","cnRL") 
-#vars <- c("alpha","B", "cnL", "PhiB","PhiTotal","immoPot", "CsynBC","CsynBN") 
+#vars <- c("alpha","B", "cnL", "PhiNB","PhiNTotal","immoNPot", "CsynBC","CsynBN") 
 dsp0 <- resP %>% #filter(.data$time < 5) %>%  
   rename(uptakeC = uC, respTotal = resp) %>% mutate(tvrBPred = 0.0) %>% 
   cueSesam() %>% 

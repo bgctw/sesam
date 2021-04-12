@@ -2,15 +2,18 @@
 
 # gC/m2 and gN/m2, /yr
 
-derivSesam4a <- function(
+derivSesam4b <- function(
   ### Soil Enzyme Steady Allocation model with detailed turnover
   t,x,parms
 ){
+  # derived from Sesam4a but with element-weighted investment
   xOrig <- x
   x <- pmax(unlist(x),1e-16)      # no negative masses
   # compute steady state enzyme levels for N and for C limitation
   dRPot <- parms$kR * x["RC"]
   dLPot <- parms$kL * x["LC"]
+  dLPPot <- parms$kLP * x["LP"] # potential biomineralization attacking P part
+  dRPPot <- parms$kRP * x["RP"]
   immoNPot <- parms$iBN * x["IN"]
   immoPPot <- parms$iBP * x["IP"]
   cnR <- x["RC"]/x["RN"]
@@ -27,10 +30,14 @@ derivSesam4a <- function(
   cW <- parms$cW
   if (((cW == 1) || (cW == 0)) && ((cnB != cnBW) || (cpB != cpBW))) stop(
     "If ceB != ceBW, organic turnover must be partitioned between R and DOM.",
-    "cW=1 and cW=0 are not allowed.")
+    "cW=1 or cW=0 are not allowed.")
   cnBL <- if (cW == 1 ) cnB else (1 - cW)/(1/cnB - cW/cnBW)
   cpBL <- if (cW == 1 ) cpB else (1 - cW)/(1/cpB - cW/cpBW)
-  alpha <- x["alpha"]
+  alpha <- cbind(L = x["alphaL"], R = x["alphaR"], LP = NA, RP = x["alphaRP"])[1,]
+  alpha["LP"] <- 1 - sum(alpha, na.rm = TRUE)
+  if (any(alpha < -1e-8)) stop(
+    "expected all alpha in [0..1] but was ", paste0(alpha,sep = ","))
+  alpha <- pmax(alpha,0)      # no negative community compositions
   B <- x["BC"]
   aeB <- parms$aE*B        # aeB without associanted growth respiration
   kmN <- parms$kmN #parms$km*parms$kN
@@ -38,8 +45,10 @@ derivSesam4a <- function(
   synE <- if (isTRUE(parms$isEnzymeMassFlux)) aeB else 0
   #
   # enzyme limitations of decomposition
-  decL <- dLPot * (1 - alpha)*aeB/(kmN + (1 - alpha)*aeB)
-  decR <- dRPot * alpha*aeB/(kmN + alpha*aeB)
+  decL <- dLPot * alpha["L"]*aeB/(kmN + alpha["L"]*aeB)
+  decR <- dRPot * alpha["R"]*aeB/(kmN + alpha["R"]*aeB)
+  decLP <- dLPPot * (alpha["LP"]*aeB + parms$pELP)/(kmN + alpha["LP"]*aeB + parms$pELP)
+  decRP <- dRPPot * (alpha["RP"]*aeB + parms$pERP)/(kmN + alpha["RP"]*aeB + parms$pERP)
   #
   # microbial turnover , partly feeds back to uptake
   tvrB <- parms$tau*B      # without predation/mineralization
@@ -54,38 +63,33 @@ derivSesam4a <- function(
   uNOrg <- parms$nuN*(decNLR + decNE + decNB)
   #uNOrg <- parms$nuN*(decL/cnL + decR/cnR + tvrERecycling/cnE +
   #tvrBOrg*(1 - cW)/cnBL)
-  uPOrg <- parms$nuP*(decL/cpL + decR/cpR + tvrERecycling/cpE +
-                        tvrBOrg*(1 - cW)/cpBL)
+  decP <- decL/cpL + decR/cpR + tvrERecycling/cpE
+  decPP <- decLP + decRP
+  uPOrg <- parms$nuP*(decP + tvrBOrg*(1 - cW)/cpBL)
+  uPP <- parms$nuPP*(decPP)
   uC <- decL + decR + tvrERecycling + tvrBOrg*(1 - cW)
   CsynBCt <- uC - rM - synE/parms$eps
   CsynBC <- if(CsynBCt > 0) parms$eps*CsynBCt else CsynBCt
   CsynBN <- cnB*(uNOrg + immoNPot - synE/cnE)
-  CsynBP <- cpB*(uPOrg + immoPPot - synE/cpE)
-  synB <- min(CsynBC, CsynBN, CsynBP)
+  CsynBP <- cpB*(uPOrg + uPP + immoPPot - synE/cpE)
+  synB <- synB <- min(CsynBC, CsynBN, CsynBP)
   rG <- if (synB > 0) (1 - parms$eps)/parms$eps*synB else 0
   PhiNB <- uNOrg - synB/cnB - synE/cnE
-  PhiPB <- uPOrg - synB/cpB - synE/cpE
-  alphaC <- computeSesam3sAllocationPartitioning(
-    dR = dRPot, dL = dLPot, B = B
-    , kmkN = kmN, aE = parms$aE
-    , alpha = alpha
+  PhiPB <- uPOrg + uPP - synB/cpB - synE/cpE
+  # community composition and enzyme allocation
+  limE <- computeElementLimitations(
+    cbind(C = CsynBC, N = CsynBN, P = CsynBP)[1,]
+    , tauB = max(0.01,parms$tau)*B + tvrBPred) # avoid division by zero
+  alphaTarget <- computeSesam4bAllocationPartitioning(
+    dS = cbind(L = dLPot, R = dRPot)[1,]
+    ,dSP = cbind(LP = dLPPot, RP = dRPPot)[1,]
+    , B = B
+    ,kmkN = kmN, aE =  parms$aE
+    ,alpha = alpha
+    ,limE = limE
+    ,betaN = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
+    ,betaP = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
   )
-  alphaN <- computeSesam3sAllocationPartitioning(
-    dR = dRPot/cnR, dL = dLPot/cnL, B = B
-    , kmkN = kmN, aE = parms$aE
-    , alpha = alpha
-  )
-  alphaP <- computeSesam3sAllocationPartitioning(
-    dR = dRPot/cpR, dL = dLPot/cpL, B = B
-    , kmkN = kmN, aE = parms$aE
-    , alpha = alpha
-  )
-  resBalance <- resBalance0 <- balanceAlphaBetweenElementLimitations(
-    structure(c(alphaC, alphaN, alphaP), names = c("limC","limN","limP"))
-    , c(CsynBC, CsynBN, CsynBP)
-    , tauB = (tvrB + tvrBPred)
-  )
-  alphaTarget <- resBalance$alpha
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) * (synB + tvrB + tvrBPred)/B
   #
@@ -114,9 +118,10 @@ derivSesam4a <- function(
   }
   PhiNU <- (1 - parms$nuN)*(decL/cnL + decR/cnR + tvrERecycling/cnE +
                             tvrBOrg*(1 - cW)/cnBL)
+  #
   leachP <- parms$lP*x["IP"]
-  PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE +
-                              tvrBOrg*(1 - cW)/cpBL)
+  PhiPU <-  (1 - parms$nuP)*(decP + tvrBOrg*(1 - cW)/cpBL) +
+    (1 - parms$nuPP)*(decPP)
   immoN <- max(0,-PhiNB); minN <- max(0,PhiNB)
   immoP <- max(0,-PhiPB); minP <- max(0,PhiPB)
   respB <- (synE)/parms$eps*(1 - parms$eps)  + rG + rM + respO
@@ -126,13 +131,14 @@ derivSesam4a <- function(
   if ((xOrig["BC"] <= 1e-16) && (dB < 0)) dB <- 0
   dL <- -decL  + parms$iL
   dLN <- -decL/cnL   + parms$iL/parms$cnIL
-  dLP <- -decL/cpL   + parms$iL/parms$cpIL
+  dLP <- -decL/cpL   + parms$iL/parms$cpIL - decLP
   dR <- -decR  + parms$iR  + tvrC
   dRN <- -decR/cnR  + parms$iR/parms$cnIR  + tvrN
-  dRP <- -decR/cpR  + parms$iR/parms$cpIR  + tvrP
+  dRP <- -decR/cpR  + parms$iR/parms$cpIR  + tvrP - decRP
   # here plant uptake as absolute parameter
   dIN <-  +parms$iIN  - plantNUp  - leachN  + PhiNU  + PhiNB  + PhiNTvr
-  dIP <-  +parms$iIP  - parms$kIPPlant*x["IP"]  - leachP  + PhiPU  + PhiPB  + PhiPTvr
+  dIP <-  +parms$iIP  - parms$kIPPlant*x["IP"]  - leachP  +
+    PhiPU  + PhiPB  + PhiPTvr
   dResp <- resp
   dLeachN <- leachN
   dLeachP <- leachP
@@ -151,9 +157,12 @@ derivSesam4a <- function(
   }
   #
   resDeriv <- structure(as.numeric(
-    c(dB, dR, dRN, dRP, dL, dLN, dLP, dIN, dIP, dAlpha, dResp, dLeachN, dLeachP))
+    c(dB, dR, dRN, dRP, dL, dLN, dLP, dIN, dIP,
+      dAlpha["L"], dAlpha["R"], dAlpha["RP"],
+      dResp, dLeachN, dLeachP))
     ,names = c("BC","RC","RN","RP","LC","LN","LP","IN","IP"
-               , "alpha", "resp", "leachN", "leachP"))[names(x)]
+               ,"alphaL","alphaR","alphaRP"
+               , "resp", "leachN", "leachP"))[names(x)]
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   sqrEps <- sqrt(.Machine$double.eps)
   # parms$iL - (decL + dL)
@@ -169,9 +178,9 @@ derivSesam4a <- function(
       + synB/parms$cnB + PhiNB )))^2 >
     .Machine$double.eps)  stop("biomass mass balance N error")
   if (diff( unlist(
-    c(uP = uPOrg, usage = synE/parms$cpE
+    c(uP = uPOrg + uPP, usage = synE/parms$cpE
       + synB/parms$cpB + PhiPB )))^2 >
-    .Machine$double.eps)  stop("biomass mass balance N error")
+    .Machine$double.eps)  stop("biomass mass balance P error")
   # biomass turnover mass balance
   if (diff( unlist(
     c(tvrB + tvrBPred, usage = respTvr + tvrBOrg )))^2 > sqrEps )  stop(
@@ -212,20 +221,12 @@ derivSesam4a <- function(
   if (isTRUE(parms$isFixedIP)) {resDeriv["IP"]  <- 0   }
   #
   # further computations just for output for tacking the system
-  ER <- alpha * parms$aE * B / parms$kN
-  EL <- (1 - alpha) * parms$aE * B / parms$kN
-  limER <- ER / (parms$kmR + ER)
-  limEL <- EL / (parms$kmL + EL)
-  revRC <- dRPot / (parms$km*parms$kN + alphaC*aeB)
-  revLC <- dLPot / (parms$km*parms$kN + (1 - alphaC)*aeB)
-  revRN <- dRPot/cnR / (parms$km*parms$kN + alphaN*aeB)
-  revLN <- dLPot/cnL / (parms$km*parms$kN + alphaN*aeB)
+  limZ <- alpha * aeB / (parms$kmN + alpha * aeB)
   # net mic mineralization/immobilization when accounting uptake mineralization
   PhiNBU <- PhiNB + PhiNU
   # total mineralization flux including microbial turnover
   PhiNTotal <- PhiNBU + PhiNTvr
   # do not match in other limitation
-  # c(alphaC, revRC/(revRC + revLC)); c(alphaN, revRN/(revRN + revLN))
   # compute C available for biomass, this time without accounting
   # immobilization flux
   NsynBNSubstrate <- uNOrg - synE/cnE
@@ -234,12 +235,12 @@ derivSesam4a <- function(
   isLimNSubstrate <-  CsynBNSubstrate < CsynBC
   #
   if (isTRUE(parms$isRecover) ) recover()
-  list( resDeriv,  c(
-     respTotal = as.numeric(resp)
-     , respO = as.numeric(respO)
-     , respB = as.numeric(respB)
-     , respTvr = as.numeric(respTvr)
-     #, ER = as.numeric(ER), EL = as.numeric(EL)
+  aux <- c(
+    respTotal = as.numeric(resp)
+    , respO = as.numeric(respO)
+    , respB = as.numeric(respB)
+    , respTvr = as.numeric(respTvr)
+    #, ER = as.numeric(ER), EL = as.numeric(EL)
     #, MmB = as.numeric(MmB)
     , PhiNTotal = as.numeric(PhiNTotal)
     , PhiNB = as.numeric(PhiNB), PhiNU = as.numeric(PhiNU)
@@ -251,19 +252,14 @@ derivSesam4a <- function(
     , PhiPTvr = as.numeric(PhiPTvr)
     , PhiPBU = as.numeric(PhiPB + PhiPU)
     , immoPPot = as.numeric(immoPPot)
-    , resBalance$wELim
-    , alphaTarget = as.numeric(alphaTarget)
-    , alphaC = as.numeric(alphaC), alphaN = as.numeric(alphaN)
-    , alphaP = as.numeric(alphaP)
+    , structure(limE, names = paste0("lim",names(limE)))
+    , structure(limZ, names = paste0("limZ",names(limZ)))
+    , structure(alphaTarget, names = paste0("alphaTarget",names(alphaTarget)))
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
     , cpR = as.numeric(cpR), cpL = as.numeric(cpL)
-    , limER = as.numeric(limER), limEL = as.numeric(limEL)
     , decR = as.numeric(decR), decL = as.numeric(decL)
     , tvrB = as.numeric(tvrB)
     , tvrBPred = as.numeric(tvrBPred)
-    , revRC = as.numeric(revRC), revLC = as.numeric(revLC)
-    , revRN = as.numeric(revRN)
-    , revLN = as.numeric(revLN)
     , synB = as.numeric(synB) # may be negative
     , CsynBC = as.numeric(CsynBC)
     , CsynBN = as.numeric(CsynBN)
@@ -278,16 +274,16 @@ derivSesam4a <- function(
     #, dIN = as.numeric(dIN)
     #, uC = as.numeric(uC), synB = as.numeric(synB)
     #, decN = as.numeric(decN)
-  ))
+  )
+  list( resDeriv,  aux )
 }
 
 
-balanceAlphaBetweenElementLimitations <- function(
-  ### compute balance between alphas of different element limitations
-  alpha    ##<< numeric vector of allocation coefficients for different elements
-  , CsynBE ##<< numeric vector of carbon availale for biomass synthesis
-  , tauB   ##<< numeric scalar: typical microbial turnover flux for scaling
-  , delta = 20  ##<< scalar smoothing factor, the higher, the steeper the transition
+computeElementLimitations <- function(
+  ### compute element limitations
+  CsynBE   ##<< numeric vector of carbon available for biomass synthesis
+  , tauB   ##<< scalar typical microbial turnover flux for scaling
+  , delta = 10  ##<< scalar smoothing factor, the higher, the steeper the transition
 ){
   ##details<< Select the alpha corresponding to the smallest CsynBE.
   ## However, if elemental limitations are close,
@@ -296,13 +292,64 @@ balanceAlphaBetweenElementLimitations <- function(
     wELimi <- min( .Machine$double.xmax
                    , exp( delta/tauB*(min(CsynBE[-iE]) - CsynBE[iE])))
   })
-  names(wELim) <- names(alpha)
+  names(wELim) <- names(CsynBE)
   wELimNorm <- wELim/sum(wELim)
-  alphaBalanced <- sum(wELimNorm * alpha)
-  ##value<< a list with entries
-  list(
-    alpha = alphaBalanced  ##<< numeric scalar: balanced alpha
-    , wELim = wELimNorm    ##<< numeric vector: fractional element limitations
-  )
+  ##value<< numeric vector: fractional element limitations with names
+  ## corresponding to names of CsynBE
+}
+
+#' @export
+computeSesam4bAllocationPartitioning <- function(
+  ###  allocation partitioning alpha of four enzymes and biomineralization
+  dS    ##<< numeric vector (L,R) of potential depolymerization C-fluxes
+  ,dSP  ##<< numeric vector of potential biomineralization P-fluxes
+  ,B		##<< numeric vector of microbial biomass carbon
+  ,kmkN	##<< numeric vector of product of (half-saturation constant in
+  ## decomposition equation) x (enzyme turnover rate)
+  ,aE		##<< numeric vector of proportion of microbial biomass allocated
+  ## to enzyme production per time
+  ,alpha  ##<< numeric vector (L,R,LP,RP) of current community allocation
+  ## coefficients in (0,1)
+  ,limE   ##<< numeric vector (nElement) of weights of elemental limitations
+  ,betaN    ##<< numeric vector of C/N ratios of substrates and enzymes
+  ,betaP   ##<< numeric vector of C/P ratios of substrates (L,R) and enzymes (E)
+){
+  #limE <- limEP <- c(C = 0, N = 0, P = 1)
+  #limE <- limE0 <- c(C = 0, N = 0.408838431792989, P = 0.591161568206928  )
+  #limE <- limE0 <- c(C = 0, N = 0.226012593299406, P = 0.773987406700594  )
+  #limE <- limE0 <- c(C = 0.000435098291453755, N = 0.563867465009725, P = 0.435697436698822  )
+  #limE["N"] <- limE["N"] + limE["P"]; limE["P"] <- 0
+  #limE <- c(C = 0, N = 0.563867465009725, P = 0.435697436698822)
+  #limE <- limEN <- c(C = 0, N = 1, P = 0)
+  if (any(sort(c(names(dS),names(dSP))) != sort(names(alpha)))) stop(
+    "expected names in c(dS, dSP) to match names(alpha) but got ",
+    c(names(dS),names(dSP)), " versus ", names(alpha))
+  p0 <- 0
+  synEnz <- aE*B
+  invest <- alpha*synEnz *
+    (limE["C"] + limE["N"]/betaN["E"] + limE["P"]/betaP["E"])
+  #cost <- (kmkN + alpha*synEnz) *
+  #  (limE["C"] + limE["N"]/betaN["E"] + limE["P"]/betaP["E"])
+  returnS <- structure(sapply(names(dS),function(S){
+    dS[[S]] * alpha[[S]]*synEnz / (kmkN + alpha[[S]]*synEnz)*
+      (limE["C"] + limE["N"]/betaN[[S]] + limE["P"]/betaP[[S]])
+  }, USE.NAMES = FALSE), names = names(dS))
+  returnSP <- structure(sapply(names(dSP),function(S){
+    dSP[[S]]*((alpha[[S]]*synEnz + p0)/(kmkN + alpha[[S]]*synEnz + p0) -
+                (p0)/(kmkN + p0))*limE["P"]
+  }, USE.NAMES = FALSE), names = names(dSP))
+  # make sure that ordering of return components is the same as in alpha
+  revenue <- c(returnS, returnSP)[names(alpha)]/pmax(1e-12,invest)
+  alphaTarget <- revenue/sum(revenue)
+  alphaTarget
+  ##value<< numeric vector of revenue-optimal alpha for enzymes L,R,LP,RP
+}
+
+.tmp.f <- function(){
+  revL = dS["L"]/(kmkN + (1 - alpha["R"])*aE*B)
+  revR = dS["R"]/(kmkN + alpha["R"]*aE*B)
+  c(revL, revR)
+  (alphaTarget_old = revR/(revL + revR))
+
 }
 

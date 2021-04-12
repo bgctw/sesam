@@ -31,7 +31,7 @@ themeDefault <- theme_classic()
 ## The model
 $$
 \begin{align}
-dL/dt &= I -f_L(L)g(B) \\
+dL/dt &= IN -f_L(L)g(B) \\
 dB/dt &= \epsilon f_L(L)g(B) + \epsilon f_R(R)g(B) - \tau B^\delta \\
 dR/dt &= -f_R(R)g(B) + \tau B^\delta\\
 \end{align}
@@ -45,18 +45,18 @@ And microbial turnover increases with microbial biomass, i.e. $\delta > 1$.
 At steady state:
 $$
 \begin{align}
-f_L(L)g(B) &= I \\
-dB/dt &= \epsilon I + \epsilon f_R(R)g(B) - \tau B^\delta \\
+f_L(L)g(B) &= IN \\
+dB/dt &= \epsilon IN + \epsilon f_R(R)g(B) - \tau B^\delta \\
 \end{align}
 $$
 
 Steady state of $R$ by setting derivatives to zero and adding the equations of $dB$ and $dR$:
 $$
 \begin{align}
-0 &= \epsilon I + (\epsilon - 1) f_R(R^*)g(B^*) \\
-f_R(R^*) &= \frac{\epsilon I}{(1-\epsilon) g(B^*)} \\
-R^* &= f^{-1}\left( \frac{\epsilon I}{(1-\epsilon) g(B^*)} \right) \\
-\frac{dR}{dt} &= (f^{-1})' \left( \frac{\epsilon I}{(1-\epsilon) g(B^*)} \right) \frac{\epsilon I}{(1-\epsilon)^2 g(B^*)}\\
+0 &= \epsilon IN + (\epsilon - 1) f_R(R^*)g(B^*) \\
+f_R(R^*) &= \frac{\epsilon IN}{(1-\epsilon) g(B^*)} \\
+R^* &= f^{-1}\left( \frac{\epsilon IN}{(1-\epsilon) g(B^*)} \right) \\
+\frac{dR}{dt} &= (f^{-1})' \left( \frac{\epsilon IN}{(1-\epsilon) g(B^*)} \right) \frac{\epsilon IN}{(1-\epsilon)^2 g(B^*)}\\
 \end{align}
 $$
 
@@ -66,17 +66,17 @@ $$
 y &= f_R(R) = k_R R \\
 f^{-1}(y) &= y/k_R \\
 (f^{-1})'(y) &= 1/k_R \\
-R^* &=  \frac{\epsilon I}{k_R (1-\epsilon) g(B^*)}  \\
+R^* &=  \frac{\epsilon IN}{k_R (1-\epsilon) g(B^*)}  \\
 \end{align}
 $$
 Steady state for Biomass B:
 $$
 \begin{align}
-0 &= \epsilon I +\epsilon \, k_R R^* g(B^*) - \tau {B^*}^\delta \\
-0 &= \epsilon I + \epsilon \, k_R \frac{\epsilon I}{k_R (1-\epsilon) g(B^*)} g(B^*) - \tau {B^*}^\delta \\
-0 &= \epsilon I + \epsilon \, \frac{\epsilon I}{(1-\epsilon) }  - \tau {B^*}^\delta \\
-B^* &= \left( \left( 1 + \frac{\epsilon}{(1-\epsilon)} \right) \frac{\epsilon I}{\tau} \right)^{1/\delta}
-     = \left( \frac{\epsilon I}{\tau (1-\epsilon)} \right)^{1/\delta} \\
+0 &= \epsilon IN +\epsilon \, k_R R^* g(B^*) - \tau {B^*}^\delta \\
+0 &= \epsilon IN + \epsilon \, k_R \frac{\epsilon IN}{k_R (1-\epsilon) g(B^*)} g(B^*) - \tau {B^*}^\delta \\
+0 &= \epsilon IN + \epsilon \, \frac{\epsilon IN}{(1-\epsilon) }  - \tau {B^*}^\delta \\
+B^* &= \left( \left( 1 + \frac{\epsilon}{(1-\epsilon)} \right) \frac{\epsilon IN}{\tau} \right)^{1/\delta}
+     = \left( \frac{\epsilon IN}{\tau (1-\epsilon)} \right)^{1/\delta} \\
 \end{align}
 $$
 
@@ -86,22 +86,22 @@ on $g(B)$.
 With $g(B) = B/(k_M + B)$:
 $$
 \begin{align}
-R^* &=  \frac{\epsilon I}{k_R (1-\epsilon) g(B^*)}  
-    =  \frac{\epsilon I}{k_R (1-\epsilon)}  \frac{k_M+B^*}{B^*}
-    =  \frac{\epsilon I}{k_R (1-\epsilon)}  \left( k_M {B^*}^{-1} + 1\right) \\
-    &= \frac{\epsilon I}{k_R (1-\epsilon)}  \left( k_M \left( \frac{\epsilon I}{\tau (1-\epsilon)} \right)^{-1/\delta} + 1\right) \\
-    &= \frac{1}{k_R}  \left( k_M \tau^{1/\delta} \left( \frac{\epsilon I}{1-\epsilon} \right)^{1-1/\delta} + \frac{\epsilon I}{1-\epsilon}\right) \\
+R^* &=  \frac{\epsilon IN}{k_R (1-\epsilon) g(B^*)}  
+    =  \frac{\epsilon IN}{k_R (1-\epsilon)}  \frac{k_M+B^*}{B^*}
+    =  \frac{\epsilon IN}{k_R (1-\epsilon)}  \left( k_M {B^*}^{-1} + 1\right) \\
+    &= \frac{\epsilon IN}{k_R (1-\epsilon)}  \left( k_M \left( \frac{\epsilon IN}{\tau (1-\epsilon)} \right)^{-1/\delta} + 1\right) \\
+    &= \frac{1}{k_R}  \left( k_M \tau^{1/\delta} \left( \frac{\epsilon IN}{1-\epsilon} \right)^{1-1/\delta} + \frac{\epsilon IN}{1-\epsilon}\right) \\
 \end{align}
 $$
 
 And with $f_L(L) = k_L L$:
 $$
 \begin{align}
-L^* &= f_L^{-1}\left( I / g(B^*) \right)    
-    = \frac{I}{k_L}  \frac{k_M+B^*}{B^*}
-    = \frac{I}{k_L}  ( k_M {B^*}^{-1} +1 ) \\
-    &= \frac{I}{k_L}  \left( k_M \left( \frac{\epsilon I}{\tau (1-\epsilon)} \right)^{-1/\delta} +1 \right) \\
-    &= \frac{I}{k_L}  \left( k_M \left( \frac{\tau (1-\epsilon)}{\epsilon I} \right)^{1/\delta} +1 \right) \\
+L^* &= f_L^{-1}\left( IN / g(B^*) \right)    
+    = \frac{IN}{k_L}  \frac{k_M+B^*}{B^*}
+    = \frac{IN}{k_L}  ( k_M {B^*}^{-1} +1 ) \\
+    &= \frac{IN}{k_L}  \left( k_M \left( \frac{\epsilon IN}{\tau (1-\epsilon)} \right)^{-1/\delta} +1 \right) \\
+    &= \frac{IN}{k_L}  \left( k_M \left( \frac{\tau (1-\epsilon)}{\epsilon IN} \right)^{1/\delta} +1 \right) \\
 \end{align}
 $$
 With $1 \leq \delta \leq 2$ and $x > 1$, the term $x^{1-1/\delta}$ is usually smaller than $x^1$. 
@@ -126,19 +126,19 @@ e.g. their nitrogen contents.
 
 ```{r include=FALSE}
 eps <- seq(0.1, 0.8, by = 0.05)
-I <- 100
+IN <- 100
 tau <- 12
 kR <- 1/5
 #delta <- 2; kL <- kR
 #delta <- 1.5; kL <- kR*5
 delta <- 1.2; kL <- 5
-B <- (eps*I/(tau*(1 - eps)))^(1/delta)
+B <- (eps*IN/(tau*(1 - eps)))^(1/delta)
 kM <- as.numeric(quantile(B, 0.8))
 tkm <- tau*kM
-R <- R1 <- eps*I/(kR*(1 - eps))*(kM + B)/B
-R <- R2 <- 1/kR*(kM*tau^(1/delta)*(eps*I/(1 - eps))^(1 - 1/delta) + eps*I/(1 - eps))
-L <- L1 <- I/kL*(kM + B)/B
-L <- L2 <- I/kL*(kM*(tau*(1 - eps)/(eps*I))^(1/delta) + 1)
+R <- R1 <- eps*IN/(kR*(1 - eps))*(kM + B)/B
+R <- R2 <- 1/kR*(kM*tau^(1/delta)*(eps*IN/(1 - eps))^(1 - 1/delta) + eps*IN/(1 - eps))
+L <- L1 <- IN/kL*(kM + B)/B
+L <- L2 <- IN/kL*(kM*(tau*(1 - eps)/(eps*IN))^(1/delta) + 1)
 ds <- data.frame(eps,L,B,R)
 ggplot(ds, aes(eps,B)) + geom_line() + geom_point() +
   themeDefault
@@ -152,7 +152,7 @@ The red square denotes the state of a simulation of the model over 100 years.
 The gray dashed line denotes the CUE for which SOM stocks are minimal.
 
 ```{r echo=FALSE}
-p <- list(I = I, tau = tau, kR = kR, kL = kL, kM = kM, delta = delta, eps = 0.4)
+p <- list(IN = IN, tau = tau, kR = kR, kL = kL, kM = kM, delta = delta, eps = 0.4)
 unlist(p)
 ```
 
@@ -163,7 +163,7 @@ dMod2 <- function(t,x,p){
   decR <- p$kR*x["R"] * gB
   decL <- p$kL*x["L"] * gB
   tvrB <- p$tau*x["B"]^p$delta
-  dL <- p$I - decL
+  dL <- p$IN - decL
   dB <- p$eps*decL + p$eps*decR - tvrB
   dR <- -decR + tvrB
   list(setNames( c(dL, dB, dR), c("L","B","R")))

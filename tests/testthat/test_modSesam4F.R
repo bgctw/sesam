@@ -37,11 +37,11 @@ parms0 <- list(
   #,plantNUpAbs = 300/70*1/4  ##<< plant N uptake balancing N inputs
   ,plantNUpAbs = 0   ##<< plant N uptake balancing N inputs
   ,useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
-  ,kIPlant = 10.57 #0.0289652*365         ##<< plant uptake iP I
-  ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
-  ,iI = 0         ##<< input of mineral N
-  ,l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I
-  , nu = 0.9       ##<< microbial N use efficiency
+  ,kINPlant = 10.57 #0.0289652*365         ##<< plant uptake iP IN
+  ,iBN = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iBN IN
+  ,iIN = 0         ##<< input of mineral N
+  ,lN = 0.96 #0.00262647*365       ##<< leaching rate of mineralN lN IN
+  , nuN = 0.9       ##<< microbial N use efficiency
   #, isEnzymeMassFlux = FALSE  ##<< steady state B solution neglects enyzme mass fluxes
   , isEnzymeMassFlux = TRUE  ##<< steady state B solution accounts for enyzme mass fluxes
   , nuP = 0.3      ##<< microbial uptake of depolymerized P, (1-nuP) is mineralized
@@ -76,11 +76,11 @@ parms0 <- within(parms0,{
   #cnER <- cnEL <- cnE
   #kNR <- kNL <- kN
   plantNUpAbs <- iL / cnIL	# same litter input as plant uptake
-  kIPlant <- plantNUpAbs <- 0			# no plant uptake
-  lP <- l       # leaching rate of inorganic P equals that of N
-  nuP <- nu     # mineralization of P during decomposiition equals that of N
-  kIPPlant <- kIPlant  # plant uptake rate of P equals that of N
-  iIP <- l      # assume no P inputs compensate for leaching
+  kINPlant <- plantNUpAbs <- 0			# no plant uptake
+  lP <- lN       # leaching rate of inorganic P equals that of N
+  nuP <- nuN     # mineralization of P during decomposiition equals that of N
+  kIPPlant <- kINPlant  # plant uptake rate of P equals that of N
+  iIP <- lN      # assume no P inputs compensate for leaching
 })
 
 x0 <- x0Orig <- c( #aE = 0.001*365
@@ -91,7 +91,7 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   , BN_SOM = 20/parms0$cnB
   , RN_SOM = 7000/parms0$cnIR    ##<< N rich substrate N pool
   , LN_SOM = 200/parms0$cnIL     ##<< N poor substrate N pool
-  , I_SOM =  1                   ##<< inorganic N pool
+  , IN_SOM =  1                   ##<< inorganic N pool
   , leachN_SOM = 0
   , BP_SOM = 20/parms0$cpB
   , RP_SOM = 7000/parms0$cpIR
@@ -105,7 +105,7 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   , BN_amend = 0
   , RN_amend = 0
   , LN_amend = 0
-  , I_amend =  0
+  , IN_amend =  0
   , leachN_amend = 0
   , BP_amend = 0
   , RP_amend = 0
@@ -138,7 +138,7 @@ x0NlimSum <- getX0Sum(x0Nlim)
 
 
 .tmp.f <- function(){
-  parms1 <- within(parms0, {isFixedI <- TRUE; l <- 0; iL <- 0})
+  parms1 <- within(parms0, {isFixedI <- TRUE; lN <- 0; iL <- 0})
   ans1 <- derivSesam4F(0, x0, parms1)
   x0A <- x0; x0A["LC_amend"] <- x0["LC_SOM"]; x0A["LC_SOM"] <- x0["LC_amend"]
   x0A["LN_amend"] <- x0["LN_SOM"]; x0A["LN_SOM"] <- x0["LN_amend"]
@@ -151,7 +151,7 @@ x0NlimSum <- getX0Sum(x0Nlim)
     , times, derivSesam4F
     ,parms = parms1
     #, parms = within(parms0, {isFixedI <- TRUE})
-    #, parms = within(parms0, {isFixedL <- TRUE; iI <- 1}) # works since no immobiization
+    #, parms = within(parms0, {isFixedL <- TRUE; iIN <- 1}) # works since no immobiization
     #, parms = within(parms0, {isFixedI <- TRUE; isFixedL <- TRUE}) #works
     #, parms = within(parms0, {isFixedI <- TRUE; isFixedR <- TRUE; isFixedL <- TRUE}) # works
     ))
@@ -161,9 +161,9 @@ x0NlimSum <- getX0Sum(x0Nlim)
 }
 
 namesF = c(       ##<< names in totals of sesam4F
-  "BC", "RC", "LC", "RN", "LN", "I", "RP", "LP", "IP", "alpha")
+  "BC", "RC", "LC", "RN", "LN", "IN", "RP", "LP", "IP", "alpha")
 namesA = c(       ##<< names in resA of the same order as namesF
-  "BC", "RC", "LC", "RN", "LN", "I", "RP", "LP", "IP", "alpha")
+  "BC", "RC", "LC", "RN", "LN", "IN", "RP", "LP", "IP", "alpha")
 
 
 testFState <- function(
@@ -240,8 +240,8 @@ testParmsScen <- function(parmsInit){
     x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "LP", x0Starv["LN_SOM"])
     x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "RP", x0Starv["RN_SOM"])
     x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "BP", x0Starv["BN_SOM"])
-    x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "IP", x0Starv["I_SOM"])
-    parmsInit <- within(parmsInit, {cpB <- cnB; cpE <- cnE; cpBW <- cnBW; nuP <- nu; iIP <- iI; cpIL <- cnIL})
+    x0Starv <- setMultiPoolFractionsPool(xF, x0Starv, "IP", x0Starv["IN_SOM"])
+    parmsInit <- within(parmsInit, {cpB <- cnB; cpE <- cnE; cpBW <- cnBW; nuP <- nuN; iIP <- iIN; cpIL <- cnIL})
   }
   xF <- xF$setX(xF, x0Starv)
   times <- seq(0, 2100, length.out = 2)
@@ -294,7 +294,7 @@ testParmsScen <- function(parmsInit){
   ggplot(filter(res, time > 10 & time < 500), aes(time, EL, color = scen)) + geom_line()
   ggplot(filter(res, time < 500), aes(time, alphaC, color = scen)) + geom_line()
   ggplot(filter(res, time < 5000), aes(time, alphaN, color = scen)) + geom_line()
-  ggplot(filter(res, time > 01), aes(time, PhiB, color = scen, linetype = scen)) + geom_line()
+  ggplot(filter(res, time > 01), aes(time, PhiNB, color = scen, linetype = scen)) + geom_line()
 }
 
 .tmp.f <- function(){
@@ -355,9 +355,9 @@ test_that("mass balance in output pools", {
     , as.numeric(sum(x0F$tot[c("BC","RC","LC","resp")]) + xETest["time"] * parmsInit$iL)
     , tolerance = 1e-8)
   expect_equal(
-    as.numeric(sum(xF$tot[c("BN","RN","LN","I","leachN")]))
-    , as.numeric(sum(x0F$tot[c("BN","RN","LN","I","leachN")]) + xETest["time"]*(
-      parmsInit$iL/parmsInit$cnIL + parmsInit$iI))
+    as.numeric(sum(xF$tot[c("BN","RN","LN","IN","leachN")]))
+    , as.numeric(sum(x0F$tot[c("BN","RN","LN","IN","leachN")]) + xETest["time"]*(
+      parmsInit$iL/parmsInit$cnIL + parmsInit$iIN))
     , tolerance = 1e-8)
   expect_equal(
     as.numeric(sum(xF$tot[c("BP","RP","LP","IP","leachP")]))
@@ -371,10 +371,10 @@ test_that("mass balance in output pools", {
       xETest["time"]*(parmsInit$iL*parmsInit$relIL$C))
     , tolerance = 1e-8)
   expect_equal(
-    as.numeric(rowSums(elementMultiPoolFractions(xF,"N", c("BN","RN","LN","I","leachN"))))
-    , as.numeric(rowSums(elementMultiPoolFractions(x0F,"N", c("BN","RN","LN","I","leachN"))) +
+    as.numeric(rowSums(elementMultiPoolFractions(xF,"N", c("BN","RN","LN","IN","leachN"))))
+    , as.numeric(rowSums(elementMultiPoolFractions(x0F,"N", c("BN","RN","LN","IN","leachN"))) +
                    xETest["time"]*(parmsInit$iL/parmsInit$cnIL*parmsInit$relIL$N +
-                                     parmsInit$iI*parmsInit$relII))
+                                     parmsInit$iIN*parmsInit$relII))
     , tolerance = 1e-8)
   expect_equal(
     as.numeric(rowSums(elementMultiPoolFractions(xF,"P", c("BP","RP","LP","IP","leachP"))))

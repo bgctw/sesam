@@ -37,11 +37,11 @@ parms0 <- list(
   #,plantNUp = 300/70*1/4  ##<< plant N uptake balancing N inputs
   ,plantNUp = 0   ##<< plant N uptake balancing N inputs
   ,useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
-  ,kIPlant = 10.57 #0.0289652*365         ##<< plant uptake iP I
-  ,iB = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iB I
-  ,iI = 0         ##<< input of mineral N
-  ,l = 0.96 #0.00262647*365       ##<< leaching rate of mineralN l I
-  , nu = 0.9       ##<< microbial N use efficiency
+  ,kINPlant = 10.57 #0.0289652*365         ##<< plant uptake iP IN
+  ,iBN = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iBN IN
+  ,iIN = 0         ##<< input of mineral N
+  ,lN = 0.96 #0.00262647*365       ##<< leaching rate of mineralN lN IN
+  , nuN = 0.9       ##<< microbial N use efficiency
   #, isEnzymeMassFlux = FALSE  ##<< steady state B solution neglects enyzme mass fluxes
   , isEnzymeMassFlux = TRUE  ##<< steady state B solution accounts for enyzme mass fluxes
   , nuP = 0.3      ##<< microbial uptake of depolymerized P, (1-nuP) is mineralized
@@ -61,11 +61,11 @@ parms0 <- within(parms0,{
   #cnER <- cnEL <- cnE
   #kNR <- kNL <- kN
   plantNUpAbs <- iL / cnIL	# same litter input as plant uptake
-  kIPlant <- plantNUpAbs <- 0			# no plant uptake
-  lP <- l       # leaching rate of inorganic P equals that of N
-  nuP <- nu     # mineralization of P during decomposiition equals that of N
-  kIPPlant <- kIPlant  # plant uptake rate of P equals that of N
-  iIP <- l      # assume no P inputs compensate for leaching
+  kINPlant <- plantNUpAbs <- 0			# no plant uptake
+  lP <- lN       # leaching rate of inorganic P equals that of N
+  nuP <- nuN     # mineralization of P during decomposiition equals that of N
+  kIPPlant <- kINPlant  # plant uptake rate of P equals that of N
+  iIP <- lN      # assume no P inputs compensate for leaching
 })
 # for compatibility set
 # C:N:P ratio of cell walls to that of biomass
@@ -89,7 +89,7 @@ x0 <- x0Orig <- c( #aE = 0.001*365
   , LC = 200                  ##<< N poor substrate
   , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
   , LP = 200/parms0$cpIL     ##<< N poor substrate P pool
-  , I =  1                   ##<< inorganic N pool
+  , IN =  1                   ##<< inorganic N pool
   , IP =  1                  ##<< inorganic P pool
   , alpha = 0.5              ##<< initial community composition
   , resp = 0                 ##<< cumulated respiration
@@ -128,7 +128,7 @@ x0Nlim <- c( #aE = 0.001*365
   , LC = 200                  ##<< N poor substrate
   , LN = 200/parms0$cnIL     ##<< N poor substrate N pool
   , LP = 200/parms0$cpIL     ##<< N poor substrate P pool
-  , I =  0                   ##<< inorganic N pool
+  , IN =  0                   ##<< inorganic N pool
   , IP =  10                  ##<< inorganic P pool
   , alpha = 0.5              ##<< initial community composition
   , resp = 0                 ##<< cumulated respiration
@@ -235,7 +235,7 @@ testParmsScen <- function(parmsInit){
   ggplot(filter(res, time > 10 & time < 500), aes(time, EL, color = scen)) + geom_line()
   ggplot(filter(res, time < 500), aes(time, alphaC, color = scen)) + geom_line()
   ggplot(filter(res, time < 5000), aes(time, alphaN, color = scen)) + geom_line()
-  ggplot(filter(res, time > 01), aes(time, PhiB, color = scen, linetype = scen)) + geom_line()
+  ggplot(filter(res, time > 01), aes(time, PhiNB, color = scen, linetype = scen)) + geom_line()
 }
 
 test_that("same as sesam3s for fixed substrates", {
@@ -276,7 +276,7 @@ test_that("same as sesam2 with substrate feedbacks", {
 #  times, derivSesam4a, parms = within(parmsInit,  :
   parmsInit <- within(parms0C, {isFixedI <- TRUE})
   # from C to N limitation
-  x0CNLim <- x0; x0CNLim["I"] <- 0
+  x0CNLim <- x0; x0CNLim["IN"] <- 0
   #times <- seq(0,2100, length.out = 2)
   times <- seq(0,2100, length.out = 101)
   resExp <- as.data.frame(lsoda(

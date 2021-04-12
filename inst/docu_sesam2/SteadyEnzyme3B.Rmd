@@ -73,23 +73,23 @@ $$
 \begin{align}
 \epsilon C_{\operatorname{syn}BN} &= \tau B \\
 N_{\operatorname{syn}BN} &= \tau B/\beta_B \\
-\nu (dec_{L}/\beta_L + dec_{R}/\beta_R + \kappa_E \operatorname{tvr}_E/\beta_E) + u_{imm,Pot} 
+\nuN (dec_{L}/\beta_L + dec_{R}/\beta_R + \kappa_E \operatorname{tvr}_E/\beta_E) + u_{imm,Pot} 
  - \operatorname{syn}_E/\beta_E
   &= \tau B/\beta_B \\
 \frac{d_{LN} (1-\alpha) a_E B}{k_{mN} + (1-\alpha) a_E B} + 
  \frac{d_{RN} \alpha a_E B}{k_{mN} + \alpha a_E B} +
  \frac{\kappa_E a_E B}{\beta_E} +
- \frac{u_{imm,Pot}}{\nu}  - \frac{a_E B}{ \nu \beta_E}
- &=  \frac{\tau }{\nu \beta_B} B \\
- d_{LN} (1-\alpha) a_E B (k_{mN} + \alpha a_E B) + d_{RN} \alpha a_E B (k_{mN} + (1-\alpha) a_E B)+ u_\nu c_1 &= \tau_N  B c_1  \\
+ \frac{u_{imm,Pot}}{\nuN}  - \frac{a_E B}{ \nuN \beta_E}
+ &=  \frac{\tau }{\nuN \beta_B} B \\
+ d_{LN} (1-\alpha) a_E B (k_{mN} + \alpha a_E B) + d_{RN} \alpha a_E B (k_{mN} + (1-\alpha) a_E B)+ u_\nuN c_1 &= \tau_N  B c_1  \\
 \end{align}
 $$
 
 with abbreviations 
 $$
 \begin{align}
-\tau_N &= \frac{\tau}{\nu \beta_B} + \left(\frac{1}{\nu}- \kappa_E \right) \frac{a_E}{\beta_E} \\
-u_\nu &= u_{imm,Pot}/\nu \\
+\tau_N &= \frac{\tau}{\nuN \beta_B} + \left(\frac{1}{\nuN}- \kappa_E \right) \frac{a_E}{\beta_E} \\
+u_\nuN &= u_{imm,Pot}/\nuN \\
 d_{LN} &= dec_{L,Pot}/\beta_L \\
 d_{RN} &= dec_{R,Pot}/\beta_R \\
 c_1 &= (k_{mN} + (1-\alpha) a_E B)(k_{mN} + \alpha a_E B)
@@ -101,9 +101,9 @@ $$
 \begin{align}
 0 &= a B^3 + b B^2 + c B + d  \\
 a &= -\tau_N \alpha (1-\alpha) a_E^2 \\
-b &= a_E^2 \alpha (1-\alpha) \left( d_{LN} + d_{RN} + u_\nu \right) - \tau_N k_{mN} a_E\\
-c &= a_E k_{mN} \left( (\alpha-1) d_{LN} + \alpha d_{RN} + u_\nu \right) - \tau_N k_{mN}^2\\
-d &= k_{mN}^2  u_\nu \\
+b &= a_E^2 \alpha (1-\alpha) \left( d_{LN} + d_{RN} + u_\nuN \right) - \tau_N k_{mN} a_E\\
+c &= a_E k_{mN} \left( (\alpha-1) d_{LN} + \alpha d_{RN} + u_\nuN \right) - \tau_N k_{mN}^2\\
+d &= k_{mN}^2  u_\nuN \\
 \end{align}
 $$
 

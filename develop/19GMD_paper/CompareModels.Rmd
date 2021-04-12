@@ -55,15 +55,15 @@ parmsModel <- list(
   #,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (part by predators 
   ,epsTvr = 0.45   ##<< carbon use efficiency of microbial tvr (part by predators 
   ## which respire and corresponding amount of N must be mineralized)
-  #,iB = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
-  ,iB = 0.4 ##<< potential immobilization flux rate 
-  #,iB = 1/12*(24*365) # tvr of I of 12 hours
-  ## (immoPot = iB I)
-  ,l = 0.96       #0.00262647*365     ##<< leaching rate of mineralN l I
-  ,nu = 0.9     # microbial N use efficiency accounting for apparent 
+  #,iBN = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
+  ,iBN = 0.4 ##<< potential immobilization flux rate of inorganic N
+  #,iBN = 1/12*(24*365) # tvr of IN of 12 hours
+  ## (immoNPot = iBN IN)
+  ,lN = 0.96       #0.00262647*365     ##<< leaching rate of mineral N: lN IN
+  ,nuN = 0.9     # microbial N use efficiency accounting for apparent 
   ## minceralization of N during uptake in heterogeneous soils
   , isEnzymeMassFlux = TRUE  ##<< compute enzyme mass fluxes
-  , kIPlant = 10.57 #0.0289652*365          ##<< plant uptake iP I
+  , kINPlant = 10.57 #0.0289652*365          ##<< plant uptake iP IN
 )
 
 parmsModel <- within(parmsModel, {
@@ -82,15 +82,15 @@ drivers <- list(
         ,iL = 400         # g/m2 input per year (half NPP)
         ,cnIR = 7       ##<< C/N ratio of the residue litter input
         ,cnIL = 30      ##<< C/N ratio of the labile litter input: 
-        ,iI = 0         ##<< input of mineral N
+        ,iIN = 0         ##<< input of mineral N
 )
 parms0 <- within( c(parmsModel, drivers), {
-  iI <- iL/cnIL/200    # assume a fractionof 1/10 of annual litter production
-  kIPlant <- 1/5*365 # tvr of 5 days
-  plantNUpAbs <- iL/cnIL + iI # plants take maximum out as much as returned by litter
+  iIN <- iL/cnIL/200    # assume a fractionof 1/10 of annual litter production
+  kINPlant <- 1/5*365 # tvr of 5 days
+  plantNUpAbs <- iL/cnIL + iIN # plants take maximum out as much as returned by litter
   # plus inorganic input, difference is grazed
   # keep leaching as otherwise it accumulates during priming
-  #l <- 0 # no leaching
+  #lN <- 0 # no leaching
 })
 parms0Noenz <- within(parms0, isEnzymeMassFlux <- FALSE)
 ```
@@ -105,10 +105,10 @@ x0 <- x0Explicit <- c( #aE = 0.001*365
         ,RN = 1100/parms0$cnIR   ##<< N rich substrate N pool
         ,L = 100                 ##<< N poor substrate
         ,LN = 100/parms0$cnIL    ##<< N poor substrate N pool
-        ,I =  0.04 #150 #0.04                ##<< inorganic pool gN/m2
+        ,IN =  0.04 #150 #0.04                ##<< inorganic pool gN/m2
         , alpha = 0.5            ##<< microbial community partitioning [0,1]
 )
-x0Steady <- x0Explicit[c("B","R","RN","L","LN","I")]
+x0Steady <- x0Explicit[c("B","R","RN","L","LN","IN")]
 x0SteadyA <- c(x0Steady,alpha = 0.5)
 x0B <- x0SteadyA[setdiff(names(x0SteadyA),"B")]
 ```
@@ -136,9 +136,9 @@ runFaceSimulation <- function(
   #setwd("../..");loadPkg()
   . <- scen
   res <- res1 <- as.data.frame(lsoda( .$x0, times, .$mod, parms = .$parms))
-  #ggplot(res, aes(time, I)) + geom_line()
+  #ggplot(res, aes(time, IN)) + geom_line()
   xE <- unlist(tail(res,1))
-  #xE["I"] <- 0.04  # decrease I pool # does not help filled up by mircobial tvr
+  #xE["IN"] <- 0.04  # decrease IN pool # does not help filled up by mircobial tvr
   #
   # t1S years of steady state recorded
   #derivSesam3a(0, xE, .$parms)
@@ -182,9 +182,9 @@ resScen <- scenarios %>%
 
 ```{r}
 vars <- c("L","R","alpha","RL") 
-vars <- c("L","R","alpha","B","RL","I") 
-vars <- c("L","R","alpha","B","RL","I","plantNUp","PhiB","PhiTotal") 
-#vars <- c("alpha","B", "cnL", "PhiB","PhiTotal","immoPot", "CsynBC","CsynBN") 
+vars <- c("L","R","alpha","B","RL","IN") 
+vars <- c("L","R","alpha","B","RL","IN","plantNUp","PhiNB","PhiNTotal") 
+#vars <- c("alpha","B", "cnL", "PhiNB","PhiNTotal","immoNPot", "CsynBC","CsynBN") 
 dsp <- resScen %>% 
   filter(scen != "NeglectEnzFlux") %>% 
   #filter(scen == "Sesam3a") %>% 
@@ -209,18 +209,18 @@ Why is Sesam3B differnt at the end of FACE?
 ```{r}
 dst <- filter(resScen, scen %in% c("Sesam3a","Sesam3B"), time %in% c(20,60))
 #total N balance
-dst <- dst %>% mutate(NSys = B/parms0$cnB + LN + RN + I)
-select(dst, scen, time, NSys, I)
+dst <- dst %>% mutate(NSys = B/parms0$cnB + LN + RN + IN)
+select(dst, scen, time, NSys, IN)
 
 dst <- filter(resScen, scen %in% c("Sesam3a","Sesam3B"), time >= 20, time <= 60)
-ggplot(dst, aes(time, I, color = scen)) + geom_line()
+ggplot(dst, aes(time, IN, color = scen)) + geom_line()
 ```
 There is a slight increase of N in the systme due to change
 in N in microbial biomass is not accounted in N balance.
 
-Why do I need such a low iB?
+Why do IN need such a low iBN?
 The potential immobilization must be low to shift the community to N limitation.
-If its increased (observed I turnovertime of within a day) microbes never
+If its increased (observed IN turnovertime of within a day) microbes never
 become N limited. Is this reasonable?
 
 ## Result
@@ -236,7 +236,7 @@ The model with steady state microbial biomass, Sesam3B, captures the same dynami
 vars <- c("L","R","SOM") 
 #vars <- c("L","R","SOM","cnRL") 
 #vars <- c("L","R","alpha","B","RL","cnRL") 
-#vars <- c("alpha","B", "cnL", "PhiB","PhiTotal","immoPot", "CsynBC","CsynBN") 
+#vars <- c("alpha","B", "cnL", "PhiNB","PhiNTotal","immoNPot", "CsynBC","CsynBN") 
 dsp <- ungroup(resScen) %>% mutate(SOM = R + L, cnRL = (R + L)/(RN + LN)) %>% 
   #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL")) %>% 
   mutate(Model = recode_factor(

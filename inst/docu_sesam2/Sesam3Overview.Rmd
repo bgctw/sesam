@@ -76,14 +76,14 @@ parmsModel <- list(
   #,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (part by predators 
   ,epsTvr = 0.45   ##<< carbon use efficiency of microbial tvr (part by predators 
   ## which respire and corresponding amount of N must be mineralized)
-  #,iB = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
-  ,iB = 0.4 ##<< potential immobilization flux rate 
-  ## (immoPot = iB I)
-  ,l = 0.96       #0.00262647*365     ##<< leaching rate of mineralN l I
-  ,nu = 0.9     # microbial N use efficiency accounting for apparent 
+  #,iBN = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
+  ,iBN = 0.4 ##<< potential immobilization flux rate 
+  ## (immoNPot = iBN IN)
+  ,lN = 0.96       #0.00262647*365     ##<< leaching rate of mineralN lN IN
+  ,nuN = 0.9     # microbial N use efficiency accounting for apparent 
   ## minceralization of N during uptake in heterogeneous soils
   , isEnzymeMassFlux = TRUE  ##<< compute enzyme mass fluxes
-  ,kIPlant = 10.57 #0.0289652*365     ##<< plant uptake rate first order of I
+  ,kINPlant = 10.57 #0.0289652*365     ##<< plant uptake rate first order of IN
 )
 
 parmsModel <- within(parmsModel, {
@@ -103,10 +103,10 @@ drivers <- list(
   ,cnIR = 7       ##<< C/N ratio of the residue litter input
   ,cnIL = 30      ##<< C/N ratio of the labile litter input: 
   ## currently as absolute flux
-  ,iI = 0         ##<< input of mineral N
+  ,iIN = 0         ##<< input of mineral N
 )
 parms0 <- within( c(parmsModel, drivers), {
-  kIPlant <- 1000  # high value to be constrained by plantNUpAbs
+  kINPlant <- 1000  # high value to be constrained by plantNUpAbs
   plantNUpAbs <- iL/cnIL
 })
 parms0Noenz <- within(parms0, isEnzymeMassFlux <- FALSE)
@@ -122,10 +122,10 @@ x0 <- x0Explicit <- c( #aE = 0.001*365
         ,RN = 1100/parms0$cnIR   ##<< N rich substrate N pool
         ,L = 100                 ##<< N poor substrate
         ,LN = 100/parms0$cnIL    ##<< N poor substrate N pool
-        ,I =  0.04                ##<< inorganic pool gN/m2
+        ,IN =  0.04                ##<< inorganic pool gN/m2
         , alpha = 0.5            ##<< microbial community partitioning [0,1]
 )
-x0Steady <- x0Explicit[c("B","R","RN","L","LN","I")]
+x0Steady <- x0Explicit[c("B","R","RN","L","LN","IN")]
 x0SteadyA <- c(x0Steady,alpha = 0.5)
 x0B <- x0SteadyA[setdiff(names(x0SteadyA),"B")]
 ```
@@ -154,7 +154,7 @@ runFaceSimulation <- function(
   res <- res1 <- as.data.frame(lsoda( .$x0, times, .$mod, parms = .$parms))
   xE <- unlist(tail(res,1))
   #derivSesam3a(0, xE, .$parms)
-  #xE["I"] <- 0.04  # decrease I pool # does not help filled up by mircobial tvr
+  #xE["IN"] <- 0.04  # decrease IN pool # does not help filled up by mircobial tvr
   #
   # t1S years of steady state recorded
   res <- res1S <- as.data.frame(lsoda( 
@@ -195,9 +195,9 @@ resScen <- scenarios %>%
 
 
 ```{r}
-vars <- c("L","R","alpha","RL","I") 
+vars <- c("L","R","alpha","RL","IN") 
 #vars <- c("L","R","alpha","B","RL","cnRL") 
-#vars <- c("alpha","B", "cnL", "PhiB","PhiTotal","immoPot", "CsynBC","CsynBN") 
+#vars <- c("alpha","B", "cnL", "PhiNB","PhiNTotal","immoNPot", "CsynBC","CsynBN") 
 dsp <- resScen %>% mutate(RL = (R + L), cnRL = ((R + L)/(RN + LN))) %>% 
   #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
   select(one_of(c("time","scen",vars))) %>% gather("Pool","value", vars)

@@ -36,7 +36,7 @@ $$
 
 ### Outfluxes of pools 
 Components of the $k$ vector are expressed per respective pool,
-Hence, they need to be multiplied by the respective pools to give the flux:
+Hence, they need to be multiplied by the respective pools to give the flux.
 
 $$
 \begin{align}
@@ -49,7 +49,7 @@ $$
 $$
 where $\tau$ is microbial turnover rate, $m$ is maintenance rate, 
 $m_E$ is net enzyme investment defined below, and $r_G$ and $r_O$
-are growth and overflow repsiration defined below.
+are growth and overflow respiration defined below.
 
 $$
 \begin{align}
@@ -63,7 +63,7 @@ l_R = f(B, \alpha, a_E, k_{mN}) &= \frac{\alpha a_E}{k_{mN} + \alpha a_E B}
 \end{align}
 $$
 
-$l$ are  enzyme limitation of decomposition devided by $B$.
+$l_Z$ are  enzyme limitation of decomposition divided by $B$.
 $\alpha$ is community enzyme allocation, 
 $a_E$ is the fraction of microbial biomass invested into synthesis of
 new enzymes.
@@ -71,12 +71,12 @@ $k_{mN}$ is a lumped parameter of enzyme half-saturation in depolimerisation
 and enzyme turnover.
 
 Since DOM and enzymes are assumed to be in steady state, part of the 
-enzime investment = enzyme turnover is re-uptaken by from DOM:
+enzyme investment = enzyme turnover is re-uptaken from DOM:
 $$
 m_E = f(a_E, \epsilon, \kappa_E) = a_E (1/\epsilon - \kappa_E)
 $$
 
-where $\epsilon$ is the anabolic carbon use efficiency ($1-\epsilon$)
+where $\epsilon$ is the anabolic carbon use efficiency ($(1-\epsilon)$
 of the uptake is catabolic respiration necessary for synthesizing given 
 biomass),
 and $\kappa_E$ is the fraction of enzyme turnover (=production) 
@@ -84,7 +84,7 @@ that goes into the DOM pool and uptake.
 
 Depending on whether biomass is starving, i.e. negative biosynthesis, cryptic
 growth, we have growth respiration. 
-Here, growth respiration ($r_G$) and overflow respiration ($r_o$) are again
+Here, growth respiration ($r_G$) and overflow respiration ($r_O$) are again
 expressed per $B$. 
 <!-- The part that goes to anablic biomass -->
 <!-- or enzyme production is denoted by $C_{\operatorname{synBa}}$. -->
@@ -92,12 +92,10 @@ expressed per $B$.
 $$
 \begin{align}
 r_G &= \begin{cases}
-  (1-\epsilon) \, C_{\operatorname{synB}},  & \text{if } C_{\operatorname{synB}} >
+  {1-\epsilon \over \epsilon} \, C_{\operatorname{synB}},  & \text{if } C_{\operatorname{synB}} >
   0\\
   0, & \text{otherwise}
 \end{cases} 
-\\  
-r_O &= C_{\operatorname{synBC}} - C_{\operatorname{synB}}
 \end{align}
 $$
 
@@ -107,28 +105,48 @@ $$
 <!--   C_{\operatorname{synB}}, & \text{otherwise} -->
 <!-- \end{cases}  -->
 
-$C_{\operatorname{synB}} = C_{\operatorname{synBa}} + r_G$ 
-is the carbon flux per $B$ available for biosynthesis 
-and associated growth respiration per $B$. 
-Its the minimum of the fluxes constrained by element $E \in \{C,N\}$.
+$C_{\operatorname{synBCt}}$ is the carbon constraint for biomass
+synthesis plus associated growth respiration. If it is negative,
+then there is no growth respiration.
+
+$$
+\begin{align}
+C_{\operatorname{synBCt}} &= \operatorname{dec}_L L + \operatorname{dec}_R R -m_E - m
+\\
+C_{\operatorname{synBC}} &= \begin{cases}
+  \epsilon \, C_{\operatorname{synBCt}},  & \text{if } C_{\operatorname{synBCt}} >
+  0\\
+  C_{\operatorname{synBCt}}, & \text{otherwise}
+\end{cases}
+\end{align}
+$$
+
+$C_{\operatorname{synB}}$ is the carbon flux per $B$ available for biosynthesis. It is the minimum of the fluxes constrained by element $E \in \{C,N\}$.
 
 $$
 \begin{align}
 C_{\operatorname{synB}} &= \min_E(C_{\operatorname{synBE}})
-\\  
-C_{\operatorname{synBC}} &= \operatorname{dec}_L L + \operatorname{dec}_R R -m_E - m
 \end{align}
 $$
+If biomass synthesis constrained by other elements, is lower
+than the one constrained by carbon, then excess carbon is respired by
+overflow respiration.
 
+$$
+\begin{align}
+r_O &= C_{\operatorname{synBCt}} - (C_{\operatorname{synB}} + r_G)
+\end{align}
+$$
 ### Transfer of product
 Respiration carries the signal of uptake of decomposition 
-or if bimass is decreasing a mixture of uptake and 
+or, if microbial biomass is decreasing, a mixture of uptake and 
 microbial biomass. 
 
-However when not considering isotopes or fraciotns we can describe respiration  
+However when not considering isotopes or fractions we can describe respiration  
 all leaving the biomass pool.
-Hemce, all decomposition fluxes go to DOM and by quasis steady state to $B$. 
-Part of the turnover of microbial biomass and turnover of enzymes goes to $R$.
+Hence, all decomposition fluxes go to DOM and by quasi steady state to $B$. 
+Part of the turnover of microbial biomass and turnover of enzymes goes to 
+residue pool, $R$.
 
 $$
 \begin{align}
@@ -137,16 +155,20 @@ T_{L \to B} = T_{R \to B} &= 1
 T_{B \to R} &= \frac{\epsilon_{Tvr} \tau + (1-\kappa_E) a_E}{\operatorname{out}_B} 
   = \frac{\epsilon_{Tvr} \tau + (1-\kappa_E) a_E}{\tau +m +m_E +r_G +r_O}
 \end{align}
-$$
+$$ 
+
+```{r eval=FALSE, include=FALSE}
+```
 
 
 ## Nitrogen compartment
 ### State variables
 $$
-(L_N, R_N, B_N, I)
+(L_N, R_N, B_N, I_N)
 $$
 In SESAM3 code always $B_N = \beta_B B$ is not explicitly tracked.
-But here we report its description for checking the compartmental conditions.
+Therefore, rates of N biomass fluxes are multiplied by $B_N$ rather than $B$, 
+so that the in contrast to SESAM3 the C/N factor does not occur.
 
 ### Inputs
 To labile OM pool and to inorganic pool:
@@ -154,13 +176,13 @@ $$
 \begin{align}
 i_{L_N}(t) &= i_L(t) \beta_{iL}
 \\
-i_I(t) &
+i_{I_N}(t) &
 \end{align}
 $$
 
 
 ### Outfluxes of the pools
-Are expressed normalized to the respective pool. Hence they, need to be multiplied by the respiective pool to give a flux.
+Are expressed normalized to the respective pool. Hence they, need to be multiplied by the respective pool to give a flux.
 
 $$
 \begin{align}
@@ -168,87 +190,79 @@ $$
 \\
 \operatorname{out}_{R_N} &= \operatorname{out}_{R}
 \\
-\operatorname{out}_{I} &= k_{IP}+ l + i_B 
+\operatorname{out}_{I_N} &= k_{I_NP}+ l_N + i_{BN} 
 \\
 \operatorname{out}_{B_N} &= \tau  + \operatorname{out}_{B_NEnzR} + 
     \operatorname{out}_{B_NEnzI} +  M_{\operatorname{Imb}} 
 \end{align}
 $$
-where $k_{IP}$ is plant uptake rate, $l$ is leaching rate, and $i_B$ is 
+where $k_{I_NP}$ is plant uptake rate, $l_N$ is leaching rate, and $i_{BN}$ is 
 maximum immobilization rate. 
 
 Net loss of enzyme production going to the $R_N$ pool during
-enzyme turnover and to $I$ during mineralization in DOM uptake:
+enzyme turnover and to $I_N$ during mineralization in DOM uptake:
 $$
 \begin{align}
 \operatorname{out}_{B_NEnzR} &= \operatorname{syn}_{B_NEnz} (1-\kappa_E)
 \\
-\operatorname{out}_{B_NEnzI} &= \operatorname{syn}_{B_NEnz} \kappa_E (1-\nu) 
+\operatorname{out}_{B_NEnzI} &= \operatorname{syn}_{B_NEnz} \kappa_E (1-\nu_N) 
 \\
 \operatorname{syn}_{B_NEnz} &= a_E \beta_B/\beta_E 
 \end{align}
 $$
-The remaining par is uptake of enzyme turnover from DOM in quasi steady state:
+The remaining part is uptake of enzyme turnover from DOM in quasi steady state:
 $$
-\operatorname{reuptake}_{B_NEnz} = \operatorname{syn}_{B_NEnz} \kappa_E \nu
-= a_E \beta_B/\beta_E \kappa_E \nu
+\operatorname{reuptake}_{B_NEnz} = \operatorname{syn}_{B_NEnz} \kappa_E \nu_N
+= a_E \beta_B/\beta_E \kappa_E \nu_N
 $$
 
-Although SESAM3 does not model gross immobilizationa and gross mineralization
-here we describe the a maxium immobilization flux, $i_B I$
-leaving the $I$ pool to $B$, and parts of it later return to $I$ 
+Although SESAM3 does not model gross immobilization and gross mineralization
+here we describe the a maximum immobilization flux, $i_{BN} I_N$
+leaving the $I_N$ pool to $B$, and parts of it later return to $I_N$ 
 as imbalance flux.
 
-The imbalance and synthesis per microbioal biomass N, $B_N$, is
+The imbalance and synthesis per microbial biomass N, $B_N$, is
 
 $$
 \begin{align}
-M_{\operatorname{Imb}} &= N_{\operatorname{synBN}} - (C_{\operatorname{synB}} -r_G)
+M_{\operatorname{Imb}} &= N_{\operatorname{synBN}} - C_{\operatorname{synB}} B / \beta_B / B_N = N_{\operatorname{synBN}} - C_{\operatorname{synB}} 
 \\
 N_{\operatorname{synBN}} &= u_N - \operatorname{syn}_{B_NEnz}
 \\
-u_N &= \nu (k_L l_L L_N  +  k_R l_R R_N 
+u_N &= \nu_N (k_L l_L L_N  +  k_R l_R R_N 
   + \kappa_E a_E /\beta_E) \beta_B
-  + i_B I/B_N 
+  + i_{BN} I_N/B_N 
 \end{align}
 $$
 
 The uptake, also, is expressed per microbial biomass N.
-The limitation of decomposition fluxes $l$ and enzyme investment $a_E$
+The limitation of decomposition fluxes $l_Z$ and enzyme investment $a_E$
 need to be multiplied by $B = \beta_B B_N$ instead of $B_N$. 
-Thats why the $\beta_B$ occurs as multiplicator.
+That is why the $\beta_B$ occurs as factor.
 
 The biomass synthesis constraint per microbial Biomass due to N expressed
-as proportion of microbial biomass N is the same as proportion of biomass 
-syntheis constraint expressed in N per biomass N.
-However, because carbon constraints must account for catabolic respiration,
-we must devide by $\epsilon$ if constraint is positive.
+as proportion of microbial biomass C is the same proportion as with
+expressed as proportion of microbial biomass N:
 
 $$
 \begin{align}
-C_{\operatorname{synBNa}} &= N_{\operatorname{synBN}} B_N \beta_B /B 
+C_{\operatorname{synBN}} &= {N_{\operatorname{synBN}} B_N \beta_B \over B} 
   = N_{\operatorname{synBN}} 
-\\
-C_{\operatorname{synBN}} &= \begin{cases}
-  N_{\operatorname{synBN}} / \epsilon,  & \text{if } N_{\operatorname{synBN}} >
-  0\\
-  N_{\operatorname{synBN}}, & \text{otherwise}
-\end{cases} 
 \end{align}  
 $$
 
 
 ### Transfer coefficients
 
-Part $1-\nu$ of the decomposition is mineralized during uptake mineraliztion.
+Part $1-\nu_N$ of the decomposition is mineralized during uptake mineraliztion.
 Since always $B_N = B / \beta_B$, it is not explicitly tracked as state 
 variable, but part of the model matrix form description.
 
 $$
 \begin{align}
-T_{L_N \to B_N} &= T_{R_N \to B_N} = \nu
+T_{L_N \to B_N} &= T_{R_N \to B_N} = \nu_N
 \\
-T_{L_N \to I} &= T_{R_N \to I} = 1 - \nu
+T_{L_N \to I_N} &= T_{R_N \to I_N} = 1 - \nu_N
 \\
 T_{B_N \to R_N} &=  
 \frac{\epsilon_{\operatorname{Tvr}} \tau + \operatorname{out}_{B_NEnzR}}{\operatorname{out}_{B_N}}
@@ -257,14 +271,14 @@ $$
 
 SESAM3 does not compute gross mineralization and gross immobilization, but
 only the net flux. 
-For convenience, however, we describe the maximum flux from $I$ to $B$, and
-the flux from $B$ to $I$ as the imbalance between the maximum 
+For convenience, however, we describe the maximum flux from $I_N$ to $B$, and
+the flux from $B$ to $I_N$ as the imbalance between the maximum 
 gross immobilization plus organic N uptake and microbial demand.
 $$
 \begin{align}
-T_{I \to B_N} &= \frac{i_B}{\operatorname{out}_{I}} = \frac{i_B}{k_{IP}+ l + i_B}
+T_{I_N \to B_N} &= \frac{i_{BN}}{\operatorname{out}_{I_N}} = \frac{i_{BN}}{k_{IP}+ lN + i_{BN}}
 \\
-T_{B_N \to I} &= \frac{\operatorname{out}_{B_NEnzI} + M_{\operatorname{Imb}} }{\operatorname{out}_{B_N}}
+T_{B_N \to I_N} &= \frac{\operatorname{out}_{B_NEnzI} + M_{\operatorname{Imb}} }{\operatorname{out}_{B_N}}
 \end{align}
 $$
 
@@ -276,11 +290,11 @@ It implements a time lag behind a target composition.
 
 $$
 \frac{d\alpha}{dt} = (\alpha_{\operatorname{Target}} - \alpha)
-  ( \tau + \mid C_{\operatorname{synB}} - r_G \mid) 
+  ( \tau + \mid C_{\operatorname{synB}}\mid) 
 $$
 With $\alpha_{\operatorname{Target}}$ described in appendix A4.
 
-Note that here, $C_{\operatorname{synB}}$ and $r_G$ are expressed per
+Note that here, $C_{\operatorname{synB}}$ is expressed per
 microbial biomass, differently from Appendix A in Wutzler 2019.
 
 
