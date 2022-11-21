@@ -75,7 +75,7 @@ parmsModel <- within(parmsModel, {
 })
 ```
 
-For simplicity model drivers currently are prescibed as constant parameters.
+For simplicity model drivers currently are prescribed as constant parameters.
 ```{r}
 drivers <- list(
         iR = 0          ##<< input of residue litter
@@ -85,7 +85,7 @@ drivers <- list(
         ,iIN = 0         ##<< input of mineral N
 )
 parms0 <- within( c(parmsModel, drivers), {
-  iIN <- iL/cnIL/200    # assume a fractionof 1/10 of annual litter production
+  iIN <- iL/cnIL/200    # assume a fraction of 1/10 of annual litter production
   kINPlant <- 1/5*365 # tvr of 5 days
   plantNUpAbs <- iL/cnIL + iIN # plants take maximum out as much as returned by litter
   # plus inorganic input, difference is grazed
@@ -152,7 +152,7 @@ runFaceSimulation <- function(
     cnIL <- cnIL*fInputInc
   }) 
   derivSesam3a(0, xE, parmsC2)
-  times <- seq(0,t2I, length.out = t2I*6 + 1)# record bymonthly
+  times <- seq(0,t2I, length.out = t2I*6 + 1)# record by-monthly
   res <- res2I <- as.data.frame(lsoda( 
     xE[1:length(.$x0) + 1], times, .$mod, parms = parmsC2))
   res2I$time <- res2I$time + t1S 
@@ -169,9 +169,10 @@ runFaceSimulation <- function(
   resc
 }
 .tmp.f <- function(){
-  scen <- unlist(filter(scenarios, scenario == "Explicit"), recursive = FALSE)
   scen <- unlist(filter(scenarios, scenario == "Sesam3a"), recursive = FALSE)
+  scen <- unlist(filter(scenarios, scenario == "Explicit"), recursive = FALSE)
   scen <- unlist(filter(scenarios, scenario == "Sesam3B"), recursive = FALSE)
+  t1S =20; t2I = 40; t3S = 70; parms = parms0
   resScen <- runFaceSimulation( scen )
 }
 resScen <- scenarios %>% 
@@ -205,7 +206,7 @@ p2f <- ggplot( dsp, aes(x = time, y = value, col = scen, linetype = scen)) + geo
 #print(p2f + colScale)
 print(p2f)
 ```
-Why is Sesam3B differnt at the end of FACE?
+Why is Sesam3B different at the end of FACE?
 ```{r}
 dst <- filter(resScen, scen %in% c("Sesam3a","Sesam3B"), time %in% c(20,60))
 #total N balance
@@ -226,8 +227,8 @@ become N limited. Is this reasonable?
 ## Result
 
 Model Sesam3a matches the dynamics of the explicit SEAM model at this time scale.
-When neglecting enzyme mass fluxes, the dynamcis is similar, but the steady state 
-, expecially for R, is slightly lower.
+When neglecting enzyme mass fluxes, the dynamics is similar, but the steady state 
+, especially for R, is slightly lower.
 
 The model with steady state microbial biomass, Sesam3B, captures the same dynamics.
 
@@ -257,8 +258,9 @@ p2f <- ggplot( dsp, aes(x = time, y = value, col = Model, linetype = Model)) + g
   xlab("Time (yr)") + ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
   themePaper +
   #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
+  #review request: put legend outside plot
   #theme(legend.position = c(0.8,0.9), legend.justification = c(1,1)) +
-  theme(legend.position = c(0.98,0.02), legend.justification = c(1,0)) +
+  #theme(legend.position = c(0.98,0.02), legend.justification = c(1,0)) +
   theme(panel.border = element_rect(colour = "black", fill = NA)) +
   theme(strip.background = element_blank()) +			
   theme(panel.grid.major.x = element_line(colour = "grey75")) +
@@ -269,7 +271,7 @@ print(p2f)
 
 ```
 ```{r}
-
+ggsave(p2f, file="simIncreasedC-1.pdf")
 ```
 
 
