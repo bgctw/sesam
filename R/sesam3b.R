@@ -185,7 +185,7 @@ derivSesam3b <- function(
     , PhiNBU = as.numeric(PhiNBU)
     , immoNPot = as.numeric(immoNPot)
     , alphaTarget = as.numeric(alphaTarget)
-    , alphaCR = as.numeric(alphaCR), alphaN = as.numeric(alphaN)
+    #, alphaCR = as.numeric(alphaCR), alphaN = as.numeric(alphaN)
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
     , limER = as.numeric(limER), limEL = as.numeric(limEL)
     , decR = as.numeric(decR), decL = as.numeric(decL)

@@ -69,7 +69,7 @@ parms0 <- within(parms0,{
   lP <- lN       # leaching rate of inorganic P equals that of N
   nuP <- nuN     # mineralization of P during decomposiition equals that of N
   kIPPlant <- kINPlant  # plant uptake rate of P equals that of N
-  iIP <- lN      # assume no P inputs compensate for leaching
+  iIP <- lP      # assume no P inputs compensate for leaching
   kLP <- kRP <- kSP
   pELP <- pERP <- pESP
 })

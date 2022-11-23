@@ -1,5 +1,5 @@
 #require(testthat)
-context("modSeam3a")
+#context("modSeam3a")
 
 parms0 <- list(
   cnB = 7.16

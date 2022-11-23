@@ -103,7 +103,7 @@ x0Nlim <- c( #aE = 0.001*365
   , alphaR = 0.5              ##<< initial community composition
 )
 # fixed substrate ---------------------------------------------------------
-test_that("same as sesam3a for fixed substrates", {
+test_that("fixed substrates", {
   parmsFixedS <- within(parms0,{
     isFixedS <- TRUE
   })
@@ -159,7 +159,7 @@ test_that("same as sesam3a for fixed substrates", {
 })
 
 # # substrate feedbacks ---------------------------------------------------------
-test_that("same as sesam3a with substrate feedbacks", {
+test_that("substrate feedbacks", {
   parmsInit <- within(parms0, {isFixedI <- TRUE})
   ans0 <- derivSesam3P(0, x0, parms = parmsInit)
   times <- seq(0,2000, length.out = 2)
@@ -174,6 +174,17 @@ test_that("same as sesam3a with substrate feedbacks", {
   xETest
   expect_true( xETest["alphaL"] > 0.5)
   #
+  # old assumptions alphaOpt ~ revenue
+  resTest_rel <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = within(parmsInit, isRelativeAlpha<-TRUE)))
+  xETest_rel <- unlist(tail(resTest_rel,1))
+  expect_true(xETest_rel["alphaR"] > xETest["alphaR"])
+  .tmp.f <- function(){
+    xETest
+    xETest_rel
+    derivSesam3P(0, xETest[1+seq_along(x0)], parms = parmsInit)
+    derivSesam3P(0, xETest_rel[1+seq_along(x0)], parms = within(parmsInit, isRelativeAlpha<-TRUE))
+  }
+  #
   # N limitation
   parmsNlim <- within(parmsInit, cnIL <- 90)
   resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsNlim))
@@ -185,8 +196,7 @@ test_that("same as sesam3a with substrate feedbacks", {
 
 .tmp.f <- function(){
   # plots of results
-  library(dplyr)
-  library(ggplot2)
+  #library(dplyr);  library(ggplot2)
   ggplot(filter(resTest, time > 1), aes(time, B)) + geom_line(alpha = 0.5)
   ggplot(filter(resTest, time > 0), aes(time, alphaL)) + geom_point(alpha = 0.5)
   ggplot(filter(resTest, time < 500 & time > 0), aes(time, alphaL)) + geom_point()

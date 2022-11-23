@@ -21,7 +21,6 @@ derivSesam4b <- function(
   cnE <- parms$cnE
   cnB <- parms$cnB
   cnBW <- parms$cnBW
-  cnBL <- parms$cnBL
   cpR <- x["RC"]/x["RP"]
   cpL <- x["LC"]/x["LP"]
   cpE <- parms$cpE
@@ -34,10 +33,10 @@ derivSesam4b <- function(
   cnBL <- if (cW == 1 ) cnB else (1 - cW)/(1/cnB - cW/cnBW)
   cpBL <- if (cW == 1 ) cpB else (1 - cW)/(1/cpB - cW/cpBW)
   alpha <- cbind(L = x["alphaL"], R = x["alphaR"], LP = NA, RP = x["alphaRP"])[1,]
-  alpha["LP"] <- 1 - sum(alpha, na.rm = TRUE)
+  alpha["LP"] <- max(0,1 - sum(alpha, na.rm = TRUE))
   if (any(alpha < -1e-8)) stop(
     "expected all alpha in [0..1] but was ", paste0(alpha,sep = ","))
-  alpha <- pmax(alpha,0)      # no negative community compositions
+  #alpha <- pmax(alpha,0)      # no negative community compositions
   B <- x["BC"]
   aeB <- parms$aE*B        # aeB without associanted growth respiration
   kmN <- parms$kmN #parms$km*parms$kN
@@ -163,7 +162,9 @@ derivSesam4b <- function(
     ,names = c("BC","RC","RN","RP","LC","LN","LP","IN","IP"
                ,"alphaL","alphaR","alphaRP"
                , "resp", "leachN", "leachP"))[names(x)]
-  if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
+  if (any(!is.finite(resDeriv))) {
+    stop("encountered nonFinite derivatives")
+  }
   sqrEps <- sqrt(.Machine$double.eps)
   # parms$iL - (decL + dL)
   # parms$iR + tvrC -(decR + dR)
@@ -171,26 +172,29 @@ derivSesam4b <- function(
   # checking the mass balance of fluxes
   # biomass mass balance
   if (diff( unlist(
-    c(uC = uC, usage = respB + synB + synE )))^2 > sqrEps )  stop(
-    "biomass mass balance C error")
+    c(uC = uC, usage = respB + synB + synE )))^2 > sqrEps )
+    stop("biomass mass balance C error")
   if (diff( unlist(
     c(uN = uNOrg, usage = synE/parms$cnE
       + synB/parms$cnB + PhiNB )))^2 >
-    .Machine$double.eps)  stop("biomass mass balance N error")
+    .Machine$double.eps^{1/4}) {
+    stop("biomass mass balance N error")
+  }
   if (diff( unlist(
     c(uP = uPOrg + uPP, usage = synE/parms$cpE
       + synB/parms$cpB + PhiPB )))^2 >
-    .Machine$double.eps)  stop("biomass mass balance P error")
+    .Machine$double.eps)
+    stop("biomass mass balance P error")
   # biomass turnover mass balance
   if (diff( unlist(
-    c(tvrB + tvrBPred, usage = respTvr + tvrBOrg )))^2 > sqrEps )  stop(
-    "biomass turnover mass balance C error")
+    c(tvrB + tvrBPred, usage = respTvr + tvrBOrg )))^2 > sqrEps )
+    stop("biomass turnover mass balance C error")
   if (diff( unlist(c(
     tvrB/cnB + tvrBPred/cnB
     , usage = PhiNTvr + tvrBOrg/cnB
     #, usage = PhiNTvr + cW*tvrBOrg/cnBW + (1 - cW)*tvrBOrg/cnBL
-  )))^2 > sqrEps )  stop(
-    "biomass turnover mass balance N error")
+  )))^2 > sqrEps )
+    stop("biomass turnover mass balance N error")
   if (diff( unlist(c(
     (tvrB + tvrBPred)/cpB
     , usage = PhiPTvr + cW*tvrBOrg/cpBW + (1 - cW)*tvrBOrg/cpBL
@@ -204,7 +208,9 @@ derivSesam4b <- function(
       c( dB/parms$cnB  + dRN + dLN + dIN + tvrExN
          , parms$iR/parms$cnIR  + parms$iL/parms$cnIL + parms$iIN -
          plantNUp - dLeachN)
-      ))^2 > .Machine$double.eps )  stop("mass balance dN error")
+      ))^2 > .Machine$double.eps^{1/4} ){
+      stop("mass balance dN error")
+    }
     if (diff(unlist(
       c( dB/parms$cpB  + dRP + dLP + dIP + tvrExP
          , parms$iR/parms$cpIR  + parms$iL/parms$cpIL + parms$iIP -
@@ -279,8 +285,8 @@ derivSesam4b <- function(
 }
 
 
-computeElementLimitations <- function(
-  ### compute element limitations
+computeElementLimitations_sesam2 <- function(
+  ### compute element limitations, superseded by computeElementLimitations
   CsynBE   ##<< numeric vector of carbon available for biomass synthesis
   , tauB   ##<< scalar typical microbial turnover flux for scaling
   , delta = 10  ##<< scalar smoothing factor, the higher, the steeper the transition
@@ -296,6 +302,28 @@ computeElementLimitations <- function(
   wELimNorm <- wELim/sum(wELim)
   ##value<< numeric vector: fractional element limitations with names
   ## corresponding to names of CsynBE
+}
+.tmp.f <- function(){
+  w_sesam2 = computeElementLimitations_sesam2(CsynBE, tauB)
+  wELimNorm - w_sesam2
+}
+
+computeElementLimitations <- function(
+  ### compute element limitations
+  CsynBE   ##<< numeric vector of carbon available for biomass synthesis
+  , tauB   ##<< scalar typical microbial turnover flux for scaling
+  , delta = 40  ##<< scalar smoothing factor, the higher, the steeper the transition
+  , max_w = 12  ##<< maximum log(weight) to prevent numerical problems with large epxonents
+){
+  ##details<< Select the alpha corresponding to the smallest CsynBE.
+  ## However, if elemental limitations are close,
+  ## do a smooth transition between corresponding smallest alpha values
+  synB = min(CsynBE)
+  wELim <- exp(pmin(max_w, -delta/tauB*(CsynBE - synB)) )
+  wELimNorm <- structure(wELim/sum(wELim), names=names(CsynBE))
+  ##value<< numeric vector: fractional element limitations with names
+  ## corresponding to names of CsynBE
+  wELimNorm
 }
 
 #' @export
@@ -313,6 +341,7 @@ computeSesam4bAllocationPartitioning <- function(
   ,limE   ##<< numeric vector (nElement) of weights of elemental limitations
   ,betaN    ##<< numeric vector of C/N ratios of substrates and enzymes
   ,betaP   ##<< numeric vector of C/P ratios of substrates (L,R) and enzymes (E)
+  ,e_P = 0
 ){
   #limE <- limEP <- c(C = 0, N = 0, P = 1)
   #limE <- limE0 <- c(C = 0, N = 0.408838431792989, P = 0.591161568206928  )
@@ -324,7 +353,6 @@ computeSesam4bAllocationPartitioning <- function(
   if (any(sort(c(names(dS),names(dSP))) != sort(names(alpha)))) stop(
     "expected names in c(dS, dSP) to match names(alpha) but got ",
     c(names(dS),names(dSP)), " versus ", names(alpha))
-  p0 <- 0
   synEnz <- aE*B
   invest <- alpha*synEnz *
     (limE["C"] + limE["N"]/betaN["E"] + limE["P"]/betaP["E"])
@@ -335,8 +363,8 @@ computeSesam4bAllocationPartitioning <- function(
       (limE["C"] + limE["N"]/betaN[[S]] + limE["P"]/betaP[[S]])
   }, USE.NAMES = FALSE), names = names(dS))
   returnSP <- structure(sapply(names(dSP),function(S){
-    dSP[[S]]*((alpha[[S]]*synEnz + p0)/(kmkN + alpha[[S]]*synEnz + p0) -
-                (p0)/(kmkN + p0))*limE["P"]
+    dSP[[S]]*((alpha[[S]]*synEnz + e_P)/(kmkN + alpha[[S]]*synEnz + e_P) -
+                (e_P)/(kmkN + e_P))*limE["P"]
   }, USE.NAMES = FALSE), names = names(dSP))
   # make sure that ordering of return components is the same as in alpha
   revenue <- c(returnS, returnSP)[names(alpha)]/pmax(1e-12,invest)

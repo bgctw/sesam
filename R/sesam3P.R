@@ -8,13 +8,14 @@ derivSesam3P <- function(
   t,x,parms
 ){
   ##details<<
-  ## Sesam3P (Sesam3a extended by Phosphorous) extended by biomineralization
+  ## derivSesam3P (Sesam3a extended by Phosphorous) extended by biomineralization
+  ## Compared to Sesam3P, here
+  ## - the biomineralizing enzmye attacks both L and R pool
+  ## - the biomineralizing enzyme is also produced by plants at rate e_P
   x <- pmax(unlist(x),1e-16)      # no negative masses
   # compute steady state enzyme levels for N and for C limitation
   dRPot <- parms$kR * x["R"]
   dLPot <- parms$kL * x["L"]
-  dLPPot <- parms$kLP * x["LP"] # potential biomineralization
-  dRPPot <- parms$kRP * x["RP"]
   immoNPot <- parms$iBN * x["IN"]
   immoPPot <- parms$iBP * x["IP"]
   cnR <- x["R"]/x["RN"]
@@ -25,9 +26,13 @@ derivSesam3P <- function(
   cpL <- x["L"]/x["LP"]
   cpE <- parms$cpE
   cpB <- parms$cpB
-  # one state variable less, here LP, because alphas sum to one
-  alpha <- cbind(L = x["alphaL"], R = x["alphaR"], LP = NA, RP = x["alphaRP"])[1,]
-  alpha["LP"] <- 1 - sum(alpha, na.rm = TRUE)
+  dLPPot <- parms$kLP * x["L"] # potential biomineralization in C-units: devide by cpL
+  dRPPot <- parms$kRP * x["R"]
+  # one state variable less, here P, because alphas sum to one
+  alpha <- cbind(L = x["alphaL"], R = x["alphaR"], P = NA)[1,]
+  # take care for small negative alphas and renormalize to sum to 1
+  alpha["P"] <- max(0, 1 - sum(alpha, na.rm = TRUE))
+  alpha <- alpha/sum(alpha)
   B <- x["B"]
   aeB <- parms$aE*B        # aeB without associated growth respiration
   kmN <- parms$kmN #parms$km*parms$kN
@@ -38,8 +43,9 @@ derivSesam3P <- function(
   # enzyme limitations of decomposition
   decL <- dLPot * alpha["L"]*aeB/(kmN + alpha["L"]*aeB)
   decR <- dRPot * alpha["R"]*aeB/(kmN + alpha["R"]*aeB)
-  decLP <- dLPPot * alpha["LP"]*aeB/(kmN + alpha["LP"]*aeB)
-  decRP <- dRPPot * alpha["RP"]*aeB/(kmN + alpha["RP"]*aeB)
+  limEnzP <- (parms$e_P * alpha["P"]*aeB)/(kmN + parms$e_P + alpha["P"]*aeB)
+  decLP_P <- dLPPot/cpL * limEnzP # P units
+  decRP_P <- dRPPot/cpR * limEnzP
   #
   tvrERecycling <- parms$kNB*synE
   uNOrg <- parms$nuN*(decL/cnL + decR/cnR + tvrERecycling/cnE)
@@ -62,18 +68,18 @@ derivSesam3P <- function(
   limE <- computeElementLimitations(
     cbind(C = CsynBC, N = CsynBN, P = CsynBP)[1,]
     , tauB = parms$tau*B)
-  alphaTarget <- computeSesam4bAllocationPartitioning(
-    dS = cbind(R = dRPot, L = dLPot)[1,]
-    ,dSP = cbind(RP = dRPPot, LP = dLPPot)[1,]
-    , B = B
-    ,kmkN = kmN, aE =  parms$aE
-    ,alpha = alpha
-    ,limE = limE
-    ,betaN = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
-    ,betaP = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
-  )
-  # microbial community change as fast as microbial turnover
-  dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
+  dAlpha <- if (isTRUE(parms$isRelativeAlpha)) {
+    dAlpha_rel <- calc_dAlphaP_relative_plant(
+      alpha, dRPot, dLPot, dRPPot/cpR, dLPPot/cpL, synB, B, parms, limE,
+      cnL, cnR, cpL, cpR
+    )
+  } else {
+    res_dAlpha <- calc_dAlphaP_propto_du(
+      alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+      cnL, cnR, cpL, cpR
+    )
+    res_dAlpha[[1]]
+  }
   #
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
   respO <- uC - (synE/parms$eps + synB + rG + rM)
@@ -104,15 +110,16 @@ derivSesam3P <- function(
   }
   PhiNU <- (1 - parms$nuN)*(decL/cnL + decR/cnR + tvrERecycling/cnE)
   leachP <- parms$lP*x["IP"]
-  PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE)
+  PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE) +
+    decLP_P +decRP_P
   #
   dB <- synB - tvrB
   dL <- -decL  + parms$iL
   dLN <- -decL/cnL   + parms$iL/parms$cnIL
-  dLP <- -decL/cpL   + parms$iL/parms$cpIL
+  dLP <- -decL/cpL -decLP_P + parms$iL/parms$cpIL
   dR <- -decR  + parms$iR  + tvrC
   dRN <- -decR/cnR  + parms$iR/parms$cnIR  + tvrN
-  dRP <- -decR/cpR  + parms$iR/parms$cpIR  + tvrP
+  dRP <- -decR/cpR  -decRP_P + parms$iR/parms$cpIR  + tvrP
   # here plant uptake as absolute parameter
   dIN <-  +parms$iIN  - plantNUp  - leachN  + PhiNU  + PhiNB  + PhiNTvr
   dIP <-  +parms$iIP  - plantPUp  - leachP  + PhiPU  + PhiPB  + PhiPTvr
@@ -132,9 +139,9 @@ derivSesam3P <- function(
   #
   resDeriv <- structure(as.numeric(
     c( dB, dR, dRN, dRP, dL, dLN, dLP, dIN, dIP
-       , dAlpha["L"], dAlpha["R"], dAlpha["RP"]))
+       , dAlpha["L"], dAlpha["R"]))
     ,names = c("dB","dR","dRN","dRP","dL","dLN","dLP","dIN","dIP"
-               ,"dAlphaL","dAlphaR","dAlphaRP"))
+               ,"dAlphaL","dAlphaR"))
   if (any(!is.finite(resDeriv))) stop("encountered nonFinite derivatives")
   sqrEps <- sqrt(.Machine$double.eps)
   # parms$iL - (decL + dL)
@@ -198,6 +205,7 @@ derivSesam3P <- function(
     , PhiNB = as.numeric(PhiNB), PhiNU = as.numeric(PhiNU)
     , PhiNTvr = as.numeric(PhiNTvr)
     , PhiNBU = as.numeric(PhiNBU)
+    , plantNUp = as.numeric(plantNUp)
     , immoNPot = as.numeric(immoNPot)
     , PhiPTotal = as.numeric(PhiPB + PhiPU + PhiPTvr)
     , PhiPB = as.numeric(PhiPB), PhiPU = as.numeric(PhiPU)
@@ -206,7 +214,8 @@ derivSesam3P <- function(
     , immoPPot = as.numeric(immoPPot)
     , structure(limE, names = paste0("lim",names(limE)))
     , structure(limZ, names = paste0("limZ",names(limZ)))
-    , structure(alphaTarget, names = paste0("alpha",names(alphaTarget)))
+    #, structure(alphaTarget, names = paste0("alphat",names(alphaTarget)))
+    , alphaP = alpha[["P"]]
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
     , cpR = as.numeric(cpR), cpL = as.numeric(cpL)
     , decR = as.numeric(decR), decL = as.numeric(decL)
@@ -221,7 +230,56 @@ derivSesam3P <- function(
     #, dIN = as.numeric(dIN)
     #, uC = as.numeric(uC), synB = as.numeric(synB)
     #, decN = as.numeric(decN)
+    , decLP_P = as.numeric(decLP_P), decRP_P = as.numeric(decRP_P)
   ))
 }
 
 # moved computation of elemental limitations to sesam4b
+
+calc_dAlphaP_relative_plant <- function(
+  alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+  cnL, cnR, cpL, cpR)
+{
+  alphaTarget <- computeSesam4bAllocationPartitioning(
+    dS = cbind(R = dRPot, L = dLPot)[1,]
+    ,dSP = c(P = as.numeric(dRPPot+dLPPot))
+    , B = B
+    ,kmkN = parms$kmN, aE =  parms$aE
+    ,alpha = alpha
+    ,limE = limE
+    ,betaN = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
+    ,betaP = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
+    ,e_P = parms$e_P
+  )
+  # microbial community change as fast as microbial turnover
+  dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
+}
+
+calc_dAlphaP_propto_du <- function(
+  alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+  cnL, cnR, cpL, cpR)
+{
+  dL <- dLPot * (limE["C"] + limE["N"]/cnL + limE["P"]/cpL)
+  dR <- dRPot * (limE["C"] + limE["N"]/cnR + limE["P"]/cpR)
+  dP <- limE["P"]*(dLPPot/cnL+dRPPot/cpR)
+  aeB <- parms$aE*B
+  du <- c(
+    L = unname(aeB*parms$kmN*dL/(parms$kmN + alpha["L"]*aeB)^2),
+    R = unname(aeB*parms$kmN*dR/(parms$kmN + alpha["R"]*aeB)^2),
+    P = unname(aeB*parms$kmN*dP/(parms$e_P + parms$kmN + alpha["P"]*aeB)^2)
+  )
+  # only change alpha if its larger than zero or if the change is positive
+  # update the mean_du to only include the participating enzymes
+  mean_du_prev <- -Inf; mean_du <- mean(du)
+  is <- rep(TRUE, length(alpha)) # enzymes not in Z0
+  while (mean_du_prev != mean_du) {
+    is <- is & (alpha > 1.1e-16 | du > mean(du))
+    mean_du_prev <- mean_du
+    mean_du <- mean(du[is])
+  }
+  dud = (du - mean_du)/mean_du
+  dud[!is] <- 0
+  dalpha = (parms$tau + abs(synB)/B) * dud
+  dalpha
+  list(dalpha=dalpha, du=du, dS=c(L=unname(dL),R=unname(dR),P=unname(dP)))
+}
