@@ -378,6 +378,168 @@ computeSesam4bAllocationPartitioning <- function(
   revR = dS["R"]/(kmkN + alpha["R"]*aE*B)
   c(revL, revR)
   (alphaTarget_old = revR/(revL + revR))
-
 }
+
+
+compute_eweighted_potential <- function(
+  dS,    ##<< numeric vector (L,R) of potential depolymerization C-fluxes
+  dSP,   ##<< numeric vector of potential biomineralization P-fluxes in carbon units
+  limE,      ##<< elemental limiations
+  betaN,    ##<< numeric vector of C/N ratios of substrates and enzymes
+  betaP   ##<< numeric vector of C/P ratios of substrates (L,R) and enzymes (E)
+) {
+  c(
+    dS["L"]*(limE["C"]+limE["N"]/betaN["L"]+limE["P"]/betaP["L"]),
+    dS["R"]*(limE["C"]+limE["N"]/betaN["R"]+limE["P"]/betaP["R"]),
+    P = unname((dSP["L"]/betaP["L"]+dSP["L"]/betaP["L"])*limE["P"])
+  )
+}
+
+#' @export
+computeSesam4bOptimalAllocationPartitioning <- function(
+  ###  allocation partitioning alpha of four enzymes and biomineralization
+  dL, dR, dP, ##<< elemental-limitation weighted potential decomposition
+  params,    ##<< list of model parameters with entries kmN, aE, e_P
+  B, synB
+){
+  p = within(params, B<-B, synB <- synB)
+  dumax = sort(du_dalpha(c(L=0,R=0,P=0), dL, dR, dP, p), decreasing = TRUE)
+  if(names(dumax[1]) == "L") {
+    du1 = du_dalphaS(1, dL, p, e_P=0)
+    if (du1 > dumax[2]) return(c(L=1,R=0,P=0))
+    if (names(dumax[2]) == "R"){
+      alphaL = calc_alpha3_optLR(dL, dR, p)
+      du2 = du_dalphaS(alphaL, dL, p, e_P = 0)
+      if (du2 > dumax[3]) return(c(L=alphaL,R=(1-alphaL),P=0))
+    } else { # umax2 must be P
+      alphaL = calc_alphaS_optSP(dL,dP,p)
+      du2 = du_dalphaS(alphaL, dL, p, e_P = 0)
+      if (du2 > dumax[3]) return(c(L=alphaL,R=0,P=(1-alphaL)))
+    }
+    alpha3 = calc_alpha3_optLRP(dL,dR,dP,p)
+    return(alpha3)
+  }
+  if(names(dumax[1]) == "R") {
+    du1 = du_dalphaS(1, dR, p, e_P = 0)
+    if (du1 > dumax[2]) return(c(L=0,R=1,P=0))
+    if (names(dumax[2]) == "L"){
+      alphaL = calc_alpha3_optLR(dL, dR, p)
+      du2 = du_dalphaS(alphaL, dL, p, e_P = 0)
+      if (du2 > dumax[3]) return(c(L=alphaL,R=(1-alphaL),P=0))
+    } else { # umax2 must be P
+      alphaR = calc_alphaS_optSP(dR,dP,p)
+      du2 = du_dalphaS(alphaR, dR, p, e_P = 0)
+      if (du2 > dumax[3]) return(c(L=0,R=alphaR,P=(1-alphaR)))
+    }
+    alpha3 = calc_alpha3_LRP(dL,dR,dP,p)
+    return(alpha3)
+  }
+  if(names(dumax[1]) == "P") {
+    du1 = du_dalphaS(1, dP, p)
+    if (du1 > dumax[2]) return(c(L=0,R=0,P=1))
+    if (names(dumax[2]) == "L"){
+      alphaL = calc_alphaS_optSP(dL,dP,p)
+      du2 = du_dalphaS(alphaL, dL, p, e_P = 0)
+      if (du2 > dumax[3]) return(c(L=alphaL,R=0,P=(1-alphaL)))
+    } else if (names(dumax[2]) == "R") {
+      alphaR = calc_alphaS_optSP(dR,dP,p)
+      du2 = du_dalphaS(alphaR, dR, p, e_P = 0)
+      if (du2 > dumax[3]) return(c(L=0,R=alphaR,P=(1-alphaR)))
+    }
+    alpha3 = calc_alpha3_optLRP(dL,dR,dP,p)
+    return(alpha3)
+  }
+  stop("unhandled umax: ", dumax)
+  ##value<< numeric vector of revenue-optimal alpha for enzymes L,R,LP,RP
+}
+
+du_dalpha <- function(
+  ### compute derivatives of total return given an allocation
+  alpha3,
+  dL, dR, dP, ##<< elemental-limitation weighted potential decomposition
+  p  ## list with entries kmN, aE, e_P, and B
+){
+  if (is.matrix(alpha3)) {
+    du <- cbind(
+      du_dalphaS(alpha3[,"L", drop=FALSE], dL, p, e_P = 0),
+      du_dalphaS(alpha3[,"R", drop=FALSE], dR, p, e_P = 0),
+      du_dalphaS(alpha3[,"P", drop=FALSE], dP, p)
+    )
+    colnames(du) <- c("L","R","P")
+    du
+  } else {
+    c(
+      L = unname(du_dalphaS(alpha3["L"], dL, p, e_P = 0)),
+      R = unname(du_dalphaS(alpha3["R"], dR, p, e_P = 0)),
+      L = unname(du_dalphaS(alpha3["P"], dP, p))
+    )
+  }
+}
+du_dalphaS <- function(
+  ### compute derivatives of total return given an allocation
+  alpha, ##<< allocation to specific enzyme
+  dS,    ##<< elemental-limitation weighted potential decomposition
+  p,     ##<< list with entries kmN, aE, e_P, and B
+  e_P = p$e_P
+){
+  ##details<< Set e_P to zero for depolymerizing enzymes
+  aeB = p$aE * p$B
+  aeB * p$kmN * dS / (e_P + p$kmN + alpha*aeB)^2
+}
+
+calc_alpha3_optLR <- function(dL, dR, p, alphaP=0){
+  dLmdR = dL - dR
+  alphaL <- unname(ifelse(dLmdR == 0, 0.5, {
+    aeB = p$aE*p$B
+    A = aeB*(1-alphaP) * dL + p$kmN*(dL+dR)
+    D = (aeB*(1-alphaP) + 2*p$kmN)*sqrt(dL*dR)
+    d = aeB*dLmdR
+    alpha0 <- (A-D)/d  # only the second root is reasonable
+    alpha <- pmin(1,pmax(0,alpha0))
+  }))
+  alphaL
+}
+calc_alpha3_optLRP <- function(dL,dR, dP, p){
+  aeB = p$aE*p$B
+  A = 2*aeB*dL^(3/2)*dP*sqrt(dR) - aeB*dL^2*dP - aeB*dL*dP*dR + 4*dL^(3/2)*dP*sqrt(dR)*p$kmN - dL^3*p$e_P - dL^3*p$kmN -
+    2*dL^2*dP*p$kmN + 2*dL^2*dR*p$e_P + 2*dL^2*dR*p$kmN - 2*dL*dP*dR*p$kmN - dL*dR^2*p$e_P - dL*dR^2*p$kmN
+  D = sqrt(dP)*(aeB + p$e_P + 3*p$kmN)*sqrt(-2*dL^(9/2)*sqrt(dR) + 4*dL^(7/2)*dR^(3/2) - 2*dL^(5/2)*dR^(5/2) + dL^5 - dL^4*dR - dL^3*dR^2 + dL^2*dR^3)
+  B = aeB*(2*dL^(3/2)*dP*sqrt(dR) + dL^3 - dL^2*dP - 2*dL^2*dR - dL*dP*dR + dL*dR^2)
+  alphaP <- (A+D)/B
+  alphaL <- calc_alpha3_optLR(dL,dR,p,alphaP)
+  alphaR <- 1-alphaL-alphaP
+  alpha=cbind(L=alphaL,R=alphaR,P=alphaP)
+  alpha
+}
+calc_alphaS_optSP <- function(dS, dP, p){
+  dLmdR = dS - dP
+  alphaL <- unname(ifelse(dLmdR == 0, 0.5, {
+    aeB = p$aE*p$B
+    A = (aeB+p$e_P+p$kmN)*dL + p$kmN*dP
+    D = sqrt(dL*dP)*(aeB + p$e_P + 2*p$kmN)
+    d = aeB*dLmdR
+    alpha0 <- (A-D)/d  # only the second root is reasonable
+    alphaL <- pmin(1,pmax(0,alpha0))
+  }))
+  alphaL
+}
+
+
+
+
+u_decomp <- function(
+  ### compute the derivative of revenue of a depolymerizing enzyme
+  alpha, ##<< allocation to this enzyme
+  dLorR, ##<< elemental-limitation weighted potential decomposition
+  p,      ##<< list with entries kmN, aE and B
+  dE=1  ##<< elemental-limitation weighted enzyme investment
+){
+  dLorR/dE/(p$kmN + alpha * p$aE * p$B)
+}
+u_biomin <- function(alpha, dP, p, dE=1){
+  dP*p$kmN/dE/((p$kmN + p$e_P)^2 + alpha * p$aE * p$B * ((p$kmN + p$e_P)))
+}
+
+
+
 

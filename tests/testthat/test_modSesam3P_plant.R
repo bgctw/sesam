@@ -164,6 +164,7 @@ test_that("substrate feedbacks", {
   ans0 <- derivSesam3P(0, x0, parms = parmsInit)
   times <- seq(0,2000, length.out = 2)
   #times <- seq(0,800, length.out = 101)
+  #times <- seq(0,100, length.out = 101)
   #times <- c(0,148:151)
   #times <- seq(0,2100, by = 2)
   #times <- seq(0,10000, length.out = 101)
@@ -183,6 +184,18 @@ test_that("substrate feedbacks", {
     xETest_rel
     derivSesam3P(0, xETest[1+seq_along(x0)], parms = parmsInit)
     derivSesam3P(0, xETest_rel[1+seq_along(x0)], parms = within(parmsInit, isRelativeAlpha<-TRUE))
+  }
+  # specific optimal allocation
+  resTest_opt <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = within(parmsInit, isOptimalAlpha<-TRUE)))
+  xETest_opt <- unlist(tail(resTest_opt,1))
+  expect_true(abs(xETest_opt["alphaR"] - xETest["alphaR"]) < 1e-4 )
+  .tmp.f <- function(){
+    xETest
+    xETest_opt
+    derivSesam3P(0, xETest[1+seq_along(x0)], parms = parmsInit)
+    derivSesam3P(0, xETest_opt[1+seq_along(x0)], parms = within(parmsInit, isOptimalAlpha<-TRUE))
+    plot(times, resTest$alphaL, type="l")
+    lines(times, resTest_opt$alphaL, type="l", col="blue")
   }
   #
   # N limitation

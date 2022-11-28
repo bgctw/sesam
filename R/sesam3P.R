@@ -73,6 +73,11 @@ derivSesam3P <- function(
       alpha, dRPot, dLPot, dRPPot/cpR, dLPPot/cpL, synB, B, parms, limE,
       cnL, cnR, cpL, cpR
     )
+  } else if (isTRUE(parms$isOptimalAlpha)) {
+    dAlpha_opt <- calc_dAlphaP_optimal(
+      alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+      cnL, cnR, cpL, cpR
+    )
   } else {
     res_dAlpha <- calc_dAlphaP_propto_du(
       alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
@@ -254,6 +259,24 @@ calc_dAlphaP_relative_plant <- function(
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
 }
+
+calc_dAlphaP_optimal <- function(
+  alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+  cnL, cnR, cpL, cpR)
+{
+  dSw <- compute_eweighted_potential(
+    dS = cbind(R = dRPot, L = dLPot)[1,]
+    ,dSP = c(L = unname(dLPPot), R=unname(dRPPot))
+    ,limE = limE
+    ,betaN = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
+    ,betaP = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
+  )
+  alphaTarget <- computeSesam4bOptimalAllocationPartitioning(dSw["L"],dSw["R"],dSw["P"], params=parms, B, synB)
+  # microbial community change as fast as microbial turnover
+  dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
+}
+
+
 
 calc_dAlphaP_propto_du <- function(
   alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
