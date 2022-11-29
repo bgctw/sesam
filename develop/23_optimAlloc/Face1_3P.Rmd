@@ -1,12 +1,13 @@
 ---
 title: "SESAM Soil enzyme steady allocoation model"
 output:
+  html_notebook: default
   pdf_document:
     keep_tex: true
-  html_notebook: default
 ---
 
 Simplified from 19GMD_paper/CompareModels.Rmd
+Based on Sesam3P version, which includes potential P limitation.
 
 ## Simulate a FACE scenario using the Sesam3b model
 ```{r, echo=FALSE, results='hide', message=FALSE}
@@ -15,6 +16,7 @@ library(grid)   #unit
 library(RColorBrewer) # brewer.pal
 library(tidyr)
 library(dplyr)
+library(purrr)
 
 myColors <- brewer.pal(5,"Dark2")	
 .simpleCap <- function(s) {
@@ -52,9 +54,9 @@ parmsModel <- list(
   ,tau = 1/60*365  ##<< biomass turnover rate (12 days)
   ,eps = 0.68      ##<< carbon use efficiency for growth respiration
   #,eps = 0.5      ##<< carbon use efficiency for growth respiration
-  #,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (part by predators 
+  ,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (part by predators 
   #,epsTvr = 0.45   ##<< carbon use efficiency of microbial tvr (part by predators 
-  ,epsPred = 3     ##<< carbon use efficiency of microbial tvr (part by predators 
+  #,epsPred = 3     ##<< carbon use efficiency of microbial tvr (part by predators 
   ## which respire and corresponding amount of N must be mineralized)
   #,iBN = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
   ,iBN = 0.4 ##<< potential immobilization flux rate of inorganic N
@@ -68,10 +70,12 @@ parmsModel <- list(
   #
   #
   ,lP = 0.001  # very small to not run into P limitation  
+  ,nuP = 0.0     # microbial P use efficiency: no direct P uptake
   , cpE = 1e5
   , cpB = 1e8 # for not running into P limitation, here assume no P required in biomass
   , iBP = 0.38 * 10.57 # start with same as N
   , kIPPlant = 0.0 #kINPlant  # plant uptake rate of P equals that of N
+  , e_P = 0.0 # no plant P enzyme production
   #
   # additional parameters with version 4: detailed microbial turnover
   #, cnBW = 10    ##<< C/N ratio of cell walls (that go to R, )
@@ -82,7 +86,7 @@ parmsModel <- list(
   # , B0 = 0  # minimal biomass, below which predation rate is zero
   # #, tauP = 0.1 # slope of predation rate with biomass
   # , tauP = 0 # slope of predation rate with biomass
-  # , kSP = 1/30 # 1/x years
+  #, kSP = 1/30 # 1/x years
   # , pESP = 0.01  # /year production of phospatase by plants, small to check balance
   # , nuPP = 0.05 # most of the phosphats to to mineral pool
 )
@@ -115,80 +119,114 @@ parms0 <- within( c(parmsModel, drivers), {
   # plus inorganic input, difference is grazed
   # keep leaching as otherwise it accumulates during priming
   #lN <- 0 # no leaching
-  kLP <- kRP <- kSP
-  pELP <- pERP <- pESP
+  kLP <- kL # same efficiency as depolymerizing enzyme 
+  kRP <- kR
 })
 ```
 
 The initial pools must be specified. The Steady models do not have the enzyme pools as state variables.
 ```{r}
 x0 <- x0Explicit <- c( #aE = 0.001*365
-        BC = 17                     ##<< microbial biomass 
-        ,RC = 1100                ##<< N rich substrate
+        B = 17                     ##<< microbial biomass 
+        ,R = 1100                ##<< N rich substrate
         ,RN = 1100/parms0$cnIR   ##<< N rich substrate N pool
         ,RP = 1100/parms0$cpIR
-        ,LC = 100                 ##<< N poor substrate
+        ,L = 100                 ##<< N poor substrate
         ,LN = 100/parms0$cnIL    ##<< N poor substrate N pool
         ,LP = 100/parms0$cpIL    ##<< N poor substrate N pool
         ,IN =  0.04 #150 #0.04                ##<< inorganic pool gN/m2
         #,IP =  0.04 #150 #0.04                ##<< inorganic pool gN/m2
         ,IP =  150 # prevent P limitation          ##<< inorganic pool gN/m2
         #, alpha = 0.5            ##<< microbial community partitioning [0,1]
-        , alphaR = 0.5, alphaL=0.4, alphaRP=0.1    ##<< microbial community partitioning [0,1]
+        #, alphaL=0.4, alphaR = 0.5, alphaRP=0.1    ##<< microbial community partitioning [0,1]
+        , alphaL=0.4, alphaR = 0.5    ##<< microbial community partitioning [0,1]
 )
 parms = parms0
 ```
 
+We store the information that differs between scenarios in a tibble.
+```{r}
+scenarios <- tibble::tibble(
+  scenario = c("Optimal","Relative","Derivative")
+  ,parms = list(
+    within(parms0,isOptimalAlpha<-TRUE), 
+    within(parms0,isRelativeAlpha<-TRUE), 
+    parms0)
+)
+scenarios$x0 <- list(x0)
+scenarios$mod <- list(derivSesam3P)
+tmp <- structure(myColors[1:nrow(scenarios)], names = scenarios$scenario)
+colScale <- scale_colour_manual(name = "Model variant",values = tmp )
+scenarios
+```
+
 Next the simulation runs are performed.
 ```{r}
-  t1S =20; t2I = 40; t3S = 70; parms = parms0
-  tmp = derivSesam4b(0, x0, parms)
+runFaceSimulation <- function(scen, t1S =20, t2I = 40, t3S = 70) {
+  . <- scen
+  #t1S =20; t2I = 40; t3S = 70; parms = parms0
+  tmp = derivSesam3P(0, .$x0, .$parms)
 
   # spinup to steady state
   times <- seq(0,1000, length.out = 500)
+  #times <- seq(0,0.07, length.out = 50)
+  #times <- seq(0,0.06, length.out = 50)
   #times <- seq(0,20, length.out = 50)
-  res <- res1 <- as.data.frame(lsoda( x0, times, derivSesam4b, parms = parms))
+  res <- res1 <- as.data.frame(lsoda( .$x0, times, .$mod, parms = .$parms))
+  
   #ggplot(res, aes(time, IN)) + geom_line()
   #ggplot(res, aes(time, alphaR)) + geom_line()
-  #ggplot(res, aes(time, BC)) + geom_line()
-  #ggplot(res, aes(time, RC)) + geom_line()
+  #ggplot(res, aes(time, alphaL)) + geom_line()
+  #ggplot(res, aes(time, B)) + geom_line()
+  #ggplot(res, aes(time, R)) + geom_line()
   #ggplot(res, aes(time, limP)) + geom_line()
-  xE <- unlist(tail(res,1))
+  xE <- unlist(tail(res,1)); xE
   .interactive_trythis <- function(){
     # one call to the derivative function, 
     #    first element returns the derivative
     #    second element is a vector of additonal fluxes/outputs
     #      e.g. tmp[[2]]["uC"] is the carbon uptake of microbial biomass
-    tmp = derivSesam4b(0, xE[1+(1:length(x0))], parms); tmp
+    tmp = derivSesam3P(0, xE[1+(1:length(.$x0))], .$parms); tmp
     # task: compute CUE from these outputs
   }
   #
   # t1S years of steady state recorded
   # task: get familiar with lsoda from package deSolve
   res <- res1S <- as.data.frame(lsoda( 
-    xE[1:length(x0) + 1], 1:t1S, derivSesam4b, parms = parms))
+    xE[1:length(.$x0) + 1], 1:t1S, .$mod, parms = .$parms))
   #
   # t2I years of increased input
   fInputInc = 1.2
-  parmsC2 <- within(parms, {# more C in litter, but not more N 
+  parmsC2 <- within(.$parms, {# more C in litter, but not more N 
     iL <- iL*fInputInc
     cnIL <- cnIL*fInputInc
   }) 
-  #derivSesam4b(0, xE, parmsC2)
+  #derivSesam3P(0, xE, parmsC2)
   times <- seq(0,t2I, length.out = t2I*6 + 1)# record by-monthly
   res <- res2I <- as.data.frame(lsoda( 
-    xE[1:length(x0) + 1], times, derivSesam4b, parms = parmsC2))
+    xE[1:length(.$x0) + 1], times, .$mod, parms = parmsC2))
   res2I$time <- res2I$time + t1S 
   xE2 <- unlist(tail(res2I,1))
   #
   # t3S years of initial input
   times <- seq(0,t3S, length.out = t3S*6 + 1) # record bymonthly
   res <- res3S <- as.data.frame(lsoda( 
-    xE2[1:length(x0) + 1], times, derivSesam4b, parms = parms))
+    xE2[1:length(.$x0) + 1], times, .$mod, parms = .$parms))
   res3S$time <- res3S$time + t1S + t2I
   xE3 <- tail(res3S,1)
   resc <- rbind( res1S, res2I[-1,], res3S[-1,])
-  head(resc)
+}
+.tmp.f <- function(){
+  #"Optimal","Relative","Derivative"
+  scen <- unlist(filter(scenarios, scenario == "Optimal"), recursive = FALSE)
+  scen <- unlist(filter(scenarios, scenario == "Relative"), recursive = FALSE)
+  scen <- unlist(filter(scenarios, scenario == "Derivative"), recursive = FALSE)
+  resScen <- runFaceSimulation( scen ) %>% mutate(scenario = scen$scenario)
+}
+resScen <- scenarios %>% nest(data=!.data$scenario) %>% mutate(res=map(.data$data, function(df){
+  scen <- unlist(df, recursive = FALSE)
+  runFaceSimulation(scen)
+  })) %>%  select(scenario,res) %>% unnest(cols=res)
 ```
 
 Plot some results.
@@ -198,12 +236,14 @@ vars <- c("L","R","alphaR","RL")
 vars <- c("L","R","alphaR","B","RL","IN") 
 vars <- c("L","R","alphaR","B","RL","IN","plantNUp","PhiNB","PhiNTotal") 
 #vars <- c("alpha","B", "cnL", "PhiNB","PhiNTotal","immoNPot", "CsynBC","CsynBN") 
-dsp <- resc %>% 
+dsp <- 
+  #resc %>% 
+  resScen %>% 
   #filter(time >= 20, time <= 40) %>% 
   mutate(RL = R + L, cnRL = (R + L)/(RN + LN)) %>% # compute additional quantities
   #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
-  select(any_of(c("time",vars))) %>% gather("Pool","value", vars)
-p2f <- ggplot( dsp, aes(x = time, y = value)) + geom_line(linewidth = 1) +
+  select(any_of(c("time","scenario",vars))) %>% gather("Pool","value", vars)
+p2f <- ggplot( dsp, aes(x = time, y = value, col = scenario, linetype = scenario)) + geom_line(linewidth = 1) +
   facet_grid(Pool ~ .,scales = "free") + 
   xlab("Time (yr)") + ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
   themeDefault +
@@ -216,18 +256,8 @@ p2f <- ggplot( dsp, aes(x = time, y = value)) + geom_line(linewidth = 1) +
 #print(p2f + colScale)
 print(p2f)
 ```
-```{r}
-# task: compute and plot CUE
-
-```
-
-Task: play with some of the parameters.
-Look at simulated steady-state after spin-up and at limitation weights.
-
 
 ```{r}
-.tmp.f <- function(){
-  
-}
+.tmp.f <- function(){}
 ```
 
