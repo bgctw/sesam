@@ -74,10 +74,11 @@ derivSesam3P <- function(
       cnL, cnR, cpL, cpR
     )
   } else if (isTRUE(parms$isOptimalAlpha)) {
-    dAlpha_opt <- calc_dAlphaP_optimal(
+    res_dAlpha_opt <- calc_dAlphaP_optimal(
       alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
       cnL, cnR, cpL, cpR
     )
+    res_dAlpha_opt[[1]]
   } else {
     res_dAlpha <- calc_dAlphaP_propto_du(
       alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
@@ -274,6 +275,7 @@ calc_dAlphaP_optimal <- function(
   alphaTarget <- computeSesam4bOptimalAllocationPartitioning(dSw["L"],dSw["R"],dSw["P"], params=parms, B, synB)
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
+  list(dAlpha=dAlpha, alphaTarget = alphaTarget)
 }
 
 
@@ -300,9 +302,14 @@ calc_dAlphaP_propto_du <- function(
     mean_du_prev <- mean_du
     mean_du <- mean(du[is])
   }
-  dud = (du - mean_du)/mean_du
+  #dud = (du - mean_du)/mean_du
+  #the formulation for optimal allocation is on an absolute scale rather than
+  #a relative scale. Putting optimal allocation to a relative scale would
+  #result in deviding (alpha_Target - alpha) by mean(alpha), which is 1/n_enz
+  #because sum(alpha)=1. To compensate, here we multiply by (1/n_enz = 1/sum(is))
+  dud = (du - mean_du)/mean_du/sum(is)
   dud[!is] <- 0
   dalpha = (parms$tau + abs(synB)/B) * dud
   dalpha
-  list(dalpha=dalpha, du=du, dS=c(L=unname(dL),R=unname(dR),P=unname(dP)))
+  list(dalpha=dalpha, dud=dud, du=du, dS=c(L=unname(dL),R=unname(dR),P=unname(dP)))
 }

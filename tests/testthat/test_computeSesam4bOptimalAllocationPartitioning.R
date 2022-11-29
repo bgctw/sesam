@@ -35,3 +35,70 @@ test_that("computeSesam4bOptimalAllocationPartitioning", {
   is_Pallocated <- alpha3["P",] > 0
   expect_equal(du[is_Pallocated,"L"], du[is_Pallocated,"P"])
 })
+
+.tmp.check_time_evolution <- function(){
+  B <- 1
+  parms = within(list(
+    aE = 0.1,
+    e_P = 0,
+    tau = 365/30
+    ,cnIR = 4.5     ##<< between micr and enzyme signal
+    ,cnIL = 30      ##<< N poor substrate
+    , cpE = 50
+    , cpB = 40
+    #, cpBW = 50
+    , cpIR = 40
+    , cpIL = 40*3
+  ), kmN <- aE*B/2)
+
+  #library(deSolve)
+  alpha0 = alpha <- c(L=1,R=1,P=1)/3 #compute_alpha3_relative(dL,dR,dP,p)
+  dLPot <- dLPPot <- 1.0
+  dRPot <- dRPPot <- 0.7
+  synB <- parms$tau * B # steady state B
+  limE <- c(C=0.8, N=0.1, P=0.1)
+  cnL <- parms$cnIL
+  cnR <- parms$cnIR
+  cpL <- parms$cpIL
+  cpR <- parms$cpIR
+
+  da0 <- calc_dAlphaP_propto_du(
+    alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+    cnL, cnR, cpL, cpR
+  )
+  da0_opt <- calc_dAlphaP_optimal(
+    alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+    cnL, cnR, cpL, cpR
+  )
+  (da0_opt$alphaTarget - alpha)
+  da0$dud
+
+  times <- seq(0,0.2,length.out=201)
+  #times <- seq(0,2,length.out=201)
+  #times <- seq(0,0.03,length.out=201)
+  res_ode <- lsode(alpha0, times, function(t,alpha,parms){
+    calc_dAlphaP_propto_du(
+      alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+      cnL, cnR, cpL, cpR
+    )
+    }, parms)
+  res_ode_opt <- lsode(alpha0, times, function(t,alpha,parms){
+    calc_dAlphaP_optimal(
+      alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+      cnL, cnR, cpL, cpR
+    )
+  }, parms)
+  plot(times, res_ode[,"L"], type="l")
+  lines(times, res_ode_opt[,"L"], col="blue")
+  # currently the derivative-based dynamics is much faster than the optimal
+
+  plot(times, res_ode[,"P"], type="l")
+  lines(times, res_ode_opt[,"P"], col="blue")
+
+  plot(times, res_ode[,"R"], type="l")
+  lines(times, res_ode_opt[,"R"], col="blue")
+
+
+  alpha <- res_ode_opt[length(times),2:4]
+
+}
