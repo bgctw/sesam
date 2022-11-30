@@ -68,7 +68,9 @@ derivSesam3P <- function(
   limE <- computeElementLimitations(
     cbind(C = CsynBC, N = CsynBN, P = CsynBP)[1,]
     , tauB = parms$tau*B)
-  dAlpha <- if (isTRUE(parms$isRelativeAlpha)) {
+  dAlpha <- if (isTRUE(parms$isFixedAlpha)) {
+    c(L=0, R=0, P=0)
+  } else if (isTRUE(parms$isRelativeAlpha)) {
     dAlpha_rel <- calc_dAlphaP_relative_plant(
       alpha, dRPot, dLPot, dRPPot/cpR, dLPPot/cpL, synB, B, parms, limE,
       cnL, cnR, cpL, cpR
@@ -85,6 +87,9 @@ derivSesam3P <- function(
       cnL, cnR, cpL, cpR
     )
     res_dAlpha[[1]]
+  }
+  if (x["alphaR"] <= 1e-16){
+    tmp = 1
   }
   #
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
@@ -234,7 +239,7 @@ derivSesam3P <- function(
     #, NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
     #, dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)
     #, dIN = as.numeric(dIN)
-    #, uC = as.numeric(uC), synB = as.numeric(synB)
+    , uC = as.numeric(uC)
     #, decN = as.numeric(decN)
     , decLP_P = as.numeric(decLP_P), decRP_P = as.numeric(decRP_P)
   ))
@@ -296,9 +301,9 @@ calc_dAlphaP_propto_du <- function(
   # only change alpha if its larger than zero or if the change is positive
   # update the mean_du to only include the participating enzymes
   mean_du_prev <- -Inf; mean_du <- mean(du)
-  is <- rep(TRUE, length(alpha)) # enzymes not in Z0
+  is <- setNames(rep(TRUE, length(alpha)), names(alpha)) # enzymes not in Z0
   while (mean_du_prev != mean_du) {
-    is <- is & (alpha > 1.1e-16 | du > mean(du))
+    is <- is & (alpha > 1.1e-16 | du > mean_du)
     mean_du_prev <- mean_du
     mean_du <- mean(du[is])
   }
@@ -311,5 +316,5 @@ calc_dAlphaP_propto_du <- function(
   dud[!is] <- 0
   dalpha = (parms$tau + abs(synB)/B) * dud
   dalpha
-  list(dalpha=dalpha, dud=dud, du=du, dS=c(L=unname(dL),R=unname(dR),P=unname(dP)))
+  list(dalpha=dalpha, dud=dud, du=du, dS=c(L=unname(dL),R=unname(dR),P=unname(dP)),is=is)
 }
