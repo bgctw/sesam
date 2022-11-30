@@ -283,11 +283,53 @@ calc_dAlphaP_optimal <- function(
   list(dAlpha=dAlpha, alphaTarget = alphaTarget)
 }
 
-
-
 calc_dAlphaP_propto_du <- function(
-  alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-  cnL, cnR, cpL, cpR)
+    alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+    cnL, cnR, cpL, cpR)
+{
+  dL <- dLPot * (limE["C"] + limE["N"]/cnL + limE["P"]/cpL)
+  dR <- dRPot * (limE["C"] + limE["N"]/cnR + limE["P"]/cpR)
+  dP <- limE["P"]*(dLPPot/cnL+dRPPot/cpR)
+  aeB <- parms$aE*B
+  du <- c(
+    L = unname(aeB*parms$kmN*dL/(parms$kmN + alpha["L"]*aeB)^2),
+    R = unname(aeB*parms$kmN*dR/(parms$kmN + alpha["R"]*aeB)^2),
+    P = unname(aeB*parms$kmN*dP/(parms$e_P + parms$kmN + alpha["P"]*aeB)^2)
+  )
+  mean_du <- sum(alpha*du) #weighted.mean(du,alpha)
+  # only change alpha if its larger than zero or if the change is positive
+  # update the mean_du to only include the participating enzymes
+  is <- setNames(rep(TRUE, length(alpha)), names(alpha)) # enzymes not in Z0
+  # mean_du_prev <- -Inf;
+  # while (mean_du_prev != mean_du) {
+  #   is <- is & (alpha > 1.1e-16 | du > mean_du)
+  #   mean_du_prev <- mean_du
+  #   mean_du <- weighted.mean(du[is],alpha[is])
+  # }
+  dud = alpha*(du - mean_du)/mean_du
+  dud[!is] <- 0
+  # # scale fluxes so that positive changes are propotional to alpha
+  # # and negative changes are proportional to alpha
+  # # but that they still add up to 0
+  # neg = dud < 0
+  # adud = alpha*dud
+  # b = -sum(adud[neg])/sum(adud[!neg])
+  # dalpha = (parms$tau + abs(synB)/B) * adud*ifelse(neg,1,b)
+  dalpha = (parms$tau + abs(synB)/B) * dud
+  if (abs(sum(dalpha)) > 1e-12) {
+    tmp = 1
+  }
+  dalpha
+  list(dalpha=dalpha, dud=dud, du=du, dS=c(L=unname(dL),R=unname(dR),P=unname(dP)),is=is)
+}
+
+
+
+
+
+calc_dAlphaP_propto_du_bak <- function(
+    alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+    cnL, cnR, cpL, cpR)
 {
   dL <- dLPot * (limE["C"] + limE["N"]/cnL + limE["P"]/cpL)
   dR <- dRPot * (limE["C"] + limE["N"]/cnR + limE["P"]/cpR)
@@ -318,3 +360,4 @@ calc_dAlphaP_propto_du <- function(
   dalpha
   list(dalpha=dalpha, dud=dud, du=du, dS=c(L=unname(dL),R=unname(dR),P=unname(dP)),is=is)
 }
+

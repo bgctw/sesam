@@ -19,6 +19,7 @@ library(RColorBrewer) # brewer.pal
 library(tidyr)
 library(dplyr)
 library(knitr)
+library(forcats)
 
 myColors <- brewer.pal(5,"Dark2")	
 .simpleCap <- function(s) {
@@ -122,16 +123,16 @@ driversN <- list(
 ```
 
 
-The initial pools must be specified. The Steady models do not have the enzyme pools as state variables.
+The initial pools must be specified. 
 ```{r}
 x0N <- c( #aE = 0.001*365
         B = 17                     ##<< microbial biomass 
         #,ER  = 2*parms0$km                  ##<< total enzyme pool
         #,EL  = 4*parms0$km                   ##<< total enzyme pool
         ,R = 1100                ##<< N rich substrate
-        ,RN = 1100/parms0$cnIR   ##<< N rich substrate N pool
+        ,RN = 1100/driversN$cnIR   ##<< N rich substrate N pool
         ,L = 10#100                 ##<< N poor substrate
-        ,LN = 10/parms0$cnIL #100/parms0$cnIL    ##<< N poor substrate N pool
+        ,LN = 10/driversN$cnIL #100/parms0$cnIL    ##<< N poor substrate N pool
         ,IN =  0.04                ##<< inorganic pool gN/m2
         , alpha = 0.5            ##<< microbial community partitioning [0,1]
 )

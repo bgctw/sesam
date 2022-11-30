@@ -53,6 +53,7 @@ test_that("computeSesam4bOptimalAllocationPartitioning", {
 
   #library(deSolve)
   alpha0 = alpha <- c(L=1,R=1,P=1)/3 #compute_alpha3_relative(dL,dR,dP,p)
+  #alpha0 = alpha <- c(L=0.7,R=0.2,P=0.1)
   dLPot <- dLPPot <- 1.0
   dRPot <- dRPPot <- 0.7
   synB <- parms$tau * B # steady state B
@@ -70,12 +71,16 @@ test_that("computeSesam4bOptimalAllocationPartitioning", {
     alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
     cnL, cnR, cpL, cpR
   )
+  da0_opt$dAlpha
+  da0$dalpha
+  sum(da0$dalpha)
   (da0_opt$alphaTarget - alpha)
   da0$dud
 
-  times <- seq(0,0.2,length.out=201)
+  times <- seq(0,2,length.out=201)
   #times <- seq(0,2,length.out=201)
   #times <- seq(0,0.03,length.out=201)
+  #times <- seq(0,0.01,length.out=201)
   res_ode <- lsode(alpha0, times, function(t,alpha,parms){
     calc_dAlphaP_propto_du(
       alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
@@ -88,17 +93,19 @@ test_that("computeSesam4bOptimalAllocationPartitioning", {
       cnL, cnR, cpL, cpR
     )
   }, parms)
-  plot(times, res_ode[,"L"], type="l")
-  lines(times, res_ode_opt[,"L"], col="blue")
-  # currently the derivative-based dynamics is much faster than the optimal
+  .tmp.f <- function(){
+    plot(times, res_ode[,"L"], type="l", ylim=range(c(res_ode[,"L"],res_ode_opt[,"L"])))
+    lines(times, res_ode_opt[,"L"], col="blue")
+    # currently the derivative-based dynamics is much faster than the optimal
 
-  plot(times, res_ode[,"P"], type="l")
-  lines(times, res_ode_opt[,"P"], col="blue")
+    plot(times, res_ode[,"P"], type="l", ylim=range(c(res_ode[,"P"],res_ode_opt[,"P"])))
+    lines(times, res_ode_opt[,"P"], col="blue")
 
-  plot(times, res_ode[,"R"], type="l")
-  lines(times, res_ode_opt[,"R"], col="blue")
+    plot(times, res_ode[,"R"], type="l", ylim=range(c(res_ode[,"R"],res_ode_opt[,"R"])))
+    lines(times, res_ode_opt[,"R"], col="blue")
+  }
 
-
-  alpha <- res_ode_opt[length(times),2:4]
-
+  alpha <- alpha_opt <- res_ode_opt[length(times),2:4]
+  alpha <- res_ode[length(times),2:4]
+  expect_equal(alpha, alpha_opt)
 }
