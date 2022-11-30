@@ -6,9 +6,9 @@ output:
   html_notebook: default
 ---
 
-Start from Sesam3Overview.
+Simplified from 19GMD_paper/CompareModels.Rmd
 
-## Comparison using the FACE scenario
+## Simulate a FACE scenario using the Sesam3a model
 ```{r, echo=FALSE, results='hide', message=FALSE}
 library(ggplot2)
 library(grid)   #unit
@@ -92,15 +92,12 @@ parms0 <- within( c(parmsModel, drivers), {
   # keep leaching as otherwise it accumulates during priming
   #lN <- 0 # no leaching
 })
-parms0Noenz <- within(parms0, isEnzymeMassFlux <- FALSE)
 ```
 
 The initial pools must be specified. The Steady models do not have the enzyme pools as state variables.
 ```{r}
 x0 <- x0Explicit <- c( #aE = 0.001*365
         B = 17                     ##<< microbial biomass 
-        ,ER  = 2*parms0$km                  ##<< total enzyme pool
-        ,EL  = 4*parms0$km                   ##<< total enzyme pool
         ,R = 1100                ##<< N rich substrate
         ,RN = 1100/parms0$cnIR   ##<< N rich substrate N pool
         ,L = 100                 ##<< N poor substrate
@@ -108,92 +105,69 @@ x0 <- x0Explicit <- c( #aE = 0.001*365
         ,IN =  0.04 #150 #0.04                ##<< inorganic pool gN/m2
         , alpha = 0.5            ##<< microbial community partitioning [0,1]
 )
-x0Steady <- x0Explicit[c("B","R","RN","L","LN","IN")]
-x0SteadyA <- c(x0Steady,alpha = 0.5)
-x0B <- x0SteadyA[setdiff(names(x0SteadyA),"B")]
-```
-
-We store the information that differs between scenarios in a tibble.
-```{r}
-scenarios <- tibble::tibble(
-  scenario = c("Explicit","Sesam3a","NeglectEnzFlux","Sesam3B")
-  ,mod = c(derivSeam3a, derivSesam3a, derivSesam3a, derivSesam3B)
-  ,x0  = list(x0Explicit, x0SteadyA, x0SteadyA, x0B)
-  ,parms = list(parms0, parms0, parms0Noenz, parms0)
-)
-tmp <- structure(myColors[1:nrow(scenarios)], names = scenarios$scenario)
-colScale <- scale_colour_manual(name = "Model variant",values = tmp )
+mod = derivSesam3a  # model variant
+parms = parms0
 ```
 
 Next the simulation runs are performed.
 ```{r}
-runFaceSimulation <- function(
-  scen, t1S =20, t2I = 40, t3S = 70, parms = parms0
-){
+  t1S =20; t2I = 40; t3S = 70; parms = parms0
   # spinup to steady state
-  times <- seq(0,1000, length.out = 2)
-  #times <- seq(0,5, length.out = 500)
-  #setwd("../..");loadPkg()
-  . <- scen
-  res <- res1 <- as.data.frame(lsoda( .$x0, times, .$mod, parms = .$parms))
+  times <- seq(0,1000, length.out = 500)
+  res <- res1 <- as.data.frame(lsoda( x0, times, mod, parms = parms))
   #ggplot(res, aes(time, IN)) + geom_line()
   xE <- unlist(tail(res,1))
-  #xE["IN"] <- 0.04  # decrease IN pool # does not help filled up by mircobial tvr
+  .interactive_trythis <- function(){
+    # one call to the derivative function, 
+    #    first element returns the derivative
+    #    second element is a vector of additonal fluxes/outputs
+    #      e.g. tmp[[2]]["uC"] is the carbon uptake of microbial biomass
+    tmp = derivSesam3a(0, xE, parms); tmp
+    # task: compute CUE from these outputs
+  }
   #
   # t1S years of steady state recorded
-  #derivSesam3a(0, xE, .$parms)
+  # task: get familiar with lsoda from package deSolve
   res <- res1S <- as.data.frame(lsoda( 
-    xE[1:length(.$x0) + 1], 1:t1S, .$mod, parms = .$parms))
+    xE[1:length(x0) + 1], 1:t1S, mod, parms = parms))
   #
   # t2I years of increased input
   fInputInc = 1.2
-  parmsC2 <- within(.$parms, {# more C in litter, but not more N 
+  parmsC2 <- within(parms, {# more C in litter, but not more N 
     iL <- iL*fInputInc
     cnIL <- cnIL*fInputInc
   }) 
-  derivSesam3a(0, xE, parmsC2)
+  #derivSesam3a(0, xE, parmsC2)
   times <- seq(0,t2I, length.out = t2I*6 + 1)# record by-monthly
   res <- res2I <- as.data.frame(lsoda( 
-    xE[1:length(.$x0) + 1], times, .$mod, parms = parmsC2))
+    xE[1:length(x0) + 1], times, mod, parms = parmsC2))
   res2I$time <- res2I$time + t1S 
   xE2 <- unlist(tail(res2I,1))
   #
   # t3S years of initial input
   times <- seq(0,t3S, length.out = t3S*6 + 1) # record bymonthly
   res <- res3S <- as.data.frame(lsoda( 
-    xE2[1:length(.$x0) + 1], times, .$mod, parms = .$parms))
+    xE2[1:length(x0) + 1], times, mod, parms = parms))
   res3S$time <- res3S$time + t1S + t2I
   xE3 <- tail(res3S,1)
   resc <- rbind( res1S, res2I[-1,], res3S[-1,])
-  resc$scen <- scen$scenario
-  resc
-}
-.tmp.f <- function(){
-  scen <- unlist(filter(scenarios, scenario == "Sesam3a"), recursive = FALSE)
-  scen <- unlist(filter(scenarios, scenario == "Explicit"), recursive = FALSE)
-  scen <- unlist(filter(scenarios, scenario == "Sesam3B"), recursive = FALSE)
-  t1S =20; t2I = 40; t3S = 70; parms = parms0
-  resScen <- runFaceSimulation( scen )
-}
-resScen <- scenarios %>% 
-  #filter(scenario == "Sesam3a") %>% 
-  rowwise() %>% do( runFaceSimulation(.) )
+  head(resc)
 ```
 
+Plot some results.
 
 ```{r}
 vars <- c("L","R","alpha","RL") 
 vars <- c("L","R","alpha","B","RL","IN") 
 vars <- c("L","R","alpha","B","RL","IN","plantNUp","PhiNB","PhiNTotal") 
 #vars <- c("alpha","B", "cnL", "PhiNB","PhiNTotal","immoNPot", "CsynBC","CsynBN") 
-dsp <- resScen %>% 
-  filter(scen != "NeglectEnzFlux") %>% 
+dsp <- resc %>% 
   #filter(scen == "Sesam3a") %>% 
   #filter(time >= 20, time <= 40) %>% 
-  mutate(RL = R + L, cnRL = (R + L)/(RN + LN)) %>% 
+  mutate(RL = R + L, cnRL = (R + L)/(RN + LN)) %>% # compute additional quantities
   #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
-  select(one_of(c("time","scen",vars))) %>% gather("Pool","value", vars)
-p2f <- ggplot( dsp, aes(x = time, y = value, col = scen, linetype = scen)) + geom_line(size = 1) +
+  select(one_of(c("time",vars))) %>% gather("Pool","value", vars)
+p2f <- ggplot( dsp, aes(x = time, y = value)) + geom_line(linewidth = 1) +
   facet_grid(Pool ~ .,scales = "free") + 
   xlab("Time (yr)") + ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
   themeDefault +
@@ -206,72 +180,10 @@ p2f <- ggplot( dsp, aes(x = time, y = value, col = scen, linetype = scen)) + geo
 #print(p2f + colScale)
 print(p2f)
 ```
-Why is Sesam3B different at the end of FACE?
 ```{r}
-dst <- filter(resScen, scen %in% c("Sesam3a","Sesam3B"), time %in% c(20,60))
-#total N balance
-dst <- dst %>% mutate(NSys = B/parms0$cnB + LN + RN + IN)
-select(dst, scen, time, NSys, IN)
-
-dst <- filter(resScen, scen %in% c("Sesam3a","Sesam3B"), time >= 20, time <= 60)
-ggplot(dst, aes(time, IN, color = scen)) + geom_line()
-```
-There is a slight increase of N in the systme due to change
-in N in microbial biomass is not accounted in N balance.
-
-Why do IN need such a low iBN?
-The potential immobilization must be low to shift the community to N limitation.
-If its increased (observed IN turnovertime of within a day) microbes never
-become N limited. Is this reasonable?
-
-## Result
-
-Model Sesam3a matches the dynamics of the explicit SEAM model at this time scale.
-When neglecting enzyme mass fluxes, the dynamics is similar, but the steady state 
-, especially for R, is slightly lower.
-
-The model with steady state microbial biomass, Sesam3B, captures the same dynamics.
-
-```{r simIncreasedC, fig.height=3, fig.width=3.27, fig.height=3.2, fig.width=4.72}
-# produce figure for paper without alpha, ... 
-vars <- c("L","R","SOM") 
-#vars <- c("L","R","SOM","cnRL") 
-#vars <- c("L","R","alpha","B","RL","cnRL") 
-#vars <- c("alpha","B", "cnL", "PhiNB","PhiNTotal","immoNPot", "CsynBC","CsynBN") 
-dsp <- ungroup(resScen) %>% mutate(SOM = R + L, cnRL = (R + L)/(RN + LN)) %>% 
-  #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL")) %>% 
-  mutate(Model = recode_factor(
-    as.factor(scen)
-    , Explicit = "Seam3"
-    , Sesam3a = "Sesam3"
-    , Sesam3B = "Sesam3_SteadyB"
-    , NeglectEnzFlux = "Sesam3_NoEnzFlux"
-    )
-    # delete CNRL of EnzFlux because at other scale
-    ,cnRL = ifelse(scen == "NeglectEnzFlux", NA, cnRL)
-    ) %>% 
-  #recode_factor(vars, Explicit = "Seam3") %>% 
-  select(one_of(c("time","Model",vars))) %>% 
-  gather("Pool","value", vars) 
-p2f <- ggplot( dsp, aes(x = time, y = value, col = Model, linetype = Model)) + geom_line(size = 1) +
-  facet_grid(Pool ~ .,scales = "free") + 
-  xlab("Time (yr)") + ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
-  themePaper +
-  #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
-  #review request: put legend outside plot
-  #theme(legend.position = c(0.8,0.9), legend.justification = c(1,1)) +
-  #theme(legend.position = c(0.98,0.02), legend.justification = c(1,0)) +
-  theme(panel.border = element_rect(colour = "black", fill = NA)) +
-  theme(strip.background = element_blank()) +			
-  theme(panel.grid.major.x = element_line(colour = "grey75")) +
-  c()
-#print(p2f + colScale)
-print(p2f)
-
+# task: compute and plot CUE
 
 ```
-```{r}
-ggsave(p2f, file="simIncreasedC-1.pdf")
-```
 
-
+Task: play with some of the parameters.
+Look at simulated steady-state after spin-up and at limitation weights.

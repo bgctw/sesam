@@ -14,7 +14,7 @@ Here we simulate a similar scenario using Sesam3a
 ```{r, echo=FALSE, results='hide', message=FALSE}
 library(ggplot2)
 library(grid)   #unit
-library(reshape)  # melt
+#library(reshape)  # melt
 library(RColorBrewer) # brewer.pal
 library(tidyr)
 library(dplyr)
@@ -193,6 +193,14 @@ resP <- rbind(
   #,cbind(scen = "alpha=0.1", resAlpha10)
   #,cbind(scen = "alpha=0.9", resAlpha90)
 )
+```
+```{r eval=FALSE}
+names(resP)
+unique(resP$scen)
+df = filter(resP, cn0==50 & scen=="adaptable")
+plot(synB ~ time, df)
+plot(iL ~ time, df)
+str(parms0)
 ```
 
 
