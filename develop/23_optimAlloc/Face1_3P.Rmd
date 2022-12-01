@@ -272,6 +272,21 @@ vars <- c("L","R","alphaR","RL")
 print(ggplot_vars(resScen, vars)+ colScale + linetypeScale)
 ```
 
+```{r}
+vars <- c("L","R","alphaR","RL") 
+resScen %>% filter(scenario != "Relative") %>% 
+  ggplot_vars(vars)+ colScale + linetypeScale
+```
+The Optimal and Derivative Scenario show the same results. 
+All scenarios predict the same pattern of loss of SOM during
+FACE.
+The Relative Scenario overestimates the allocation to R by 6% 
+and predicts a lower loss of R during FACE.
+
+```{r eval=FALSE, include=FALSE}
+(0.34-0.32)/0.32 # compute the relative overestimation of alpha_R Relative
+```
+
 ```{r eval=FALSE, include=FALSE}
 # determine kR so that initial R is 3200
 runSteady <- function(mod, x0, parms) {

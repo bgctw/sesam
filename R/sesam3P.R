@@ -323,6 +323,42 @@ calc_dAlphaP_propto_du <- function(
   # only change alpha if its larger than zero or if the change is positive
   # update the mean_du to only include the participating enzymes
   mean_du_prev <- -Inf; mean_du <- mean(du)
+  Z0 <- setNames(rep(FALSE, length(alpha)), names(alpha)) # enzymes not in Z0
+  while (mean_du_prev != mean_du) {
+    Z0 <- Z0 | (du - mean_du < -alpha*mean_du)
+    mean_du_prev <- mean_du
+    mean_du <- sum(du[!Z0])/(sum(!Z0) + sum(alpha[Z0]))
+  }
+  dud = (du - mean_du)/mean_du
+  #the formulation for optimal allocation is on an absolute scale rather than
+  #a relative scale. Putting optimal allocation to a relative scale would
+  #result in deviding (alpha_Target - alpha) by mean(alpha), which is 1/n_enz
+  #because sum(alpha)=1. To compensate, here we multiply by (1/n_enz = 1/sum(is))
+  #dud = (du - mean_du)/mean_du/sum(is)
+  dud[Z0] <- -alpha[Z0]
+  dalpha = (parms$tau + abs(synB)/B) * dud
+  dalpha
+  list(dalpha=dalpha, dud=dud, du=du, dS=c(L=unname(dL),R=unname(dR),P=unname(dP)),Z0=Z0)
+}
+
+
+
+calc_dAlphaP_propto_du_bak <- function(
+    alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+    cnL, cnR, cpL, cpR)
+{
+  dL <- dLPot * (limE["C"] + limE["N"]/cnL + limE["P"]/cpL)
+  dR <- dRPot * (limE["C"] + limE["N"]/cnR + limE["P"]/cpR)
+  dP <- limE["P"]*(dLPPot/cnL+dRPPot/cpR)
+  aeB <- parms$aE*B
+  du <- c(
+    L = unname(aeB*parms$kmN*dL/(parms$kmN + alpha["L"]*aeB)^2),
+    R = unname(aeB*parms$kmN*dR/(parms$kmN + alpha["R"]*aeB)^2),
+    P = unname(aeB*parms$kmN*dP/(parms$e_P + parms$kmN + alpha["P"]*aeB)^2)
+  )
+  # only change alpha if its larger than zero or if the change is positive
+  # update the mean_du to only include the participating enzymes
+  mean_du_prev <- -Inf; mean_du <- mean(du)
   is <- setNames(rep(TRUE, length(alpha)), names(alpha)) # enzymes not in Z0
   while (mean_du_prev != mean_du) {
     is <- is & (alpha > 1.1e-16 | du > mean_du)
