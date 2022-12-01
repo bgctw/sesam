@@ -286,7 +286,7 @@ dsp0 <- resP %>% filter(.data$time < 3) %>%
   mutate(S = R + L, cnS = (R + L)/(RN + LN)) %>% 
   mutate(relS = S/S[1], relL = L/L[1], fracDecomp = 1 - relL) 
   #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
-dsp <- dsp0 %>% select(one_of(c("time","relS","relL","fracDecomp","scen","cn0", vars))) %>% gather("Pool","value", vars)
+dsp <- dsp0 %>% select(all_of(c("time","relS","relL","fracDecomp","scen","cn0", vars))) %>% gather("Pool","value", vars)
 p2f <- dsp %>% 
   mutate(scen = fct_relevel(.data$scen, c("Optimal","Derivative","Relative"))) %>% 
   ggplot(aes(x = time, y = value, col = cn0, linetype = cn0)) + geom_line(linewidth = 1) +
@@ -322,8 +322,10 @@ between the initial litter C:N ratios.
 ```{r}
 #vars2 <- c("cueDef", "cueSyn") 
 vars2 <- c("cueDef") 
-dsp2 <- dsp0 %>% select(one_of(c("time","relS","relL","fracDecomp","scen","cn0", vars2))) %>% gather("Pool","value", vars2)
-p2 <- ggplot( dsp2, aes(x = fracDecomp, y = value, col = cn0, linetype = cn0)) + 
+dsp2 <- dsp0 %>% select(all_of(c("time","relS","relL","fracDecomp","scen","cn0", vars2))) %>% gather("Pool","value", vars2)
+p2 <- dsp2 %>% 
+  mutate(scen = fct_relevel(.data$scen, c("Optimal","Derivative","Relative"))) %>% 
+  ggplot(aes(x = fracDecomp, y = value, col = cn0, linetype = cn0)) + 
 #p2 <- ggplot( dsp2, aes(x = fracDecomp, y = value, col = cn0, linetype = cn0)) + 
   geom_line(linewidth = 1) +
   facet_grid(~ scen) + #,scales = "free") + 
@@ -348,11 +350,11 @@ print(p2)
 ```{r}
 #vars2 <- c("cueDef", "cueSyn") 
 vars2 <- c("cueDef") 
-dsp2 <- dsp0 %>% select(one_of(c("time","relS","relL","fracDecomp","scen","cn0", vars2))) %>% gather("Pool","value", vars2)
+dsp2 <- dsp0 %>% select(all_of(c("time","relS","relL","fracDecomp","scen","cn0", vars2))) %>% gather("Pool","value", vars2)
 p2 <- dsp2 %>% filter(time <= 3) %>% 
   ggplot( aes(x = time, y = value, col = cn0, linetype = cn0)) + 
 #p2 <- ggplot( dsp2, aes(x = fracDecomp, y = value, col = cn0, linetype = cn0)) + 
-  geom_line(size = 1) +
+  geom_line(linewidth = 1) +
   facet_grid(~ scen) + #,scales = "free") + 
   #xlab("Time (yr)") + 
   #xlab("Substrate (proportion of initial)") + scale_x_reverse() +

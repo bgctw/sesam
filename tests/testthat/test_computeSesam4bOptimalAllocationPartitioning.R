@@ -36,7 +36,7 @@ test_that("computeSesam4bOptimalAllocationPartitioning", {
   expect_equal(du[is_Pallocated,"L"], du[is_Pallocated,"P"])
 })
 
-.tmp.check_time_evolution <- function(){
+test_that("derivate approach leads to same steady state as optimal", {
   B <- 1
   parms = within(list(
     aE = 0.1,
@@ -107,5 +107,5 @@ test_that("computeSesam4bOptimalAllocationPartitioning", {
 
   alpha <- alpha_opt <- res_ode_opt[length(times),2:4]
   alpha <- res_ode[length(times),2:4]
-  expect_equal(alpha, alpha_opt)
-}
+  expect_true(all(abs(alpha - alpha_opt) < 1e5))
+})
