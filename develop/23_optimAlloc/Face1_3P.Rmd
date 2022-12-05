@@ -23,8 +23,8 @@ myColors <- brewer.pal(5,"Dark2")
 .simpleCap <- function(s) {
     paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
 }
-colScale <- scale_colour_manual(name = "Variant",values = myColors)
-linetypeScale <- scale_linetype_manual(name = "Variant",values = c("solid","longdash","dotted"))
+colScale <- scale_colour_manual(name = "Model variant",values = myColors)
+linetypeScale <- scale_linetype_manual(name = "Model variant",values = c("solid","longdash","dotted"))
 .treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
 sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
 
@@ -230,7 +230,7 @@ runFaceSimulation <- function(mod, x0, parms, t1S =20, t2I = 40, t3S = 70) {
   # resScen <- runFaceSimulation( scen$mod[[1]], scen$x0[[1]], scen$parms[[1]] ) %>% 
     mutate(scenario = scen$scenario) %>% select(scenario, everything())
 }
-resScen <- scenarios %>% nest(data=!.data$scenario) %>% mutate(res=map(.data$data, function(df_scen){
+resScen <- scenarios %>% nest(data=!scenario) %>% mutate(res=map(data, function(df_scen){
   runFaceSimulation(df_scen$mod[[1]], df_scen$x0[[1]], df_scen$parms[[1]])
   })) %>%  select(scenario,res) %>% unnest(cols=res)
 ```
@@ -244,7 +244,8 @@ ggplot_vars <- function(resScen, vars) {
     resScen %>% 
     #filter(time >= 20, time <= 40) %>% 
     mutate(RL = R + L, cnRL = (R + L)/(RN + LN)) %>% # compute additional quantities
-    mutate(scenario = fct_relevel(.data$scenario, c("Optimal","Derivative","Relative"))) %>% 
+    group_by(scenario) %>% mutate(R_norm = R/R[1], L_norm = L/L[1], RL_norm = RL/RL[1]) %>% ungroup() %>% 
+    mutate(scenario = fct_relevel(scenario, c("Optimal","Derivative","Relative"))) %>% 
     #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
     select(any_of(c("time","scenario",vars))) %>% gather("Pool","value", vars)
   p2f <- ggplot( dsp, aes(x = time, y = value, col = scenario, linetype = scenario)) + geom_line(linewidth = 1) +
@@ -268,8 +269,12 @@ print(ggplot_vars(resScen, vars) + colScale + linetypeScale)
 
 
 ```{r}
-vars <- c("L","R","alphaR","RL") 
-print(ggplot_vars(resScen, vars)+ colScale + linetypeScale)
+vars <- c("L","R_norm","alphaR","RL_norm") 
+resScen %>% 
+  filter(scenario != "Relative_kR") %>% 
+ggplot_vars(vars)+ colScale + linetypeScale
+#ggsave("develop/23_optimAlloc/Sesam_OptimMethods.png")
+#ggsave("Sesam_OptimMethods.png", width=4.8, height=3.8)
 ```
 
 ```{r}

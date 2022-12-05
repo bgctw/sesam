@@ -239,7 +239,7 @@ derivSesam3P <- function(
     #, NsynReq = as.numeric(CsynBC/cnB), Nsyn = as.numeric(NsynBN)
     #, dR = as.numeric(dR), dL = as.numeric(dL), dB = as.numeric(dB)
     #, dIN = as.numeric(dIN)
-    , uC = as.numeric(uC)
+    , uptakeC = as.numeric(uC)
     #, decN = as.numeric(decN)
     , decLP_P = as.numeric(decLP_P), decRP_P = as.numeric(decRP_P)
   ))

@@ -134,7 +134,8 @@ x0N <- c( #aE = 0.001*365
         ,L = 10#100                 ##<< N poor substrate
         ,LN = 10/driversN$cnIL #100/parms0$cnIL    ##<< N poor substrate N pool
         ,IN =  0.04                ##<< inorganic pool gN/m2
-        , alpha = 0.5            ##<< microbial community partitioning [0,1]
+        #, alpha = 0.5            ##<< microbial community partitioning to R [0,1]
+        , alpha = 0.3            ##<< microbial community partitioning to R [0,1]
 )
 ```
 
@@ -163,8 +164,8 @@ extend_CNP_setting <- function(x0, parms, drivers) {
         ,LP = unname(x0["L"]/driversP$cpIL)    ##<< N poor substrate N pool
         ,x0[c("IN")]
         ,IP =  150 # prevent P limitation          ##<< inorganic pool gN/m2
-        ,alphaL=unname(x0["alpha"])
-        ,alphaR=1- unname(x0["alpha"])
+        ,alphaL=1- unname(x0["alpha"])
+        ,alphaR=unname(x0["alpha"])
   )
   list(x0=x0P, parms=parmsP, drivers=driversP)
 }
@@ -224,6 +225,8 @@ simLPulse <- function(x0, parms, cn0=75){
     res <- resP <- as.data.frame(lsoda( x0P, c(0,0.1), derivSesam3P, parms = parms))
     xE <- unlist(resP[nrow(resP),1+seq_along(x0)])
     derivSesam3P(0, xE, parms)
+    plot(alphaR ~ time, res); abline(h=1)
+    tail(filter(res, alphaR < 1),1)
   }
   res
 }
@@ -231,18 +234,20 @@ simLPulse <- function(x0, parms, cn0=75){
 resCN50 <- res <- simLPulse(x0, parms0, cn0 = 50)
 resCN70 <- simLPulse(x0, parms0, cn0 = 70)
 resCN90 <- simLPulse(x0, parms0, cn0 = 90)
-resRelCN50  <- simLPulse(x0FixedAlpha, parmsRelative, cn0 = 50)
-resRelCN70  <- simLPulse(x0FixedAlpha, parmsRelative, cn0 = 70)
-resRelCN90  <- simLPulse(x0FixedAlpha, parmsRelative, cn0 = 90)
-resOptCN50  <- simLPulse(x0FixedAlpha, parmsOptimal, cn0 = 50)
-resOptCN70  <- simLPulse(x0FixedAlpha, parmsOptimal, cn0 = 70)
-resOptCN90  <- simLPulse(x0FixedAlpha, parmsOptimal, cn0 = 90)
+resRelCN50  <- simLPulse(x0, parmsRelative, cn0 = 50)
+resRelCN70  <- simLPulse(x0, parmsRelative, cn0 = 70)
+resRelCN90  <- simLPulse(x0, parmsRelative, cn0 = 90)
+# x0 <- xpd$x0; parms<-parmsOptimal; cn0=50
+resOptCN50  <- simLPulse(x0, parmsOptimal, cn0 = 50)
+resOptCN70  <- simLPulse(x0, parmsOptimal, cn0 = 70)
+resOptCN90  <- simLPulse(x0, parmsOptimal, cn0 = 90)
+#
+resAlpha30CN30  <- simLPulse(x0FixedAlpha, parmsFixedAlpha, cn0 = 50)
+resAlpha30CN70  <- simLPulse(x0FixedAlpha, parmsFixedAlpha, cn0 = 70)
+resAlpha30CN90  <- simLPulse(x0FixedAlpha, parmsFixedAlpha, cn0 = 90)
 
 .tmp.f <- function(){
   # x0 <- x0FixedAlpha; parms <- parmsFixedAlpha; cn0=50
-  resAlpha30CN30  <- simLPulse(x0FixedAlpha, parmsFixedAlpha, cn0 = 50)
-  resAlpha30CN70  <- simLPulse(x0FixedAlpha, parmsFixedAlpha, cn0 = 70)
-  resAlpha30CN90  <- simLPulse(x0FixedAlpha, parmsFixedAlpha, cn0 = 90)
   # x0Alpha10 <- x0Steady; x0Alpha10["alpha"] <- 0.1
   # resAlpha10  <- simLPulse(x0Alpha10, parmsFixedAlpha)
   # x0Alpha90 <- x0Steady; x0Alpha90["alpha"] <- 0.6
@@ -258,9 +263,9 @@ resP <- rbind(
   ,cbind(scen = "Optimal", cn0 = 50, resOptCN50)
   ,cbind(scen = "Optimal", cn0 = 70, resOptCN70)
   ,cbind(scen = "Optimal", cn0 = 90, resOptCN90)
-  # ,cbind(scen = "fixed community", cn0 = 50, resAlpha30CN30)
-  # ,cbind(scen = "fixed community", cn0 = 70, resAlpha30CN70)
-  # ,cbind(scen = "fixed community", cn0 = 90, resAlpha30CN90)
+  ,cbind(scen = "Fixed", cn0 = 50, resAlpha30CN30)
+  ,cbind(scen = "Fixed", cn0 = 70, resAlpha30CN70)
+  ,cbind(scen = "Fixed", cn0 = 90, resAlpha30CN90)
 )
 ```
 ```{r eval=FALSE}
@@ -280,7 +285,8 @@ vars <- c("limN","alphaR","B","cueSyn","R","L")
 #vars <- c("L","R","alpha","B","RL","cnRL") 
 #vars <- c("alpha","B", "cnL", "PhiNB","PhiNTotal","immoNPot", "CsynBC","CsynBN") 
 dsp0 <- resP %>% filter(.data$time < 3) %>%  
-  rename(uptakeC = uC, respTotal = resp) %>% mutate(tvrBPred = 0.0) %>% 
+  #rename(uptakeC = uC, respTotal = resp) %>% 
+  mutate(tvrBPred = 0.0) %>% 
   cueSesam() %>% 
   mutate(cn0 = as.factor(cn0)) %>% 
   mutate(S = R + L, cnS = (R + L)/(RN + LN)) %>% 
@@ -301,9 +307,11 @@ p2f <- dsp %>%
   theme(panel.border = element_rect(colour = "black", fill = NA)) +
   theme(strip.background = element_blank()) +			
   theme(panel.grid.major.x = element_line(colour = "grey75")) +
+  theme(axis.title.y = element_blank()) +
   c()
 #print(p2f + colScale)
 print(p2f)
+#ggsave("Sesam_OptimMethods_Pulse_time.png", width=4.8, height=3.8)
 ```
 
 In the optimal scenario, $\alpha_R$ goes to lower values also for intermediate
@@ -318,6 +326,47 @@ community allocation any more and allocating to the enzymes with lower potential
 return is not as beneficial any more.
 Hence, it results in a higher time-integrated CUE with larger differences
 between the initial litter C:N ratios.
+
+Initially there is more N in the labile decomposition in absolute terms despite
+its low relative low N contents, i.e. high C:N ratio. Hence, microbial community
+shifts towards only L-degrading with high overflow respiration and low CUE.
+
+After the initial shift towards growing on the labile substrate,
+CUE is recovered to higher values sooner with flexible allocation due to
+increased allocation to N-rich residue pool.
+
+Biomass:
+```{r}
+vars <- c("B","respO","CsynBN","cueSyn") 
+dsp0 <- resP %>% filter(.data$time < 1) %>% cueSesam() 
+dsp <- dsp0 %>% select(all_of(c("time", "scen", "cn0", vars))) %>% gather("Pool","value", vars)
+p2f <- dsp %>% 
+  mutate(scen = fct_relevel(.data$scen, c("Optimal","Derivative","Relative"))) %>% 
+  ggplot(aes(x = time, y = value, col = scen, linetype = scen)) + geom_line(linewidth = 1) +
+  facet_grid(Pool ~ cn0,scales = "free") + 
+  xlab("Time (yr)") + 
+  #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
+  #xlab("Fraction C decomposed") +
+  #ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
+  themeDefault +
+  #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
+  theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
+  theme(panel.border = element_rect(colour = "black", fill = NA)) +
+  theme(strip.background = element_blank()) +			
+  theme(panel.grid.major.x = element_line(colour = "grey75")) +
+  theme(axis.title.y = element_blank()) +
+  c()
+#print(p2f + colScale)
+print(p2f)
+#ggsave("Sesam_OptimMethods_Pulse_approaches.png", width=4.8, height=3.8)
+
+
+```
+Why is biomass increasing less with optimal compared to relative scenario 
+in non-extreme cn0 scenarios?
+Avoids the large initial overflow respiration.
+The optimal scenario trades in slighly higher biomass synthesis for a large
+overflow respiration.
 
 ```{r}
 #vars2 <- c("cueDef", "cueSyn") 
@@ -346,6 +395,8 @@ p2 <- dsp2 %>%
 #print(p2f + colScale)
 print(p2)
 ```
+
+
 
 ```{r}
 #vars2 <- c("cueDef", "cueSyn") 
@@ -384,5 +435,10 @@ p2p <- p2 +
   theme(legend.title = element_blank()) +
   c()  
 print(p2p)
+```
+
+```{r}
+# Compare the initial derivative at cn90
+
 ```
 

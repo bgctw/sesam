@@ -14,6 +14,9 @@ cueSesam <- function(
   # ans
   ##value<< input data.frame with computed columns
   a <- resSesam
+  # different variants of SESAM have different returns
+  if (is_null(a$respTotal)) a$respTotal = a$resp
+  if (is_null(a$tvrBPred)) a$tvrBPred = 0.0
   synB0 <- pmax(0, a$synB)  # non-negative biomass synthesis
   a$cueDef =  synB0 / (a$uptakeC)  ##<<
   ## biomass synthesis / uptake
