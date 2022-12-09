@@ -383,7 +383,7 @@ computeSesam4bAllocationPartitioning <- function(
 
 compute_eweighted_potential <- function(
   dS,    ##<< numeric vector (L,R) of potential depolymerization C-fluxes
-  dSP,   ##<< numeric vector of potential biomineralization P-fluxes in carbon units
+  dSP,   ##<< numeric vector of potential biomineralization P-fluxes
   limE,      ##<< elemental limiations
   betaN,    ##<< numeric vector of C/N ratios of substrates and enzymes
   betaP   ##<< numeric vector of C/P ratios of substrates (L,R) and enzymes (E)
@@ -391,7 +391,9 @@ compute_eweighted_potential <- function(
   c(
     dS["L"]*(limE["C"]+limE["N"]/betaN["L"]+limE["P"]/betaP["L"]),
     dS["R"]*(limE["C"]+limE["N"]/betaN["R"]+limE["P"]/betaP["R"]),
-    P = unname((dSP["L"]/betaP["L"]+dSP["L"]/betaP["L"])*limE["P"])
+    #P = unname((dSP["L"]/betaP["L"]+dSP["R"]/betaP["R"])*limE["P"])
+    # dSP already in P units
+    P = unname(limE["P"] * (dSP["L"]+dSP["R"]))
   )
 }
 

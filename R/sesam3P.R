@@ -26,8 +26,8 @@ derivSesam3P <- function(
   cpL <- x["L"]/x["LP"]
   cpE <- parms$cpE
   cpB <- parms$cpB
-  dLPPot <- parms$kLP * x["L"] # potential biomineralization in C-units: devide by cpL
-  dRPPot <- parms$kRP * x["R"]
+  dLPPot <- parms$kLP * x["LP"] # potential biomineralization in P units
+  dRPPot <- parms$kRP * x["RP"]
   # one state variable less, here P, because alphas sum to one
   alpha <- cbind(L = x["alphaL"], R = x["alphaR"], P = NA)[1,]
   # take care for small negative alphas and renormalize to sum to 1
@@ -44,8 +44,8 @@ derivSesam3P <- function(
   decL <- dLPot * alpha["L"]*aeB/(kmN + alpha["L"]*aeB)
   decR <- dRPot * alpha["R"]*aeB/(kmN + alpha["R"]*aeB)
   limEnzP <- (parms$e_P * alpha["P"]*aeB)/(kmN + parms$e_P + alpha["P"]*aeB)
-  decLP_P <- dLPPot/cpL * limEnzP # P units
-  decRP_P <- dRPPot/cpR * limEnzP
+  decLP_P <- dLPPot * limEnzP # P units
+  decRP_P <- dRPPot * limEnzP
   #
   tvrERecycling <- parms$kNB*synE
   uNOrg <- parms$nuN*(decL/cnL + decR/cnR + tvrERecycling/cnE)
@@ -72,7 +72,7 @@ derivSesam3P <- function(
     c(L=0, R=0, P=0)
   } else if (isTRUE(parms$isRelativeAlpha)) {
     dAlpha_rel <- calc_dAlphaP_relative_plant(
-      alpha, dRPot, dLPot, dRPPot/cpR, dLPPot/cpL, synB, B, parms, limE,
+      alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
       cnL, cnR, cpL, cpR
     )
   } else if (isTRUE(parms$isOptimalAlpha)) {
@@ -290,7 +290,8 @@ calc_dAlphaP_propto_du_alpha <- function(
 {
   dL <- dLPot * (limE["C"] + limE["N"]/cnL + limE["P"]/cpL)
   dR <- dRPot * (limE["C"] + limE["N"]/cnR + limE["P"]/cpR)
-  dP <- limE["P"]*(dLPPot/cnL+dRPPot/cpR)
+  #dP <- limE["P"]*(dLPPot/cpL+dRPPot/cpR)
+  dP <- limE["P"]*(dLPPot+dRPPot) # potential fluxes here already in P units
   aeB <- parms$aE*B
   du <- c(
     L = unname(aeB*parms$kmN*dL/(parms$kmN + alpha["L"]*aeB)^2),
@@ -313,7 +314,9 @@ calc_dAlphaP_propto_du <- function(
 {
   dL <- dLPot * (limE["C"] + limE["N"]/cnL + limE["P"]/cpL)
   dR <- dRPot * (limE["C"] + limE["N"]/cnR + limE["P"]/cpR)
-  dP <- limE["P"]*(dLPPot/cnL+dRPPot/cpR)
+  #dP <- limE["P"]*(dLPPot/cnL+dRPPot/cpR)
+  #dLPPot already in P units
+  dP <- limE["P"]*(dLPPot+dRPPot)
   aeB <- parms$aE*B
   du <- c(
     L = unname(aeB*parms$kmN*dL/(parms$kmN + alpha["L"]*aeB)^2),
@@ -341,39 +344,4 @@ calc_dAlphaP_propto_du <- function(
   list(dalpha=dalpha, dud=dud, du=du, dS=c(L=unname(dL),R=unname(dR),P=unname(dP)),Z0=Z0)
 }
 
-
-
-calc_dAlphaP_propto_du_bak <- function(
-    alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-    cnL, cnR, cpL, cpR)
-{
-  dL <- dLPot * (limE["C"] + limE["N"]/cnL + limE["P"]/cpL)
-  dR <- dRPot * (limE["C"] + limE["N"]/cnR + limE["P"]/cpR)
-  dP <- limE["P"]*(dLPPot/cnL+dRPPot/cpR)
-  aeB <- parms$aE*B
-  du <- c(
-    L = unname(aeB*parms$kmN*dL/(parms$kmN + alpha["L"]*aeB)^2),
-    R = unname(aeB*parms$kmN*dR/(parms$kmN + alpha["R"]*aeB)^2),
-    P = unname(aeB*parms$kmN*dP/(parms$e_P + parms$kmN + alpha["P"]*aeB)^2)
-  )
-  # only change alpha if its larger than zero or if the change is positive
-  # update the mean_du to only include the participating enzymes
-  mean_du_prev <- -Inf; mean_du <- mean(du)
-  is <- setNames(rep(TRUE, length(alpha)), names(alpha)) # enzymes not in Z0
-  while (mean_du_prev != mean_du) {
-    is <- is & (alpha > 1.1e-16 | du > mean_du)
-    mean_du_prev <- mean_du
-    mean_du <- mean(du[is])
-  }
-  #dud = (du - mean_du)/mean_du
-  #the formulation for optimal allocation is on an absolute scale rather than
-  #a relative scale. Putting optimal allocation to a relative scale would
-  #result in deviding (alpha_Target - alpha) by mean(alpha), which is 1/n_enz
-  #because sum(alpha)=1. To compensate, here we multiply by (1/n_enz = 1/sum(is))
-  dud = (du - mean_du)/mean_du/sum(is)
-  dud[!is] <- 0
-  dalpha = (parms$tau + abs(synB)/B) * dud
-  dalpha
-  list(dalpha=dalpha, dud=dud, du=du, dS=c(L=unname(dL),R=unname(dR),P=unname(dP)),is=is)
-}
 
