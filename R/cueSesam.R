@@ -21,7 +21,7 @@ cueSesam <- function(
   a$cueDef =  synB0 / (a$uptakeC)  ##<<
   ## biomass synthesis / uptake
   a$cueDB = (a$synB - a$tvrB - a$tvrBPred) / (a$synB - a$tvrB - a$tvrBPred + a$respTotal) ##<<
-  # ## biomass change / (biomass change + resp )
+  # ## biomass change (excluding enzymes) / (biomass change + resp )
   a$cueSyn = (synB0 ) / (synB0 + a$respTotal) ##<<
   ## biomass synthesis / (biomass synthesis + resp )
   a
