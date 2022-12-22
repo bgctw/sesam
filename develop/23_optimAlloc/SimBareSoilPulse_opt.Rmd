@@ -22,6 +22,10 @@ library(knitr)
 library(forcats)
 
 myColors <- brewer.pal(5,"Dark2")	
+myLinetypes <- c("solid","dashed","dotdash", "dotted","longdash","twpdash")
+#adjust color default discrete color scale
+scale_colour_discrete <- function(...) scale_colour_manual(...,values=myColors)
+
 .simpleCap <- function(s) {
     paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
 }
@@ -29,11 +33,25 @@ colScale <- scale_colour_manual(name = "Variant",values = myColors)
 .treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
 sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
 
-themeTw <- theme_bw(base_size = 10) + theme(axis.title = element_text(size = 9))
-#themeTw <- theme_bw(base_size = 11) + theme(axis.title = element_text(size = 10))
+.approaches <- c("Optimal","Derivative","Relative","Fixed")
+scale_color_approach <- scale_colour_manual(name = "Approach",values = setNames(myColors[seq_along(.approaches)],.approaches) )
+scale_linetype_approach <- scale_linetype_manual(name = "Approach",values = setNames(myLinetypes[seq_along(.approaches)],.approaches) )
+
+adjust_facets <- function(theme){
+  theme +
+    theme(panel.border = element_rect(colour = "black", fill = NA)) +
+    theme(strip.background = element_blank()) 
+}
+themePaper <- (theme_classic(base_size = 10) + theme(axis.title = element_text(size = 9))) %>% 
+  adjust_facets()
+themePres <- theme_classic(base_size = 18) %>% 
+  adjust_facets()
+theme_set(themePres) # also adjust fig.with in opts_chunk below to paper Wide
+
 figWidthPage <- 18/2.54; figHeightPage <- figWidthPage/1.6 
 #, fig.height=4.43, fig.width=7.1
-figWidthWide <- 12/2.54; figHeightWide <- figWidthWide/1.6
+#figWidthWide <- 12/2.54; figHeightWide <- figWidthWide/1.6
+figWidthWide <- 3.8; figHeightWide <- 5
 #, fig.height=2.95, fig.width=4.72
 figWidthCol <- 8.3/2.54; figHeightCol <- figWidthCol/1.6
 #, fig.height=2.04, fig.width=3.27
@@ -42,8 +60,8 @@ opts_chunk$set(
     #, fig.align="center"
     #, fig.width=4.6, fig.height=3.2
     #fig.width = 6, fig.height = 3.75 #goldener Schnitt 1.6
-    #fig.width = figWidthWide, fig.height = figHeightWide #goldener Schnitt 1.6 #GI single column
-    fig.width = figWidthPage, fig.height = figHeightPage #goldener Schnitt 1.6 #GI single column
+    fig.width = figWidthWide, fig.height = figHeightWide #goldener Schnitt 1.6 #GI single column
+    #fig.width = figWidthPage, fig.height = figHeightPage #goldener Schnitt 1.6 #GI single column
     #, dev.args = list(pointsize = 11)
     , dev = c('pdf','png')
     , echo = FALSE
@@ -57,8 +75,10 @@ knit_hooks$set(spar  =  function(before, options, envir) {
     }
 })
 
-themeDefault <- themeTw#theme_classic()  
-themePres <- theme_classic()
+
+#themeUsed <- c(themeUsed, scale_colour_brewer(type="qual",palette="Dark2"))
+
+
 ```
 
 
@@ -247,7 +267,11 @@ res <- as.data.frame(lsoda( x0, times_fresh, derivSesam3P, parms = parmsFixedAlp
 
 
 ```{r}
-simLPulse <- function(x0, parms, cn0=75){
+simLPulse <- function(
+  x0, parms, cn0=75, 
+  #amend=500
+  amend=100
+  ){
   # # spinup to steady state at low substrate inputs
   # times <- seq(0,2000, length.out = 2)
   # #times <- c(0,exp(seq(log(0.02),log(2000), length.out=100)))
@@ -260,8 +284,8 @@ simLPulse <- function(x0, parms, cn0=75){
   # increase L, no L input any more
   parms$iL <- 0
   x0P = x0 #xE[1:length(x0) + 1]
-  x0P["L"] <- x0["L"] + 100
-  x0P["LN"] <- x0["LN"] + 100/cn0
+  x0P["L"] <- x0["L"] + amend
+  x0P["LN"] <- x0["LN"] + amend/cn0
   x0P["IN"] <- 1  # moisten with DI water
   x0P["IP"] <- 1
   timesP <- c(0,exp(seq(log(0.002),log(10), length.out = 200)))
@@ -346,11 +370,11 @@ p2f <- dsp %>%
   #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
   #xlab("Fraction C decomposed") +
   #ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
-  themeDefault +
+  #themeDefault +
   #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
-  theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
-  theme(panel.border = element_rect(colour = "black", fill = NA)) +
-  theme(strip.background = element_blank()) +			
+  themePaper +
+  theme(legend.position = c(0.99,0.99), legend.justification = c(1,1)) +
+  theme(legend.title = element_blank()) +
   theme(panel.grid.major.x = element_line(colour = "grey75")) +
   theme(axis.title.y = element_blank()) +
   c()
@@ -391,15 +415,15 @@ p2f <- dsp %>%
   mutate(Pool = fct_relevel(.data$Pool, vars)) %>% 
   ggplot(aes(x = time, y = value, col = Approach, linetype = Approach)) + geom_line(linewidth = 1) +
   facet_grid(Pool ~ cn0,scales = "free") + 
+  scale_color_approach +
+  scale_linetype_approach +
   xlab("Time (yr)") + 
   #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
   #xlab("Fraction C decomposed") +
   #ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
-  themeDefault +
   #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
   #theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
-  theme(panel.border = element_rect(colour = "black", fill = NA)) +
-  theme(strip.background = element_blank()) +			
+  themePaper +
   theme(panel.grid.major.x = element_line(colour = "grey75")) +
   theme(axis.title.y = element_blank()) +
   c()
@@ -422,6 +446,12 @@ Over time, inorganic N levels increase, because
 of decomposition an no loss from the system during incubation or during storage.
 This is in contrast to field, where N is lost by plant uptake and leaching.
 
+Note however, that for extremely large amendmends, of e.g. 500 gC/m^2,
+also optimally allocating community shifts towards labile degrading shares
+because return is much higher compared to residue levels.
+This then leads to even higher overflow respiration compared to the fixed
+and relative approaches.
+
 ```{r}
 #vars2 <- c("cueDef", "cueSyn") 
 vars2 <- c("cueDef") 
@@ -431,6 +461,9 @@ dsp2 <- resP %>%
   mutate(relS = S/S[1], relL = L/L[1], fracDecomp = 1 - relL) %>% 
   mutate(cn0 = as.factor(cn0)) %>% 
   select(all_of(c("time","relS","relL","fracDecomp","scen","cn0", vars2))) %>% gather("Pool","value", vars2)
+
+# theme_set(themeUsed) 
+
 p2 <- dsp2 %>% 
   mutate(scen = fct_relevel(.data$scen, c("Optimal","Derivative","Relative"))) %>% 
   filter(scen %in% c("Optimal","Relative","Fixed")) %>% 
@@ -443,15 +476,15 @@ p2 <- dsp2 %>%
   xlab("Fraction C decomposed") +
   ylab("Carbon use efficiency") +
   expand_limits(y = 0.3) +
+  #themePres + # presentation
   guides(color=guide_legend(title = "C:N amendment")) +
   guides(linetype=guide_legend(title = "C:N amendment")) +
   #themeDefault +
-  theme_classic(base_size = 18) + # presentation
-  scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
+  # scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
   #theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
   theme(legend.position = c(0.05,0.05), legend.justification = c(0,0)) +
-  theme(panel.border = element_rect(colour = "black", fill = NA)) +
-  theme(strip.background = element_blank()) +			
+  #theme(panel.border = element_rect(colour = "black", fill = NA)) +
+  #theme(strip.background = element_blank()) +			
   #theme(panel.grid.major.x = element_line(colour = "grey75")) +
   c()
 #print(p2f + colScale)
@@ -461,9 +494,10 @@ print(p2)
 
 
 ```{r simPulse, fig.height=2.2, fig.width=3.27}
-p2p <- p2 + 
-  #expand_limits(y = 0.2) +
-  theme_classic(base_size = 10) +
+p2p <- p2
+p2p$layers[2] <- NULL # remove expand_limits
+p2p <- p2p +
+  themePaper +
   #theme(legend.position = c(0.02,0.02), legend.justification = c(0,0)) +
   theme(legend.position = "bottom") +
   theme(panel.border = element_rect(colour = "black", fill = NA)) +
@@ -473,7 +507,39 @@ p2p <- p2 +
   c()  
 print(p2p)
 ```
-## Simulate fresh soil with intially higher labile
+## Inspect at low biomass
+
+```{r}
+vars <- c("B","synB","alphaR","cueDef","L","R") 
+vars <- c("B","alphaR","cueDef","L","R") 
+dsp0 <- resP %>% filter(between(.data$time,1.1,5)) %>% cueSesam() 
+dsp <- dsp0 %>% select(all_of(c("time", "scen", "cn0", vars))) %>%
+  gather("Pool","value", vars)
+p2f <- dsp %>% 
+  mutate(Approach = fct_relevel(.data$scen, c("Optimal","Derivative","Relative"))) %>% 
+  filter(scen %in% c("Optimal","Relative")) %>% 
+  filter(cn0 == 50) %>% 
+  mutate(Pool = fct_relevel(.data$Pool, vars)) %>% 
+  ggplot(aes(x = time, y = value, col = Approach, linetype = Approach)) + geom_line(linewidth = 1) +
+  #facet_grid(Pool ~ cn0,scales = "free") + 
+  facet_grid(Pool~.,scales = "free") + 
+  xlab("Time (yr)") + 
+  scale_color_approach +
+  scale_linetype_approach +
+  #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
+  #xlab("Fraction C decomposed") +
+  #ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
+  #theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
+  #theme(panel.grid.major.x = element_line(colour = "grey75")) +
+  theme(axis.title.y = element_blank()) +
+  c()
+#print(p2f + colScale)
+print(p2f)
+#ggsave("Sesam_OptimMethods_Pulse_approaches.png", width=4.8, height=3.8)
+```
+Optimal approach does not allocate to L degrading enzymes any more.
+Yielding higher biomass and higher R decomposition.
+
 
 ```{r}
 # Compare the initial derivative at cn90
