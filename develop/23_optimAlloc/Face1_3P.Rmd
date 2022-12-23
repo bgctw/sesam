@@ -18,18 +18,58 @@ library(tidyr)
 library(dplyr)
 library(purrr)
 library(forcats)
+library(knitr)
 
-myColors <- brewer.pal(5,"Dark2")	
+mycolors <- brewer.pal(5,"Dark2")
+scale_colour_discrete <- function(...) scale_colour_manual(...,values=mycolors)
+
+adjust_facets <- function(theme){
+  theme +
+    theme(panel.border = element_rect(colour = "black", fill = NA)) +
+    theme(strip.background = element_blank()) 
+}
+themePaper <- (theme_classic(base_size = 10) + theme(axis.title = element_text(size = 9))) %>% 
+  adjust_facets()
+themePres <- theme_classic(base_size = 18) %>% 
+  adjust_facets()
+
+#figWidthPage <- 18/2.54; figHeightPage <- figWidthPage/1.6 
+# GMD fixes at 12 instead of entire page 18
+figWidthPage <- 12/2.54; figHeightPage <- figWidthPage/1.6 
+#, fig.height=4.43, fig.width=7.1
+#figWidthWide <- 12/2.54; figHeightWide <- figWidthWide/1.6
+figWidthWide <- 3.8; figHeightWide <- 5
+#, fig.height=2.95, fig.width=4.72
+figWidthCol <- 8.3/2.54; figHeightCol <- figWidthCol/1.6
+#, fig.height=2.04, fig.width=3.27
+#
+theme_set(themePres); figWidth <- figWidthWide; figHeight <- figHeightWide 
+theme_set(themePaper); figWidth <- figWidthCol; figHeight <- figHeightCol
+
+
+opts_chunk$set(
+   # out.extra='style="display:block; margin: auto"'
+    fig.width = figWidth, fig.height = figHeight #goldener Schnitt 1.6 #GI single column
+    #, dev.args = list(pointsize = 11)
+    , dev = c('pdf','png')
+    , echo = FALSE
+    )
+knit_hooks$set(spar  =  function(before, options, envir) {
+    if (before) {
+        par( las = 1 )                   #also y axis labels horizontal
+        par(mar = c(2.0,3.3,0,0) + 0.3 )  #margins
+        par(tck = 0.02 )                          #axe-tick length inside plots             
+        par(mgp = c(1.1,0.2,0) )  #positioning of axis title, axis labels, axis
+    }
+})
+
 .simpleCap <- function(s) {
     paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
 }
-colScale <- scale_colour_manual(name = "Model variant",values = myColors)
-linetypeScale <- scale_linetype_manual(name = "Model variant",values = c("solid","longdash","dotted"))
+colScale <- scale_colour_manual(name = "Approach",values = mycolors)
+linetypeScale <- scale_linetype_manual(name = "Approach",values = c("solid","longdash","dashed","dotted"))
 .treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
 sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
-
-themeDefault <- theme_classic()  
-themePaper <- theme_classic(base_size = 10)  
 ```
 
 ### Setup parameters and drivers
@@ -160,7 +200,7 @@ scenarios <- tibble::tibble(
 )
 scenarios$x0 <- list(x0)
 scenarios$mod <- list(derivSesam3P)
-tmp <- structure(myColors[1:nrow(scenarios)], names = scenarios$scenario)
+tmp <- structure(mycolors[1:nrow(scenarios)], names = scenarios$scenario)
 colScale <- scale_colour_manual(name = "Model variant",values = tmp )
 linetypeScale <- scale_linetype_manual(name = "Model variant",values =  structure(c("solid","longdash","dotted","dashed")[1:nrow(scenarios)], names = scenarios$scenario))
 scenarios
@@ -238,7 +278,13 @@ resScen <- scenarios %>% nest(data=!scenario) %>% mutate(res=map(data, function(
 Plot some results.
 
 ```{r}
-ggplot_vars <- function(resScen, vars) {
+replace_labels <- function(labels, labelmap) {
+  sapply(labels, function(label){
+    if (is.null(varlabelmap[[label]])) label else varlabelmap[[label]]
+  })
+}
+#replace_labels(c("a",names(labelmap)), labelmap)
+ggplot_vars <- function(resScen, vars, labelmap = list(alphaR="alpha[R]", "R_norm"="R[norm]")) {
   dsp <- 
     #resc %>% 
     resScen %>% 
@@ -247,9 +293,10 @@ ggplot_vars <- function(resScen, vars) {
     group_by(scenario) %>% mutate(R_norm = R/R[1], L_norm = L/L[1], RL_norm = RL/RL[1]) %>% ungroup() %>% 
     mutate(scenario = fct_relevel(scenario, c("Optimal","Derivative","Relative"))) %>% 
     #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
-    select(any_of(c("time","scenario",vars))) %>% gather("Pool","value", vars)
+    select(any_of(c("time","scenario",vars))) %>% gather("Pool","value", vars) %>% 
+    mutate(Pool = fct_relabel(Pool, ~replace_labels(.,labelmap))) 
   p2f <- ggplot( dsp, aes(x = time, y = value, col = scenario, linetype = scenario)) + geom_line(linewidth = 1) +
-    facet_grid(Pool ~ .,scales = "free") + 
+    facet_grid(Pool ~ .,scales = "free",labeller = label_parsed) + 
     xlab("Time (yr)") + ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
     themeDefault +
     #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
@@ -264,29 +311,49 @@ ggplot_vars <- function(resScen, vars) {
 vars <- c("L","R","alphaR","B","RL","IN") 
 vars <- c("L","R","alphaR","B","IN","plantNUp","PhiNB","PhiNTotal") 
 #vars <- c("alpha","B", "cnL", "PhiNB","PhiNTotal","immoNPot", "CsynBC","CsynBN") 
-print(ggplot_vars(resScen, vars) + colScale + linetypeScale)
+print(ggplot_vars(resScen, vars))
 ```
 
 
 ```{r}
-vars <- c("L","R_norm","alphaR","RL_norm") 
-resScen %>% 
+vars <- c("L","R_norm","alphaR") 
+p3 <- resScen %>% 
   filter(scenario != "Relative_kR") %>% 
-ggplot_vars(vars)+ colScale + linetypeScale
-#ggsave("develop/23_optimAlloc/Sesam_OptimMethods.png")
-#ggsave("Sesam_OptimMethods.png", width=4.8, height=3.8)
+  ggplot_vars(vars)+ colScale + linetypeScale +
+    theme(axis.title.y = element_blank()) +
+    theme(legend.title = element_blank())
+p3
+```
+
+```{r eval=FALSE, include=FALSE}
+p3b <- p3 +
+  theme(legend.position = c(0.93,1.15), legend.justification = c(1,1))
+ggsave("sesamalloc_FACE1.pdf", p3b, width = figWidthCol, height = figHeightCol) 
 ```
 
 ```{r}
-vars <- c("L","R","alphaR","RL") 
-resScen %>% filter(scenario != "Relative") %>% 
-  ggplot_vars(vars)+ colScale + linetypeScale
+vars <- c("L","R","alphaR") 
+p4 <- resScen %>% filter(scenario != "Relative") %>% 
+  ggplot_vars(vars)+ colScale + linetypeScale +
+    theme(axis.title.y = element_blank()) +
+    theme(legend.title = element_blank())
+p4
 ```
+
+```{r eval=FALSE, include=FALSE}
+p4b <- p4 +
+  theme(legend.position = c(0.93,1.15), legend.justification = c(1,1))
+ggsave("sesamalloc_FACE2.pdf", p4b, width = figWidthCol, height = figHeightCol) 
+```
+
+
 The Optimal and Derivative Scenario show the same results. 
 All scenarios predict the same pattern of loss of SOM during
 FACE.
 The Relative Scenario overestimates the allocation to R by 6% 
 and predicts a lower loss of R during FACE.
+
+
 
 ```{r eval=FALSE, include=FALSE}
 (0.34-0.32)/0.32 # compute the relative overestimation of alpha_R Relative
