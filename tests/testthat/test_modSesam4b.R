@@ -218,33 +218,45 @@ test_that("computeElementLimitations",{
   scen <- "C - limited"
   CsynBE <- c(C = 40, N = 6000, P = 6000)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   expect_equal(names(limE), names(CsynBE))
   expect_equal(limE["C"], c(C = 1), tolerance = 1e-2)
   #
   scen <- "N - limited"
   CsynBE <- c(C = 6000, N = 40, P = 6000)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   expect_equal(limE["N"], c(N = 1), tolerance = 1e-2)
   #
   scen <- "P - limited"
   CsynBE <- c(C = 6000, N = 6000, P = 40)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   expect_equal(limE["P"], c(P = 1), tolerance = 1e-2)
   #
   scen <- "CN - limited"
   CsynBE <- c(C = 40, N = 40, P = 6000)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   expect_equivalent(sum(limE[c("C","N")]), 1, tolerance = 1e-2)
   expect_equivalent(limE["C"], limE["N"], tolerance = 1e-2)
+  # really want exact co-limitaiton at same CsynBE
+  #expect_equivalent(limE["C"], limE["N"]/parms$cnB, tolerance = 1e-2)
   #
   scen <- "CN - limited, slightly more N limted"
   CsynBE <- c(C = 40, N = 40 - 1e-1, P = 6000)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   limE
   expect_equivalent(sum(limE[c("C","N")]), 1, tolerance = 1e-2)
   expect_true(limE["N"] > limE["C"])
@@ -252,14 +264,18 @@ test_that("computeElementLimitations",{
   scen <- "NP - limited"
   CsynBE <- c(C = 6000, N = 40, P = 40)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   expect_equivalent(sum(limE[c("N","P")]), 1, tolerance = 1e-2)
   expect_equivalent(limE["P"], limE["N"], tolerance = 1e-2)
   #
   scen <- "equal co-limitation"
   CsynBE <- c(C = 40, N = 40, P = 40)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   expect_equivalent(limE["C"], limE["N"], tolerance = 1e-2)
   expect_equivalent(limE["C"], limE["P"], tolerance = 1e-2)
   expect_equivalent(sum(limE), 1, tolerance = 1e-2)
@@ -269,20 +285,26 @@ test_that("computeElementLimitations",{
     limN <- sapply(epsNs, function(epsN){
       CsynBE <- c(C = 40, N = 40 - epsN, P = 6000)
       alphaBalanced <- computeElementLimitations(
-        CsynBE, tauB = 1, delta = 5)["N"]
+        CsynBE, tauB = 1, delta = 5
+        , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+      )["N"]
       #CsynBE, tauB = 1)#, ce, eps  )
     })
     plot(limN ~ epsNs, type = "lN")
     limN10 <- sapply(epsNs, function(epsN){
       CsynBE <- c(C = 40, N = 40 - epsN, P = 6000)
       alphaBalanced <- computeElementLimitations(
-        CsynBE, tauB = 1, delta = 10)["N"]
+        CsynBE, tauB = 1, delta = 10
+        , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+      )["N"]
     })
     lines(limN10 ~ epsNs, lty = "dashed")
     limN20 <- sapply(epsNs, function(epsN){
       CsynBE <- c(C = 40, N = 40 - epsN, P = 6000)
       alphaBalanced <- computeElementLimitations(
-        CsynBE, tauB = 1, delta = 20)["N"]
+        CsynBE, tauB = 1, delta = 20
+        , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+      )["N"]
     })
     lines(limN20 ~ epsNs, lty = "dotted")
   }
@@ -291,7 +313,9 @@ test_that("computeElementLimitations",{
   # negative carbon balance
   CsynBE <- c(C = -40, N = 4, P = 4)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   limE
   # think of accounting for negative biomass balance
   expect_equivalent(limE["C"], 1, tolerance = 1e-2)

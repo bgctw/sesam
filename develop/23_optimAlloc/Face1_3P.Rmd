@@ -21,6 +21,7 @@ library(forcats)
 library(knitr)
 
 mycolors <- brewer.pal(5,"Dark2")
+mylinetypes <- c("solid","dashed","dotdash","twodash","dotted","longdash")
 scale_colour_discrete <- function(...) scale_colour_manual(...,values=mycolors)
 
 adjust_facets <- function(theme){
@@ -66,8 +67,11 @@ knit_hooks$set(spar  =  function(before, options, envir) {
 .simpleCap <- function(s) {
     paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
 }
-colScale <- scale_colour_manual(name = "Approach",values = mycolors)
-linetypeScale <- scale_linetype_manual(name = "Approach",values = c("solid","longdash","dashed","dotted"))
+.approaches <- c("Optimal","Derivative","Relative")
+colScaleApproach <- scale_colour_manual(
+  name = "Approach", values = setNames(mycolors[seq_along(.approaches)], .approaches))
+linetypeScaleApproach <- scale_linetype_manual(
+  name = "Approach",values = setNames(mylinetypes[seq_along(.approaches)], .approaches))
 .treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
 sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
 ```
@@ -190,19 +194,20 @@ parms = parms0
 We store the information that differs between scenarios in a tibble.
 ```{r}
 scenarios <- tibble::tibble(
-  scenario = c("Optimal","Derivative","Relative","Relative_kR")
+  scenario = c("Optimal","Derivative","Relative","Relative_kR","Relative_kmNR")
   ,parms = list(
     within(parms0,isOptimalAlpha<-TRUE), 
     parms0,
     within(parms0,isRelativeAlpha<-TRUE),
-    within(parms0, {isRelativeAlpha<-TRUE; kR <- kRP <- 1/32.6147})
+    within(parms0, {isRelativeAlpha<-TRUE; kR <- kRP <- 1/32.6147}),
+    within(parms0, {isRelativeAlpha<-TRUE; kmNR <- 3.261561})
     )
 )
 scenarios$x0 <- list(x0)
 scenarios$mod <- list(derivSesam3P)
 tmp <- structure(mycolors[1:nrow(scenarios)], names = scenarios$scenario)
-colScale <- scale_colour_manual(name = "Model variant",values = tmp )
-linetypeScale <- scale_linetype_manual(name = "Model variant",values =  structure(c("solid","longdash","dotted","dashed")[1:nrow(scenarios)], names = scenarios$scenario))
+colScaleApproach <- scale_colour_manual(name = "Model variant",values = tmp )
+linetypeScaleApproach <- scale_linetype_manual(name = "Model variant",values =  structure(c("solid","longdash","dotted","dashed")[1:nrow(scenarios)], names = scenarios$scenario))
 scenarios
 ```
 
@@ -267,8 +272,9 @@ runFaceSimulation <- function(mod, x0, parms, t1S =20, t2I = 40, t3S = 70) {
   scen <- filter(scenarios, scenario == "Derivative")
   scen <- filter(scenarios, scenario == "Relative")
   scen <- filter(scenarios, scenario == "Relative_kR")
+  scen <- filter(scenarios, scenario == "Relative_kmR")
   # resScen <- runFaceSimulation( scen$mod[[1]], scen$x0[[1]], scen$parms[[1]] ) %>% 
-    mutate(scenario = scen$scenario) %>% select(scenario, everything())
+  #mutate(scenario = scen$scenario) %>% select(scenario, everything())
 }
 resScen <- scenarios %>% nest(data=!scenario) %>% mutate(res=map(data, function(df_scen){
   runFaceSimulation(df_scen$mod[[1]], df_scen$x0[[1]], df_scen$parms[[1]])
@@ -306,7 +312,7 @@ ggplot_vars <- function(resScen, vars, labelmap = list(alphaR="alpha[R]", "R_nor
     theme(panel.grid.major.x = element_line(colour = "grey75")) +
     c()
 }
-#print(p2f + colScale)
+#print(p2f + colScaleApproach)
 #vars <- c("L","R","alphaR","RL") 
 vars <- c("L","R","alphaR","B","RL","IN") 
 vars <- c("L","R","alphaR","B","IN","plantNUp","PhiNB","PhiNTotal") 
@@ -319,7 +325,7 @@ print(ggplot_vars(resScen, vars))
 vars <- c("L","R_norm","alphaR") 
 p3 <- resScen %>% 
   filter(scenario != "Relative_kR") %>% 
-  ggplot_vars(vars)+ colScale + linetypeScale +
+  ggplot_vars(vars)+ colScaleApproach + linetypeScaleApproach +
     theme(axis.title.y = element_blank()) +
     theme(legend.title = element_blank())
 p3
@@ -333,8 +339,8 @@ ggsave("sesamalloc_FACE1.pdf", p3b, width = figWidthCol, height = figHeightCol)
 
 ```{r}
 vars <- c("L","R","alphaR") 
-p4 <- resScen %>% filter(scenario != "Relative") %>% 
-  ggplot_vars(vars)+ colScale + linetypeScale +
+p4 <- resScen %>% filter(scenario %in% c("Optimal","Relative","Relative_kR","Relative_kmNR")) %>% 
+  ggplot_vars(vars)+ colScaleApproach + #linetypeScaleApproach +
     theme(axis.title.y = element_blank()) +
     theme(legend.title = element_blank())
 p4
@@ -361,6 +367,10 @@ and predicts a lower loss of R during FACE.
 
 ```{r eval=FALSE, include=FALSE}
 # determine kR so that initial R is 3200
+.tmp.f <- function(){
+  tmp <- filter(resScen, scenario == "Derivative")
+  head(tmp)$R + head(tmp)$L # targetSOM = 3314.14
+}
 runSteady <- function(mod, x0, parms) {
   times <- seq(0,1000, length.out = 2)
   res <- res1 <- as.data.frame(lsoda( x0, times, mod, parms = parms))
@@ -372,14 +382,30 @@ fcost <- function(kRnew, scen){
   res <- runSteady( scen$mod[[1]], scen$x0[[1]], p ) 
   (tail(res$R,1) - 3200)^2
 }
+fcost_kmNR <- function(kmNRnew, scen){
+  p <- within(scen$parms[[1]],{
+    kmNR <- kmNRnew
+  })
+  res <- runSteady( scen$mod[[1]], scen$x0[[1]], p ) 
+  (tail(res$R,1)+tail(res$L,1) - 3314.14)^2
+}
 .tmp.f <- function(){  
   #"Optimal","Relative","Derivative"
-  scen <- filter(scenarios, scenario == "Optimal")   # kR = 1/31.40989
-  scen <- filter(scenarios, scenario == "Derivative")
   scen <- filter(scenarios, scenario == "Relative")  # kR = 1/32.6147
   fcost(parms$kR/2, scen)
   kR <- optimize(fcost, c(1e-8,0.05), scen)
   1/kR$minimum
+}
+.tmp.f <- function(){  
+  #"Optimal","Relative","Derivative"
+  scen <- filter(scenarios, scenario == "Relative")  # kR = 1/32.6147
+  parms <-scen$parms[[1]]
+  fcost_kmNR(parms$kmN, scen)
+  scen2 <- filter(scenarios, scenario == "Relative_kmNR")  # kR = 1/32.6147
+  fcost_kmNR(scen2$parms[[1]]$kmNR, scen)
+  resOpt <- optimize(fcost_kmNR, c(parms$kmN/10,parms$kmN*10), scen)
+  kmNR <- resOpt$minimum
+  c(parms$kmN, kmNR)
 }
 ```
 

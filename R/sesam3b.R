@@ -64,7 +64,9 @@ derivSesam3b <- function(
   #   alphaCR, alphaN, CsynBN, CsynBC, tauB = parms$tau*B  )
   wELim <- computeElementLimitations(
     cbind(C = CsynBC, N = CsynBN)[1,]
-    , tauB = parms$tau*B)
+    , tauB = parms$tau*B
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+    )
   alphaTarget <- computeSesam3bAllocationPartitioning(
     dS = cbind(R = dRPot, L = dLPot)[1,]
     , B = B

@@ -7,7 +7,9 @@ test_that("computeSesam4bOptimalAllocationPartitioning", {
   params = within(list(
     aE = 0.1,
     e_P = 0,
-    tau = 365/30
+    tau = 365/30,
+    cnB = 7.16,
+    cpB = 40
   ), kmN <- aE*B/2)
   nstep = 200
   dL = 0.7
@@ -44,8 +46,8 @@ test_that("derivate approach leads to same steady state as optimal", {
     tau = 365/30
     ,cnIR = 4.5     ##<< between micr and enzyme signal
     ,cnIL = 30      ##<< N poor substrate
+    , cnE = 3.1
     , cpE = 50
-    , cpB = 40
     #, cpBW = 50
     , cpIR = 40
     , cpIL = 40*3
@@ -62,14 +64,16 @@ test_that("derivate approach leads to same steady state as optimal", {
   cnR <- parms$cnIR
   cpL <- parms$cpIL
   cpR <- parms$cpIR
+  cnB <- 7.16
+  cpB <- 40
 
   da0 <- calc_dAlphaP_propto_du(
     alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-    cnL, cnR, cpL, cpR
+    cnL, cnR, cnB, cpL, cpR, cpB
   )
   da0_opt <- calc_dAlphaP_optimal(
     alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-    cnL, cnR, cpL, cpR
+    cnL, cnR, cnB, cpL, cpR, cpB
   )
   da0_opt$dAlpha
   da0$dalpha
@@ -84,13 +88,13 @@ test_that("derivate approach leads to same steady state as optimal", {
   res_ode <- lsode(alpha0, times, function(t,alpha,parms){
     calc_dAlphaP_propto_du(
       alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-      cnL, cnR, cpL, cpR
+      cnL, cnR, cnB, cpL, cpR, cpB
     )
     }, parms)
   res_ode_opt <- lsode(alpha0, times, function(t,alpha,parms){
     calc_dAlphaP_optimal(
       alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-      cnL, cnR, cpL, cpR
+      cnL, cnR, cnB, cpL, cpR, cpB
     )
   }, parms)
   .tmp.f <- function(){

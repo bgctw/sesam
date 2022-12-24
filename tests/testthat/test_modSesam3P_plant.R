@@ -51,7 +51,8 @@ parms0 <- list(
   , cpB = 40
   #, cpBW = 50
   , cpIR = 40
-  , cpIL = 40*3
+  #, cpIL = 40*3
+  , cpIL = 40*6
   , iBP = 0.38 * 10.57 # start with same as N
   , e_P = 0.3*0.01*365 /20  ##<< 1/10 of kmn: /yr enzyme turnover 1% turning over each day
 )

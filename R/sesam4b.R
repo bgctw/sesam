@@ -78,7 +78,9 @@ derivSesam4b <- function(
   # community composition and enzyme allocation
   limE <- computeElementLimitations(
     cbind(C = CsynBC, N = CsynBN, P = CsynBP)[1,]
-    , tauB = max(0.01,parms$tau)*B + tvrBPred) # avoid division by zero
+    , tauB = max(0.01,parms$tau)*B + tvrBPred
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  ) # avoid division by zero
   alphaTarget <- computeSesam4bAllocationPartitioning(
     dS = cbind(L = dLPot, R = dRPot)[1,]
     ,dSP = cbind(LP = dLPPot, RP = dRPPot)[1,]
@@ -304,7 +306,8 @@ computeElementLimitations_sesam2 <- function(
   ## corresponding to names of CsynBE
 }
 .tmp.f <- function(){
-  w_sesam2 = computeElementLimitations_sesam2(CsynBE, tauB)
+  w_sesam2 = computeElementLimitations_sesam2(
+    CsynBE, tauB)
   wELimNorm - w_sesam2
 }
 
@@ -312,6 +315,7 @@ computeElementLimitations <- function(
   ### compute element limitations
   CsynBE   ##<< numeric vector of carbon available for biomass synthesis
   , tauB   ##<< scalar typical microbial turnover flux for scaling
+  , betaB  ##<< C:E ratios of microbial biomass
   , delta = 40  ##<< scalar smoothing factor, the higher, the steeper the transition
   , max_w = 12  ##<< maximum log(weight) to prevent numerical problems with large epxonents
 ){
@@ -320,6 +324,8 @@ computeElementLimitations <- function(
   ## do a smooth transition between corresponding smallest alpha values
   synB = min(CsynBE)
   wELim <- exp(pmin(max_w, -delta/tauB*(CsynBE - synB)) )
+  #if multiplying by betaB then exact co-limiation at CsynBN == CsynBC violated
+  #wELim <- exp(pmin(max_w, -delta/tauB*(CsynBE - synB)) )*betaB
   wELimNorm <- structure(wELim/sum(wELim), names=names(CsynBE))
   ##value<< numeric vector: fractional element limitations with names
   ## corresponding to names of CsynBE
@@ -342,6 +348,7 @@ computeSesam4bAllocationPartitioning <- function(
   ,betaN    ##<< numeric vector of C/N ratios of substrates and enzymes
   ,betaP   ##<< numeric vector of C/P ratios of substrates (L,R) and enzymes (E)
   ,e_P = 0
+  ,kmNZ = c(L = kmkN, R = kmkN, P = kmkN)
 ){
   #limE <- limEP <- c(C = 0, N = 0, P = 1)
   #limE <- limE0 <- c(C = 0, N = 0.408838431792989, P = 0.591161568206928  )
@@ -359,12 +366,12 @@ computeSesam4bAllocationPartitioning <- function(
   #cost <- (kmkN + alpha*synEnz) *
   #  (limE["C"] + limE["N"]/betaN["E"] + limE["P"]/betaP["E"])
   returnS <- structure(sapply(names(dS),function(S){
-    dS[[S]] * alpha[[S]]*synEnz / (kmkN + alpha[[S]]*synEnz)*
+    dS[[S]] * alpha[[S]]*synEnz / (kmNZ[[S]] + alpha[[S]]*synEnz)*
       (limE["C"] + limE["N"]/betaN[[S]] + limE["P"]/betaP[[S]])
   }, USE.NAMES = FALSE), names = names(dS))
   returnSP <- structure(sapply(names(dSP),function(S){
-    dSP[[S]]*((alpha[[S]]*synEnz + e_P)/(kmkN + alpha[[S]]*synEnz + e_P) -
-                (e_P)/(kmkN + e_P))*limE["P"]
+    dSP[[S]]*((alpha[[S]]*synEnz + e_P)/(kmNZ[["P"]] + alpha[[S]]*synEnz + e_P) -
+                (e_P)/(kmNZ[["P"]] + e_P))*limE["P"]
   }, USE.NAMES = FALSE), names = names(dSP))
   # make sure that ordering of return components is the same as in alpha
   revenue <- c(returnS, returnSP)[names(alpha)]/pmax(1e-12,invest)
@@ -388,11 +395,19 @@ compute_eweighted_potential <- function(
   betaN,    ##<< numeric vector of C/N ratios of substrates and enzymes
   betaP   ##<< numeric vector of C/P ratios of substrates (L,R) and enzymes (E)
 ) {
+  # # try expressing potential in C units, i.e. multiplying by C:E_biomass
+  # c(
+  #   dS["L"]*(limE["C"]+limE["N"]/betaN["L"]*betaN["B"]+limE["P"]/betaP["L"]*betaP["B"]),
+  #   dS["R"]*(limE["C"]+limE["N"]/betaN["R"]*betaN["B"]+limE["P"]/betaP["R"]*betaP["B"]),
+  #   #P = unname((dSP["L"]/betaP["L"]+dSP["R"]/betaP["R"])*limE["P"])
+  #   # dSP already in P units, utility in C units
+  #   P = unname(limE["P"] * (dSP["L"]+dSP["R"])*betaP["B"])
+  # )
   c(
     dS["L"]*(limE["C"]+limE["N"]/betaN["L"]+limE["P"]/betaP["L"]),
     dS["R"]*(limE["C"]+limE["N"]/betaN["R"]+limE["P"]/betaP["R"]),
     #P = unname((dSP["L"]/betaP["L"]+dSP["R"]/betaP["R"])*limE["P"])
-    # dSP already in P units
+    # dSP already in P units, utility in C units
     P = unname(limE["P"] * (dSP["L"]+dSP["R"]))
   )
 }
@@ -517,8 +532,8 @@ calc_alphaS_optSP <- function(dS, dP, p){
   dLmdR = dS - dP
   alphaL <- unname(ifelse(dLmdR == 0, 0.5, {
     aeB = p$aE*p$B
-    A = (aeB+p$e_P+p$kmN)*dL + p$kmN*dP
-    D = sqrt(dL*dP)*(aeB + p$e_P + 2*p$kmN)
+    A = (aeB+p$e_P+p$kmN)*dS + p$kmN*dP
+    D = sqrt(dS*dP)*(aeB + p$e_P + 2*p$kmN)
     d = aeB*dLmdR
     alpha0 <- (A-D)/d  # only the second root is reasonable
     alphaL <- pmin(1,pmax(0,alpha0))

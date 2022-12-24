@@ -35,15 +35,18 @@ derivSesam3P <- function(
   alpha <- alpha/sum(alpha)
   B <- x["B"]
   aeB <- parms$aE*B        # aeB without associated growth respiration
-  kmN <- parms$kmN #parms$km*parms$kN
+  kmNL <- if (is.null(parms$kmNL)) parms$kmN else parms$kmNL
+  kmNR <- if (is.null(parms$kmNR)) parms$kmN else parms$kmNR
+  kmNP <- if (is.null(parms$kmNP)) parms$kmN else parms$kmNP
+  #kmN <- parms$kmN #parms$km*parms$kN
   rM <- parms$m*B          # maintenance respiration
   tvrB <- parms$tau*B      # microbial turnover
   synE <- if (isTRUE(parms$isEnzymeMassFlux)) aeB else 0
   #
   # enzyme limitations of decomposition
-  decL <- dLPot * alpha["L"]*aeB/(kmN + alpha["L"]*aeB)
-  decR <- dRPot * alpha["R"]*aeB/(kmN + alpha["R"]*aeB)
-  limEnzP <- (parms$e_P * alpha["P"]*aeB)/(kmN + parms$e_P + alpha["P"]*aeB)
+  decL <- dLPot * alpha["L"]*aeB/(kmNL + alpha["L"]*aeB)
+  decR <- dRPot * alpha["R"]*aeB/(kmNR + alpha["R"]*aeB)
+  limEnzP <- (parms$e_P * alpha["P"]*aeB)/(kmNP + parms$e_P + alpha["P"]*aeB)
   decLP_P <- dLPPot * limEnzP # P units
   decRP_P <- dRPPot * limEnzP
   #
@@ -67,24 +70,28 @@ derivSesam3P <- function(
   # community composition and enzyme allocation
   limE <- computeElementLimitations(
     cbind(C = CsynBC, N = CsynBN, P = CsynBP)[1,]
-    , tauB = parms$tau*B)
+    , tauB = parms$tau*B
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+    )
   dAlpha <- if (isTRUE(parms$isFixedAlpha)) {
     c(L=0, R=0, P=0)
   } else if (isTRUE(parms$isRelativeAlpha)) {
     dAlpha_rel <- calc_dAlphaP_relative_plant(
       alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-      cnL, cnR, cpL, cpR
+      cnL, cnR, cpL, cpR,
+      kmNZ = c(L=kmNL, R = kmNR, P = kmNP)
     )
   } else if (isTRUE(parms$isOptimalAlpha)) {
     res_dAlpha_opt <- calc_dAlphaP_optimal(
       alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-      cnL, cnR, cpL, cpR
+      cnL, cnR, parms$cnB, cpL, cpR, parms$cpB
     )
     res_dAlpha_opt[[1]]
   } else {
     res_dAlpha <- calc_dAlphaP_propto_du(
       alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-      cnL, cnR, cpL, cpR
+      cnL, cnR, parms$cnB, cpL, cpR, parms$cpB,
+      kmNZ = c(L=kmNL, R = kmNR, P = kmNP)
     )
     res_dAlpha[[1]]
   }
@@ -249,8 +256,9 @@ derivSesam3P <- function(
 
 calc_dAlphaP_relative_plant <- function(
   alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-  cnL, cnR, cpL, cpR)
-{
+  cnL, cnR, cpL, cpR,
+  kmNZ = c(L=parms$kmN, R = parms$kmN, P = parms$kmN)
+){
   alphaTarget <- computeSesam4bAllocationPartitioning(
     dS = cbind(R = dRPot, L = dLPot)[1,]
     ,dSP = c(P = as.numeric(dRPPot+dLPPot))
@@ -261,6 +269,7 @@ calc_dAlphaP_relative_plant <- function(
     ,betaN = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
     ,betaP = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
     ,e_P = parms$e_P
+    ,kmNZ = kmNZ
   )
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
@@ -268,14 +277,14 @@ calc_dAlphaP_relative_plant <- function(
 
 calc_dAlphaP_optimal <- function(
   alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-  cnL, cnR, cpL, cpR)
+  cnL, cnR, cnB, cpL, cpR, cpB)
 {
   dSw <- compute_eweighted_potential(
     dS = cbind(R = dRPot, L = dLPot)[1,]
     ,dSP = c(L = unname(dLPPot), R=unname(dRPPot))
     ,limE = limE
-    ,betaN = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
-    ,betaP = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
+    ,betaN = cbind(L = cnL, R = cnR, cnB= cnB, E = parms$cnE)[1,]
+    ,betaP = cbind(L = cpL, R = cpR, cpB= cpB, E = parms$cpE)[1,]
   )
   alphaTarget <- computeSesam4bOptimalAllocationPartitioning(dSw["L"],dSw["R"],dSw["P"], params=parms, B, synB)
   # microbial community change as fast as microbial turnover
@@ -283,35 +292,43 @@ calc_dAlphaP_optimal <- function(
   list(dAlpha=dAlpha, alphaTarget = alphaTarget)
 }
 
-calc_dAlphaP_propto_du_alpha <- function(
-    ### changes in community additionally being proportional to alpha
-    alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-    cnL, cnR, cpL, cpR)
-{
-  dL <- dLPot * (limE["C"] + limE["N"]/cnL + limE["P"]/cpL)
-  dR <- dRPot * (limE["C"] + limE["N"]/cnR + limE["P"]/cpR)
-  #dP <- limE["P"]*(dLPPot/cpL+dRPPot/cpR)
-  dP <- limE["P"]*(dLPPot+dRPPot) # potential fluxes here already in P units
-  aeB <- parms$aE*B
-  du <- c(
-    L = unname(aeB*parms$kmN*dL/(parms$kmN + alpha["L"]*aeB)^2),
-    R = unname(aeB*parms$kmN*dR/(parms$kmN + alpha["R"]*aeB)^2),
-    P = unname(aeB*parms$kmN*dP/(parms$e_P + parms$kmN + alpha["P"]*aeB)^2)
-  )
-  mean_du <- sum(alpha*du) #weighted.mean(du,alpha)
-  dud = alpha*(du - mean_du)/mean_du
-  dalpha = (parms$tau + abs(synB)/B) * dud
-  if (abs(sum(dalpha)) > 1e-12) {
-    tmp = 1
-  }
-  dalpha
-  list(dalpha=dalpha, dud=dud, du=du, dS=c(L=unname(dL),R=unname(dR),P=unname(dP)),is=is)
-}
+# calc_dAlphaP_propto_du_alpha <- function(
+#     ### changes in community additionally being proportional to alpha
+#     alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+#     cnL, cnR, cpL, cpR,
+#     kmNZ = c(L=parms$kmN, R = parms$kmN, P = parms$kmN)
+# ){
+#   dL <- dLPot * (limE["C"] + limE["N"]/cnL + limE["P"]/cpL)
+#   dR <- dRPot * (limE["C"] + limE["N"]/cnR + limE["P"]/cpR)
+#   #dP <- limE["P"]*(dLPPot/cpL+dRPPot/cpR)
+#   dP <- limE["P"]*(dLPPot+dRPPot) # potential fluxes here already in P units
+#   aeB <- parms$aE*B
+#   du <- c(
+#     L = unname(aeB*kmNZ[["L"]]*dL/(kmNZ[["L"]] + alpha["L"]*aeB)^2),
+#     R = unname(aeB*kmNZ[["R"]]*dR/(kmNZ[["R"]] + alpha["R"]*aeB)^2),
+#     P = unname(aeB*kmNZ[["P"]]*dP/(parms$e_P + kmNZ[["P"]] + alpha["P"]*aeB)^2)
+#   )
+#   mean_du <- sum(alpha*du) #weighted.mean(du,alpha)
+#   dud = alpha*(du - mean_du)/mean_du
+#   dalpha = (parms$tau + abs(synB)/B) * dud
+#   if (abs(sum(dalpha)) > 1e-12) {
+#     tmp = 1
+#   }
+#   dalpha
+#   list(dalpha=dalpha, dud=dud, du=du, dS=c(L=unname(dL),R=unname(dR),P=unname(dP)),is=is)
+# }
 
 calc_dAlphaP_propto_du <- function(
     alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-    cnL, cnR, cpL, cpR)
-{
+    cnL, cnR, cnB, cpL, cpR, cpB,
+    kmNZ = c(L=parms$kmN, R = parms$kmN, P = parms$kmN)
+) {
+  # # try expressing elemental-weighted potential in biomass C units (*ceB)
+  # dL <- dLPot * (limE["C"] + limE["N"]/cnL*cnB + limE["P"]/cpL*cpB)
+  # dR <- dRPot * (limE["C"] + limE["N"]/cnR*cnB + limE["P"]/cpR*cpB)
+  # #dP <- limE["P"]*(dLPPot/cnL+dRPPot/cpR)
+  # #dLPPot already in P units
+  # dP <- limE["P"]*(dLPPot+dRPPot)*cpB
   dL <- dLPot * (limE["C"] + limE["N"]/cnL + limE["P"]/cpL)
   dR <- dRPot * (limE["C"] + limE["N"]/cnR + limE["P"]/cpR)
   #dP <- limE["P"]*(dLPPot/cnL+dRPPot/cpR)
@@ -319,9 +336,9 @@ calc_dAlphaP_propto_du <- function(
   dP <- limE["P"]*(dLPPot+dRPPot)
   aeB <- parms$aE*B
   du <- c(
-    L = unname(aeB*parms$kmN*dL/(parms$kmN + alpha["L"]*aeB)^2),
-    R = unname(aeB*parms$kmN*dR/(parms$kmN + alpha["R"]*aeB)^2),
-    P = unname(aeB*parms$kmN*dP/(parms$e_P + parms$kmN + alpha["P"]*aeB)^2)
+    L = unname(aeB*kmNZ[["L"]]*dL/(kmNZ[["L"]] + alpha["L"]*aeB)^2),
+    R = unname(aeB*kmNZ[["R"]]*dR/(kmNZ[["R"]] + alpha["R"]*aeB)^2),
+    P = unname(aeB*kmNZ[["P"]]*dP/(parms$e_P + kmNZ[["P"]] + alpha["P"]*aeB)^2)
   )
   # only change alpha if its larger than zero or if the change is positive
   # update the mean_du to only include the participating enzymes
