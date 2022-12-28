@@ -343,7 +343,8 @@ ggsave("sesamalloc_FACE1.pdf", p3b, width = figWidthCol, height = figHeightCol)
 ### Supplementary plot
 
 ```{r}
-vars <- c("L","R","alphaR") 
+#vars <- c("L","R","alphaR") 
+vars <- c("R") 
 p4 <- resScen %>% filter(scenario %in% c("Optimal","Relative","Relative_kR","Relative_kmNR")) %>% 
   ggplot_vars(vars) + colScaleApproach + linetypeScaleApproach +
     theme(axis.title.y = element_blank()) +
