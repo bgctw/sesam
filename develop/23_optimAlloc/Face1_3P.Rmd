@@ -68,10 +68,13 @@ knit_hooks$set(spar  =  function(before, options, envir) {
     paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
 }
 .approaches <- c("Optimal","Derivative","Relative")
+.approaches_ext <- c(.approaches, c("Relative_kR","Relative_kmNR"))
 colScaleApproach <- scale_colour_manual(
-  name = "Approach", values = setNames(mycolors[seq_along(.approaches)], .approaches))
+  name = "Approach", values = c(
+    setNames(mycolors[seq_along(.approaches)], .approaches)
+  ,c(Relative_kR = mycolors[3], Relative_kmNR=mycolors[3])))
 linetypeScaleApproach <- scale_linetype_manual(
-  name = "Approach",values = setNames(mylinetypes[seq_along(.approaches)], .approaches))
+  name = "Approach",values = setNames(mylinetypes[seq_along(.approaches_ext)], .approaches_ext))
 .treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
 sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
 ```
@@ -286,7 +289,7 @@ Plot some results.
 ```{r}
 replace_labels <- function(labels, labelmap) {
   sapply(labels, function(label){
-    if (is.null(varlabelmap[[label]])) label else varlabelmap[[label]]
+    if (is.null(labelmap[[label]])) label else labelmap[[label]]
   })
 }
 #replace_labels(c("a",names(labelmap)), labelmap)
@@ -324,23 +327,25 @@ print(ggplot_vars(resScen, vars))
 ```{r}
 vars <- c("L","R_norm","alphaR") 
 p3 <- resScen %>% 
-  filter(scenario != "Relative_kR") %>% 
+  filter(scenario %in% c("Optimal","Derivative","Relative")) %>% 
   ggplot_vars(vars)+ colScaleApproach + linetypeScaleApproach +
     theme(axis.title.y = element_blank()) +
-    theme(legend.title = element_blank())
+    theme(legend.title = element_blank()) +
+    c()
 p3
 ```
-
 ```{r eval=FALSE, include=FALSE}
 p3b <- p3 +
   theme(legend.position = c(0.93,1.15), legend.justification = c(1,1))
 ggsave("sesamalloc_FACE1.pdf", p3b, width = figWidthCol, height = figHeightCol) 
 ```
 
+### Supplementary plot
+
 ```{r}
 vars <- c("L","R","alphaR") 
 p4 <- resScen %>% filter(scenario %in% c("Optimal","Relative","Relative_kR","Relative_kmNR")) %>% 
-  ggplot_vars(vars)+ colScaleApproach + #linetypeScaleApproach +
+  ggplot_vars(vars) + colScaleApproach + linetypeScaleApproach +
     theme(axis.title.y = element_blank()) +
     theme(legend.title = element_blank())
 p4
@@ -348,8 +353,12 @@ p4
 
 ```{r eval=FALSE, include=FALSE}
 p4b <- p4 +
-  theme(legend.position = c(0.93,1.15), legend.justification = c(1,1))
-ggsave("sesamalloc_FACE2.pdf", p4b, width = figWidthCol, height = figHeightCol) 
+  #theme(legend.position = c(0.93,1.15), legend.justification = c(1,1))
+  theme(legend.position = "bottom") +
+  theme(legend.title = element_blank()) +
+  guides(linetype = guide_legend(nrow = 2, byrow = TRUE)) +
+  guides(color = guide_legend(nrow = 2, byrow = TRUE))
+ggsave("sesamalloc_FACE2.pdf", p4b, width = figWidthCol, height = figHeightCol*1.6) 
 ```
 
 

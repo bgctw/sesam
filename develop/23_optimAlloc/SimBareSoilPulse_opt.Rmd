@@ -48,7 +48,8 @@ themePres <- theme_classic(base_size = 18) %>%
   adjust_facets()
 theme_set(themePres) # also adjust fig.with in opts_chunk below to paper Wide
 
-figWidthPage <- 18/2.54; figHeightPage <- figWidthPage/1.6 
+#figWidthPage <- 18/2.54; figHeightPage <- figWidthPage/1.6 
+figWidthPage <- 12/2.54; figHeightPage <- figWidthPage/1.6 
 #, fig.height=4.43, fig.width=7.1
 #figWidthWide <- 12/2.54; figHeightWide <- figWidthWide/1.6
 figWidthWide <- 3.8; figHeightWide <- 5
@@ -77,6 +78,11 @@ knit_hooks$set(spar  =  function(before, options, envir) {
 
 
 #themeUsed <- c(themeUsed, scale_colour_brewer(type="qual",palette="Dark2"))
+replace_labels <- function(labels, labelmap) {
+  sapply(labels, function(label){
+    if (is.null(labelmap[[label]])) label else labelmap[[label]]
+  })
+}
 
 
 ```
@@ -452,6 +458,44 @@ because return is much higher compared to residue levels.
 This then leads to even higher overflow respiration compared to the fixed
 and relative approaches.
 
+### paper plot
+```{r}
+vars <- c("synB","alphaR","respO") 
+labelmap = list(synB = "syn[B]", alphaR="alpha[R]", respO="resp[O]")
+dsp0 <- resP %>% filter(.data$time <= 0.5) %>% cueSesam() 
+dsp <- dsp0 %>% select(all_of(c("time", "scen", "cn0", vars))) %>%
+  gather("Pool","value", vars)
+p2f <- dsp %>% 
+  filter(cn0 == 50) %>% 
+  mutate(Approach = fct_relevel(.data$scen, c("Optimal","Derivative","Relative"))) %>% 
+  mutate(Pool = fct_relevel(.data$Pool, vars)) %>% 
+  mutate(Pool = fct_relabel(Pool, ~replace_labels(.,labelmap))) %>% 
+  ggplot(aes(x = time, y = value, col = Approach, linetype = Approach)) + geom_line() +
+  facet_grid(Pool ~ .,scales = "free",labeller = label_parsed) + 
+  scale_color_approach +
+  scale_linetype_approach +
+  xlab("Time (yr)") + 
+  #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
+  #xlab("Fraction C decomposed") +
+  #ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
+  #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
+  #theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
+  themePaper +
+  theme(panel.grid.major.x = element_line(colour = "grey75")) +
+  theme(axis.title.y = element_blank()) +
+  c()
+#print(p2f + colScale)
+print(p2f)
+#ggsave("Sesam_OptimMethods_Pulse_approaches.png", width=4.8, height=3.8)
+```
+```{r eval=FALSE, include=FALSE}
+p3b <- p2f +
+  #theme(legend.position = c(0.93,1.15), legend.justification = c(1,1))
+  c()
+ggsave("pulse_approaches.pdf", p3b, width = figWidthCol, height = figHeightCol) 
+```
+
+
 ```{r}
 #vars2 <- c("cueDef", "cueSyn") 
 vars2 <- c("cueDef") 
@@ -490,6 +534,19 @@ p2 <- dsp2 %>%
 #print(p2f + colScale)
 print(p2)
 ```
+```{r eval=FALSE, include=FALSE}
+p3b <- p2 +
+  #theme(legend.position = c(0.93,1.15), legend.justification = c(1,1)) +
+  themePaper +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+  theme(legend.position = "bottom") +
+  guides(linetype = guide_legend(title = "C:N", nrow = 1, byrow = TRUE)) +
+  guides(color = guide_legend(title = "C:N", nrow = 1, byrow = TRUE)) +
+  #facet_grid(scen ~ .) + #,scales = "free") + 
+  #theme(legend.title = element_blank()) +
+  c()
+ggsave("pulse_cn.pdf", p3b, width = figWidthCol, height = figHeightCol) 
+```
 
 
 
@@ -512,17 +569,21 @@ print(p2p)
 ```{r}
 vars <- c("B","synB","alphaR","cueDef","L","R") 
 vars <- c("B","alphaR","cueDef","L","R") 
+vars <- c("B","alphaR","L") 
 dsp0 <- resP %>% filter(between(.data$time,1.1,5)) %>% cueSesam() 
 dsp <- dsp0 %>% select(all_of(c("time", "scen", "cn0", vars))) %>%
-  gather("Pool","value", vars)
+  gather("Pool","value", vars) %>% 
+  mutate(Pool = fct_relevel(Pool, vars)) %>% 
+  mutate(Pool = fct_relabel(Pool, ~replace_labels(.,labelmap)))
+  
 p2f <- dsp %>% 
   mutate(Approach = fct_relevel(.data$scen, c("Optimal","Derivative","Relative"))) %>% 
   filter(scen %in% c("Optimal","Relative")) %>% 
   filter(cn0 == 50) %>% 
-  mutate(Pool = fct_relevel(.data$Pool, vars)) %>% 
+  #mutate(Pool = fct_relevel(.data$Pool, vars)) %>% 
   ggplot(aes(x = time, y = value, col = Approach, linetype = Approach)) + geom_line(linewidth = 1) +
   #facet_grid(Pool ~ cn0,scales = "free") + 
-  facet_grid(Pool~.,scales = "free") + 
+  facet_grid(Pool~.,scales = "free",labeller = label_parsed) + 
   xlab("Time (yr)") + 
   scale_color_approach +
   scale_linetype_approach +
@@ -540,6 +601,14 @@ print(p2f)
 Optimal approach does not allocate to L degrading enzymes any more.
 Yielding higher biomass and higher R decomposition.
 
+```{r eval=FALSE, include=FALSE}
+p3b <- p2f +
+  themePaper +
+  theme(axis.title.y = element_blank()) +
+  #theme(legend.position = c(0.93,1.15), legend.justification = c(1,1))
+  c()
+ggsave("pulse_lowB.pdf", p3b, width = figWidthCol, height = figHeightCol) 
+```
 
 ```{r}
 # Compare the initial derivative at cn90

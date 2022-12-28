@@ -224,11 +224,13 @@ dsp0 <- resP %>% filter(.data$time < 3) %>%
   cueSesam() %>% 
   mutate(cn0 = as.factor(cn0)) %>% 
   mutate(S = R + L, cnS = (R + L)/(RN + LN)) %>% 
-  mutate(relS = S/S[1], relL = L/L[1], fracDecomp = 1 - relL) %>% 
+  mutate(relS = S/S[1], relL = L/L[1], fracDecomp = 1 - relL) 
   #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
-  select(one_of(c("time","relS","relL","fracDecomp","scen","cn0", vars))) 
-dsp <- dsp0 %>% gather("Pool","value", vars)
-p2f <- ggplot( dsp, aes(x = time, y = value, col = cn0, linetype = cn0)) + geom_line(size = 1) +
+dsp <- dsp0 %>% 
+  select(one_of(c("time","relS","relL","fracDecomp","scen","cn0", vars))) %>% 
+  gather("Pool","value", vars)
+p2f <- ggplot( dsp, aes(x = time, y = value, col = cn0, linetype = cn0)) + 
+  geom_line(linewidth = 1) +
   facet_grid(Pool ~ scen,scales = "free") + 
   xlab("Time (yr)") + 
   #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
