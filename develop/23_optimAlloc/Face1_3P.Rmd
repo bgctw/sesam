@@ -95,7 +95,7 @@ parmsModel <- list(
   ,kNB = 0.8     ##<< amount of recycling enzyme turnover by biomass (
     # added to assimilable, i.e. uptake instead of R)
   #,kR = 1/(10)        ##<< 1/(x years) # to demonstrate changes on short time scale
-  ,kR = 1/31.40989 # matching initial R pools of 3200 g/m2
+  ,kR = 1/31.40989 # matching initial R pools of about 3200 g/m2
   #,kR = 1/(20)        ##<< 1/(x years) # to demonstrate changes on short time scale
   ,kL = 5           ##<< 1/(x years)   # formerly 1 year
   ,aE = 0.001*365   ##<< C biomass allocated to enzymes 1/day /microbial biomass
@@ -156,7 +156,8 @@ drivers <- list(
   iR = 0          ##<< input of residue litter
   ,iL = 400         # g/m2 input per year (half NPP)
   ,cnIR = 7       ##<< C/N ratio of the residue litter input
-  ,cnIL = 30      ##<< C/N ratio of the labile litter input: 
+#  ,cnIL = 30      ##<< C/N ratio of the labile litter input: 
+  ,cnIL = 28      ##<< C/N ratio of the labile litter input: 
   ,iIN = 0.0         ##<< input of mineral N
   ,iIP = 0.0 # no inorganic P inputs
   , cpIR = 40
@@ -202,15 +203,12 @@ scenarios <- tibble::tibble(
     within(parms0,isOptimalAlpha<-TRUE), 
     parms0,
     within(parms0,isRelativeAlpha<-TRUE),
-    within(parms0, {isRelativeAlpha<-TRUE; kR <- kRP <- 1/32.6147}),
-    within(parms0, {isRelativeAlpha<-TRUE; kmNR <- 3.261561})
+    within(parms0, {isRelativeAlpha<-TRUE; kR <- kRP <- 1/33.80632}),
+    within(parms0, {isRelativeAlpha<-TRUE; kmNR <- 3.478608})
     )
 )
 scenarios$x0 <- list(x0)
 scenarios$mod <- list(derivSesam3P)
-tmp <- structure(mycolors[1:nrow(scenarios)], names = scenarios$scenario)
-colScaleApproach <- scale_colour_manual(name = "Model variant",values = tmp )
-linetypeScaleApproach <- scale_linetype_manual(name = "Model variant",values =  structure(c("solid","longdash","dotted","dashed")[1:nrow(scenarios)], names = scenarios$scenario))
 scenarios
 ```
 
@@ -293,13 +291,15 @@ replace_labels <- function(labels, labelmap) {
   })
 }
 #replace_labels(c("a",names(labelmap)), labelmap)
-ggplot_vars <- function(resScen, vars, labelmap = list(alphaR="alpha[R]", "R_norm"="R[norm]")) {
+ggplot_vars <- function(resScen, vars, labelmap = list(alphaR="alpha[R]", R_norm="R[norm]", R_diff="R[diff]")) {
   dsp <- 
     #resc %>% 
     resScen %>% 
     #filter(time >= 20, time <= 40) %>% 
     mutate(RL = R + L, cnRL = (R + L)/(RN + LN)) %>% # compute additional quantities
-    group_by(scenario) %>% mutate(R_norm = R/R[1], L_norm = L/L[1], RL_norm = RL/RL[1]) %>% ungroup() %>% 
+    group_by(scenario) %>% 
+    mutate(R_norm = R/R[1], L_norm = L/L[1], RL_norm = RL/RL[1], R_diff = R-R[1]) %>% 
+    ungroup() %>% 
     mutate(scenario = fct_relevel(scenario, c("Optimal","Derivative","Relative"))) %>% 
     #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
     select(any_of(c("time","scenario",vars))) %>% gather("Pool","value", vars) %>% 
@@ -307,7 +307,7 @@ ggplot_vars <- function(resScen, vars, labelmap = list(alphaR="alpha[R]", "R_nor
   p2f <- ggplot( dsp, aes(x = time, y = value, col = scenario, linetype = scenario)) + geom_line(linewidth = 1) +
     facet_grid(Pool ~ .,scales = "free",labeller = label_parsed) + 
     xlab("Time (yr)") + ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
-    themeDefault +
+    #themeDefault +
     #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
     theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
     theme(panel.border = element_rect(colour = "black", fill = NA)) +
@@ -318,7 +318,7 @@ ggplot_vars <- function(resScen, vars, labelmap = list(alphaR="alpha[R]", "R_nor
 #print(p2f + colScaleApproach)
 #vars <- c("L","R","alphaR","RL") 
 vars <- c("L","R","alphaR","B","RL","IN") 
-vars <- c("L","R","alphaR","B","IN","plantNUp","PhiNB","PhiNTotal") 
+vars <- c("L","R","alphaR","B","IN","plantNUp","PhiNB","PhiNTotal","limN") 
 #vars <- c("alpha","B", "cnL", "PhiNB","PhiNTotal","immoNPot", "CsynBC","CsynBN") 
 print(ggplot_vars(resScen, vars))
 ```
@@ -326,6 +326,7 @@ print(ggplot_vars(resScen, vars))
 
 ```{r}
 vars <- c("L","R_norm","alphaR") 
+#vars <- c("L","R_diff","alphaR") 
 p3 <- resScen %>% 
   filter(scenario %in% c("Optimal","Derivative","Relative")) %>% 
   ggplot_vars(vars)+ colScaleApproach + linetypeScaleApproach +
@@ -343,7 +344,9 @@ ggsave("sesamalloc_FACE1.pdf", p3b, width = figWidthCol, height = figHeightCol)
 ### Supplementary plot
 
 ```{r}
-#vars <- c("L","R","alphaR") 
+vars <- c("L","R","alphaR") 
+vars <- c("L","R","alphaR","R_diff") 
+vars <- c("R","R_diff") 
 vars <- c("R") 
 p4 <- resScen %>% filter(scenario %in% c("Optimal","Relative","Relative_kR","Relative_kmNR")) %>% 
   ggplot_vars(vars) + colScaleApproach + linetypeScaleApproach +
@@ -359,7 +362,7 @@ p4b <- p4 +
   theme(legend.title = element_blank()) +
   guides(linetype = guide_legend(nrow = 2, byrow = TRUE)) +
   guides(color = guide_legend(nrow = 2, byrow = TRUE))
-ggsave("sesamalloc_FACE2.pdf", p4b, width = figWidthCol, height = figHeightCol*1.6) 
+ggsave("sesamalloc_FACE2.pdf", p4b, width = figWidthCol, height = figHeightCol*1.3) 
 ```
 
 
@@ -373,14 +376,13 @@ and predicts a lower loss of R during FACE.
 
 ```{r eval=FALSE, include=FALSE}
 (0.34-0.32)/0.32 # compute the relative overestimation of alpha_R Relative
+(3800-3480)/3800
 ```
 
 ```{r eval=FALSE, include=FALSE}
 # determine kR so that initial R is 3200
-.tmp.f <- function(){
-  tmp <- filter(resScen, scenario == "Derivative")
-  head(tmp)$R + head(tmp)$L # targetSOM = 3314.14
-}
+tmp <- filter(resScen, scenario == "Derivative")
+LR_target <- head(tmp,1)$R + head(tmp,1)$L # targetSOM = 3314.14
 runSteady <- function(mod, x0, parms) {
   times <- seq(0,1000, length.out = 2)
   res <- res1 <- as.data.frame(lsoda( x0, times, mod, parms = parms))
@@ -390,32 +392,32 @@ fcost <- function(kRnew, scen){
     kR <- kRP <- kRnew
   })
   res <- runSteady( scen$mod[[1]], scen$x0[[1]], p ) 
-  (tail(res$R,1) - 3200)^2
+  (tail(res$R,1)+tail(res$L,1) - LR_target)^2
 }
 fcost_kmNR <- function(kmNRnew, scen){
   p <- within(scen$parms[[1]],{
     kmNR <- kmNRnew
   })
   res <- runSteady( scen$mod[[1]], scen$x0[[1]], p ) 
-  (tail(res$R,1)+tail(res$L,1) - 3314.14)^2
+  (tail(res$R,1)+tail(res$L,1) - LR_target)^2
 }
 .tmp.f <- function(){  
   #"Optimal","Relative","Derivative"
-  scen <- filter(scenarios, scenario == "Relative")  # kR = 1/32.6147
+  scen <- filter(scenarios, scenario == "Relative")  
   fcost(parms$kR/2, scen)
   kR <- optimize(fcost, c(1e-8,0.05), scen)
-  1/kR$minimum
+  c(1/parms$kR, 1/kR$minimum)  # 31.4 yrs vs 33.80632
 }
 .tmp.f <- function(){  
   #"Optimal","Relative","Derivative"
-  scen <- filter(scenarios, scenario == "Relative")  # kR = 1/32.6147
+  scen <- filter(scenarios, scenario == "Relative")  
   parms <-scen$parms[[1]]
   fcost_kmNR(parms$kmN, scen)
-  scen2 <- filter(scenarios, scenario == "Relative_kmNR")  # kR = 1/32.6147
+  scen2 <- filter(scenarios, scenario == "Relative_kmNR")  
   fcost_kmNR(scen2$parms[[1]]$kmNR, scen)
   resOpt <- optimize(fcost_kmNR, c(parms$kmN/10,parms$kmN*10), scen)
   kmNR <- resOpt$minimum
-  c(parms$kmN, kmNR)
+  c(parms$kmN, kmNR)  # 3.0 vs 3.478608
 }
 ```
 

@@ -78,7 +78,7 @@ derivSesam3P <- function(
   } else if (isTRUE(parms$isRelativeAlpha)) {
     dAlpha_rel <- calc_dAlphaP_relative_plant(
       alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-      cnL, cnR, cpL, cpR,
+      cnL, cnR, parms$cnB, cpL, cpR, parms$cpB,
       kmNZ = c(L=kmNL, R = kmNR, P = kmNP)
     )
   } else if (isTRUE(parms$isOptimalAlpha)) {
@@ -256,7 +256,7 @@ derivSesam3P <- function(
 
 calc_dAlphaP_relative_plant <- function(
   alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-  cnL, cnR, cpL, cpR,
+  cnL, cnR, cnB, cpL, cpR, cpB,
   kmNZ = c(L=parms$kmN, R = parms$kmN, P = parms$kmN)
 ){
   alphaTarget <- computeSesam4bAllocationPartitioning(
@@ -266,8 +266,8 @@ calc_dAlphaP_relative_plant <- function(
     ,kmkN = parms$kmN, aE =  parms$aE
     ,alpha = alpha
     ,limE = limE
-    ,betaN = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
-    ,betaP = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
+    ,betaN = c(L = unname(cnL), R = unname(cnR), B=unname(cnB), E = parms$cnE)
+    ,betaP = c(L = unname(cpL), R = unname(cpR), B=unname(cpB), E = parms$cpE)
     ,e_P = parms$e_P
     ,kmNZ = kmNZ
   )
@@ -279,14 +279,20 @@ calc_dAlphaP_optimal <- function(
   alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
   cnL, cnR, cnB, cpL, cpR, cpB)
 {
-  dSw <- compute_eweighted_potential(
-    dS = cbind(R = dRPot, L = dLPot)[1,]
-    ,dSP = c(L = unname(dLPPot), R=unname(dRPPot))
-    ,limE = limE
-    ,betaN = cbind(L = cnL, R = cnR, cnB= cnB, E = parms$cnE)[1,]
-    ,betaP = cbind(L = cpL, R = cpR, cpB= cpB, E = parms$cpE)[1,]
-  )
-  alphaTarget <- computeSesam4bOptimalAllocationPartitioning(dSw["L"],dSw["R"],dSw["P"], params=parms, B, synB)
+  betaB <- c(C=1, N=cnB, P=cpB)
+  omega_L <- compute_elemental_weightfactor(limE, c(C=1, N=cnL, P=cpL), betaB)
+  omega_R <- compute_elemental_weightfactor(limE, c(C=1, N=cnR, P=cpR), betaB)
+  omega_P <- compute_elemental_weightfactor(limE["P"], c(P=1), betaB["P"])
+  # dSw <- compute_eweighted_potential(
+  #   dS = cbind(R = dRPot, L = dLPot)[1,]
+  #   ,dSP = c(L = unname(dLPPot), R=unname(dRPPot))
+  #   ,limE = limE
+  #   ,betaN = cbind(L = cnL, R = cnR, cnB= cnB, E = parms$cnE)[1,]
+  #   ,betaP = cbind(L = cpL, R = cpR, cpB= cpB, E = parms$cpE)[1,]
+  # )
+  alphaTarget <- computeSesam4bOptimalAllocationPartitioning(
+    dLPot*omega_L, dRPot*omega_R, (dLPPot+dRPPot)*omega_P,
+    params=parms, B, synB)
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
   list(dAlpha=dAlpha, alphaTarget = alphaTarget)
@@ -329,11 +335,14 @@ calc_dAlphaP_propto_du <- function(
   # #dP <- limE["P"]*(dLPPot/cnL+dRPPot/cpR)
   # #dLPPot already in P units
   # dP <- limE["P"]*(dLPPot+dRPPot)*cpB
-  dL <- dLPot * (limE["C"] + limE["N"]/cnL + limE["P"]/cpL)
-  dR <- dRPot * (limE["C"] + limE["N"]/cnR + limE["P"]/cpR)
-  #dP <- limE["P"]*(dLPPot/cnL+dRPPot/cpR)
+  betaB <- c(C=1, N=cnB, P=cpB)
+  omega_L <- compute_elemental_weightfactor(limE, c(C=1, N=cnL, P=cpL), betaB)
+  omega_R <- compute_elemental_weightfactor(limE, c(C=1, N=cnR, P=cpR), betaB)
+  omega_P <- compute_elemental_weightfactor(limE["P"], c(P=1), betaB["P"])
+  dL <- dLPot * omega_L
+  dR <- dRPot * omega_R
   #dLPPot already in P units
-  dP <- limE["P"]*(dLPPot+dRPPot)
+  dP <- (dLPPot+dRPPot) * omega_P
   aeB <- parms$aE*B
   du <- c(
     L = unname(aeB*kmNZ[["L"]]*dL/(kmNZ[["L"]] + alpha["L"]*aeB)^2),

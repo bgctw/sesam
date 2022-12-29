@@ -204,7 +204,7 @@ test_that("substrate feedbacks", {
   resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsNlim))
   xETest <- unlist(tail(resTest,1))
   xETest
-  expect_true( xETest["alphaR"] > 0.4)
+  expect_true( xETest["alphaR"] > 0.3)
   tmp <- derivSesam3P(0, xETest[1+seq_along(x0)], parms = parmsNlim)
 })
 

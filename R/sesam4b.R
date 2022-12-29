@@ -81,16 +81,29 @@ derivSesam4b <- function(
     , tauB = max(0.01,parms$tau)*B + tvrBPred
     , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
   ) # avoid division by zero
-  alphaTarget <- computeSesam4bAllocationPartitioning(
-    dS = cbind(L = dLPot, R = dRPot)[1,]
-    ,dSP = cbind(LP = dLPPot, RP = dRPPot)[1,]
-    , B = B
-    ,kmkN = kmN, aE =  parms$aE
-    ,alpha = alpha
-    ,limE = limE
-    ,betaN = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
-    ,betaP = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
-  )
+  alphaTarget <- if (isTRUE(parms$use_noCNB_return)) {
+    computeSesam4bAllocationPartitioning_noCNB(
+      dS = cbind(L = dLPot, R = dRPot)[1,]
+      ,dSP = cbind(LP = dLPPot, RP = dRPPot)[1,]
+      , B = B
+      ,kmkN = kmN, aE =  parms$aE
+      ,alpha = alpha
+      ,limE = limE
+      ,betaN = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
+      ,betaP = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
+    )
+  } else {
+    computeSesam4bAllocationPartitioning(
+      dS = cbind(L = dLPot, R = dRPot)[1,]
+      ,dSP = cbind(LP = dLPPot, RP = dRPPot)[1,]
+      , B = B
+      ,kmkN = kmN, aE =  parms$aE
+      ,alpha = alpha
+      ,limE = limE
+      ,betaN = c(L = unname(cnL), R = unname(cnR), B = parms$cnB, E = parms$cnE)
+      ,betaP = c(L = unname(cpL), R = unname(cpR), B = parms$cpB, E = parms$cpE)
+    )
+  }
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) * (synB + tvrB + tvrBPred)/B
   #
@@ -360,6 +373,72 @@ computeSesam4bAllocationPartitioning <- function(
   if (any(sort(c(names(dS),names(dSP))) != sort(names(alpha)))) stop(
     "expected names in c(dS, dSP) to match names(alpha) but got ",
     c(names(dS),names(dSP)), " versus ", names(alpha))
+  namesBeta <- c("L","R","B","E")
+  iMissingBetaN <- which(!(namesBeta %in% names(betaN)))
+  if (length(iMissingBetaN)) stop("missing ",namesBeta[iMissingBetaN], "in betaN")
+  iMissingBetaP <- which(!(namesBeta %in% names(betaP)))
+  if (length(iMissingBetaP)) stop("missing ",namesBeta[iMissingBetaP], "in betaP")
+  synEnz <- aE*B
+  betaB <- c(c=1, N = unname(betaN["B"]), P = unname(betaP["B"]))
+  omega_Enz <- compute_elemental_weightfactor(
+    limE, c(C=1, N=betaN["E"],P=betaP["E"]), betaB)
+  omega_S <- list(
+    L = compute_elemental_weightfactor(limE, c(C=1, N=betaN["L"],P=betaP["L"]), betaB),
+    R = compute_elemental_weightfactor(limE, c(C=1, N=betaN["R"],P=betaP["R"]), betaB),
+    P = compute_elemental_weightfactor(limE["P"], c(P=1), betaB["P"])
+  )
+  invest <- alpha*synEnz *
+    #(limE["C"] + limE["N"]/betaN["E"] + limE["P"]/betaP["E"])
+    omega_Enz
+  #cost <- (kmkN + alpha*synEnz) *
+  #  (limE["C"] + limE["N"]/betaN["E"] + limE["P"]/betaP["E"])
+  returnS <- structure(sapply(names(dS),function(S){
+    dS[[S]] * alpha[[S]]*synEnz / (kmNZ[[S]] + alpha[[S]]*synEnz)*
+      #(limE["C"] + limE["N"]/betaN[[S]] + limE["P"]/betaP[[S]])
+      omega_S[[S]]
+  }, USE.NAMES = FALSE), names = names(dS))
+  returnSP <- structure(sapply(names(dSP),function(S){
+    dSP[[S]]*((alpha[[S]]*synEnz + e_P)/(kmNZ[["P"]] + alpha[[S]]*synEnz + e_P) -
+                (e_P)/(kmNZ[["P"]] + e_P))*
+      #limE["P"]
+      omega_S[["P"]]
+  }, USE.NAMES = FALSE), names = names(dSP))
+  # make sure that ordering of return components is the same as in alpha
+  revenue <- c(returnS, returnSP)[names(alpha)]/pmax(1e-12,invest)
+  alphaTarget <- revenue/sum(revenue)
+  alphaTarget
+  ##value<< numeric vector of revenue-optimal alpha for enzymes L,R,LP,RP
+}
+
+#' @export
+computeSesam4bAllocationPartitioning_noCNB <- function(
+  ###  allocation partitioning alpha of four enzymes and biomineralization
+  ###  with weighting elemental fluxes without multiplication by cnB
+  dS    ##<< numeric vector (L,R) of potential depolymerization C-fluxes
+  ,dSP  ##<< numeric vector of potential biomineralization P-fluxes
+  ,B		##<< numeric vector of microbial biomass carbon
+  ,kmkN	##<< numeric vector of product of (half-saturation constant in
+  ## decomposition equation) x (enzyme turnover rate)
+  ,aE		##<< numeric vector of proportion of microbial biomass allocated
+  ## to enzyme production per time
+  ,alpha  ##<< numeric vector (L,R,LP,RP) of current community allocation
+  ## coefficients in (0,1)
+  ,limE   ##<< numeric vector (nElement) of weights of elemental limitations
+  ,betaN    ##<< numeric vector of C/N ratios of substrates and enzymes
+  ,betaP   ##<< numeric vector of C/P ratios of substrates (L,R) and enzymes (E)
+  ,e_P = 0
+  ,kmNZ = c(L = kmkN, R = kmkN, P = kmkN)
+){
+  #limE <- limEP <- c(C = 0, N = 0, P = 1)
+  #limE <- limE0 <- c(C = 0, N = 0.408838431792989, P = 0.591161568206928  )
+  #limE <- limE0 <- c(C = 0, N = 0.226012593299406, P = 0.773987406700594  )
+  #limE <- limE0 <- c(C = 0.000435098291453755, N = 0.563867465009725, P = 0.435697436698822  )
+  #limE["N"] <- limE["N"] + limE["P"]; limE["P"] <- 0
+  #limE <- c(C = 0, N = 0.563867465009725, P = 0.435697436698822)
+  #limE <- limEN <- c(C = 0, N = 1, P = 0)
+  if (any(sort(c(names(dS),names(dSP))) != sort(names(alpha)))) stop(
+    "expected names in c(dS, dSP) to match names(alpha) but got ",
+    c(names(dS),names(dSP)), " versus ", names(alpha))
   synEnz <- aE*B
   invest <- alpha*synEnz *
     (limE["C"] + limE["N"]/betaN["E"] + limE["P"]/betaP["E"])
@@ -387,30 +466,45 @@ computeSesam4bAllocationPartitioning <- function(
   (alphaTarget_old = revR/(revL + revR))
 }
 
-
-compute_eweighted_potential <- function(
-  dS,    ##<< numeric vector (L,R) of potential depolymerization C-fluxes
-  dSP,   ##<< numeric vector of potential biomineralization P-fluxes
-  limE,      ##<< elemental limiations
-  betaN,    ##<< numeric vector of C/N ratios of substrates and enzymes
-  betaP   ##<< numeric vector of C/P ratios of substrates (L,R) and enzymes (E)
-) {
-  # # try expressing potential in C units, i.e. multiplying by C:E_biomass
-  # c(
-  #   dS["L"]*(limE["C"]+limE["N"]/betaN["L"]*betaN["B"]+limE["P"]/betaP["L"]*betaP["B"]),
-  #   dS["R"]*(limE["C"]+limE["N"]/betaN["R"]*betaN["B"]+limE["P"]/betaP["R"]*betaP["B"]),
-  #   #P = unname((dSP["L"]/betaP["L"]+dSP["R"]/betaP["R"])*limE["P"])
-  #   # dSP already in P units, utility in C units
-  #   P = unname(limE["P"] * (dSP["L"]+dSP["R"])*betaP["B"])
-  # )
-  c(
-    dS["L"]*(limE["C"]+limE["N"]/betaN["L"]+limE["P"]/betaP["L"]),
-    dS["R"]*(limE["C"]+limE["N"]/betaN["R"]+limE["P"]/betaP["R"]),
-    #P = unname((dSP["L"]/betaP["L"]+dSP["R"]/betaP["R"])*limE["P"])
-    # dSP already in P units, utility in C units
-    P = unname(limE["P"] * (dSP["L"]+dSP["R"]))
-  )
+compute_elemental_weightfactor <- function(
+  ### compute elemental-limitation weighting factor omega_Z
+  limE,   ##<< elemental limitaions: vector with entry for each element
+  betaZ,  ##<< E_in:E elemental ratios of mineralization flux for each element
+  betaB,  ##<< C:E ratios of microbial biomass for each element
+  nuZ = rep(1.0, length(limE))  ##<< proportion of biomass synthesis
+  ## per mineralization flux
+){
+  # omega_Z will be multiplied by the mineralization flux
+  # for depolymerizing enzymes this is carbon-flux and beta_Z denote C:E ratios
+  # for biomineralizing enzymes this is already P-flux and betaZ=1 and only limP
+  #   needs to be provided
+  wE <- limE*nuZ*betaB/betaZ
+  sum(wE)
 }
+
+# compute_eweighted_potential <- function(
+#   dS,    ##<< numeric vector (L,R) of potential depolymerization C-fluxes
+#   dSP,   ##<< numeric vector of potential biomineralization P-fluxes
+#   limE,      ##<< elemental limiations
+#   betaN,    ##<< numeric vector of C/N ratios of substrates and enzymes
+#   betaP   ##<< numeric vector of C/P ratios of substrates (L,R) and enzymes (E)
+# ) {
+#   # # try expressing potential in C units, i.e. multiplying by C:E_biomass
+#   # c(
+#   #   dS["L"]*(limE["C"]+limE["N"]/betaN["L"]*betaN["B"]+limE["P"]/betaP["L"]*betaP["B"]),
+#   #   dS["R"]*(limE["C"]+limE["N"]/betaN["R"]*betaN["B"]+limE["P"]/betaP["R"]*betaP["B"]),
+#   #   #P = unname((dSP["L"]/betaP["L"]+dSP["R"]/betaP["R"])*limE["P"])
+#   #   # dSP already in P units, utility in C units
+#   #   P = unname(limE["P"] * (dSP["L"]+dSP["R"])*betaP["B"])
+#   # )
+#   c(
+#     dS["L"]*(limE["C"]+limE["N"]/betaN["L"]+limE["P"]/betaP["L"]),
+#     dS["R"]*(limE["C"]+limE["N"]/betaN["R"]+limE["P"]/betaP["R"]),
+#     #P = unname((dSP["L"]/betaP["L"]+dSP["R"]/betaP["R"])*limE["P"])
+#     # dSP already in P units, utility in C units
+#     P = unname(limE["P"] * (dSP["L"]+dSP["R"]))
+#   )
+# }
 
 #' @export
 computeSesam4bOptimalAllocationPartitioning <- function(

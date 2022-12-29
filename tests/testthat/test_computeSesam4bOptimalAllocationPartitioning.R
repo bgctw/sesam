@@ -56,8 +56,8 @@ test_that("derivate approach leads to same steady state as optimal", {
   #library(deSolve)
   alpha0 = alpha <- c(L=1,R=1,P=1)/3 #compute_alpha3_relative(dL,dR,dP,p)
   #alpha0 = alpha <- c(L=0.7,R=0.2,P=0.1)
-  dLPot <- dLPPot <- 1.0
-  dRPot <- dRPPot <- 0.7
+  dLPot <- 1.0
+  dRPot <- 0.7
   synB <- parms$tau * B # steady state B
   limE <- c(C=0.8, N=0.1, P=0.1)
   cnL <- parms$cnIL
@@ -66,6 +66,8 @@ test_that("derivate approach leads to same steady state as optimal", {
   cpR <- parms$cpIR
   cnB <- 7.16
   cpB <- 40
+  dLPPot <- dLPot/cpL
+  dRPPot <- dRPot/cpR
 
   da0 <- calc_dAlphaP_propto_du(
     alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
@@ -111,5 +113,12 @@ test_that("derivate approach leads to same steady state as optimal", {
 
   alpha <- alpha_opt <- res_ode_opt[length(times),2:4]
   alpha <- res_ode[length(times),2:4]
-  expect_true(all(abs(alpha - alpha_opt) < 1e5))
+  expect_true(all(abs(alpha - alpha_opt) < 1e-5))
+
+  .tmp.f <- function(){
+    calc_dAlphaP_propto_du(
+      alpha_opt, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+      cnL, cnR, cnB, cpL, cpR, cpB
+    )
+  }
 })

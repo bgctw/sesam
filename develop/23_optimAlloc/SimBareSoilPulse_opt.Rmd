@@ -535,35 +535,22 @@ p2 <- dsp2 %>%
 print(p2)
 ```
 ```{r eval=FALSE, include=FALSE}
-p3b <- p2 +
+p2p <- p2
+p2p$layers[2] <- NULL # remove expand_limits
+p3b <- p2p +
   #theme(legend.position = c(0.93,1.15), legend.justification = c(1,1)) +
   themePaper +
-  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+  #theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+  theme(axis.text.x = element_text(angle = 60, vjust = 0.5)) +
   theme(legend.position = "bottom") +
   guides(linetype = guide_legend(title = "C:N", nrow = 1, byrow = TRUE)) +
   guides(color = guide_legend(title = "C:N", nrow = 1, byrow = TRUE)) +
   #facet_grid(scen ~ .) + #,scales = "free") + 
   #theme(legend.title = element_blank()) +
   c()
-ggsave("pulse_cn.pdf", p3b, width = figWidthCol, height = figHeightCol) 
+ggsave("pulse_cn.pdf", p3b, width = figWidthCol, height = figHeightCol*1.2) 
 ```
 
-
-
-```{r simPulse, fig.height=2.2, fig.width=3.27}
-p2p <- p2
-p2p$layers[2] <- NULL # remove expand_limits
-p2p <- p2p +
-  themePaper +
-  #theme(legend.position = c(0.02,0.02), legend.justification = c(0,0)) +
-  theme(legend.position = "bottom") +
-  theme(panel.border = element_rect(colour = "black", fill = NA)) +
-  theme(strip.background = element_blank()) +	
-  theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
-  #theme(legend.title = element_blank()) +
-  c()  
-print(p2p)
-```
 ## Inspect at low biomass
 
 ```{r}
