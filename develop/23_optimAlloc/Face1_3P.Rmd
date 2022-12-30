@@ -421,6 +421,30 @@ fcost_kmNR <- function(kmNRnew, scen){
 }
 ```
 
+### Steady State for Table
+```{r eval=FALSE, include=FALSE}
+tmp <- filter(resScen, scenario == "Derivative")
+s0 <- tmp[1,]
+s0$R / c(s0$RN, s0$RP)
+s0$L / c(s0$LN, s0$LP)
+c(s0$IN , s0$IP)
+c(parms0$iIN, parms0$iIP)
+c(parms0$kINPlant, parms0$kIPPlant)
+c(s0$alphaL, s0$alphaR, s0$alphaP)
+
+c(parms0$cnB, parms0$cnE)
+c(parms0$cpB, parms0$cpE)
+c(parms0$kL, parms0$kR)
+c(parms0$aE)
+c(parms0$kmN)
+c(parms0$tau, parms$m)
+c(parms0$eps, parms$epsTvr)
+c(parms0$nuN, parms$nuP)
+c(parms0$iBN, parms$iBP)
+c(parms0$lN, parms$lP)
+```
+
+
 ```{r}
 .tmp.f <- function(){}
 ```
