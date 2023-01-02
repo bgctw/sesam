@@ -67,37 +67,6 @@ derivSesam3P <- function(
   }
   PhiNB <- uNOrg - synB/cnB - synE/cnE
   PhiPB <- uPOrg - synB/cpB - synE/cpE
-  # community composition and enzyme allocation
-  limE <- computeElementLimitations(
-    cbind(C = CsynBC, N = CsynBN, P = CsynBP)[1,]
-    , tauB = parms$tau*B
-    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
-    )
-  dAlpha <- if (isTRUE(parms$isFixedAlpha)) {
-    c(L=0, R=0, P=0)
-  } else if (isTRUE(parms$isRelativeAlpha)) {
-    dAlpha_rel <- calc_dAlphaP_relative_plant(
-      alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-      cnL, cnR, parms$cnB, cpL, cpR, parms$cpB,
-      kmNZ = c(L=kmNL, R = kmNR, P = kmNP)
-    )
-  } else if (isTRUE(parms$isOptimalAlpha)) {
-    res_dAlpha_opt <- calc_dAlphaP_optimal(
-      alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-      cnL, cnR, parms$cnB, cpL, cpR, parms$cpB
-    )
-    res_dAlpha_opt[[1]]
-  } else {
-    res_dAlpha <- calc_dAlphaP_propto_du(
-      alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-      cnL, cnR, parms$cnB, cpL, cpR, parms$cpB,
-      kmNZ = c(L=kmNL, R = kmNR, P = kmNP)
-    )
-    res_dAlpha[[1]]
-  }
-  if (x["alphaR"] <= 1e-16){
-    tmp = 1
-  }
   #
   # imbalance fluxes of microbes and predators (consuming part of microbial turnover)
   respO <- uC - (synE/parms$eps + synB + rG + rM)
@@ -130,6 +99,48 @@ derivSesam3P <- function(
   leachP <- parms$lP*x["IP"]
   PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE) +
     decLP_P +decRP_P
+  #
+  # community composition and enzyme allocation
+  limE <- computeElementLimitations(
+    cbind(C = CsynBC, N = CsynBN, P = CsynBP)[1,]
+    , tauB = parms$tau*B
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )
+  p_uNmic <- immoNPot/(immoNPot + plantNUp)
+  p_uPmic <- immoPPot/(immoPPot + plantPUp)
+  nuTZ <- if (isTRUE(parms$useOneNuT)) c(C=1, N=1, P=1) else c(
+    C = parms$eps,
+    N = unname(parms$nuN+(1-parms$nuN)*p_uNmic),
+    P = unname(parms$nuP+(1-parms$nuP)*p_uPmic)
+  )
+  dAlpha <- if (isTRUE(parms$isFixedAlpha)) {
+    c(L=0, R=0, P=0)
+  } else if (isTRUE(parms$isRelativeAlpha)) {
+    dAlpha_rel <- calc_dAlphaP_relative_plant(
+      alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+      cnL, cnR, parms$cnB, cpL, cpR, parms$cpB,
+      kmNZ = c(L=kmNL, R = kmNR, P = kmNP),
+      nuTZ = nuTZ
+    )
+  } else if (isTRUE(parms$isOptimalAlpha)) {
+    res_dAlpha_opt <- calc_dAlphaP_optimal(
+      alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+      cnL, cnR, parms$cnB, cpL, cpR, parms$cpB,
+      nuTZ = nuTZ
+    )
+    res_dAlpha_opt[[1]]
+  } else {
+    res_dAlpha <- calc_dAlphaP_propto_du(
+      alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+      cnL, cnR, parms$cnB, cpL, cpR, parms$cpB,
+      kmNZ = c(L=kmNL, R = kmNR, P = kmNP),
+      nuTZ = nuTZ
+    )
+    res_dAlpha[[1]]
+  }
+  if (x["alphaR"] <= 1e-16){
+    tmp = 1
+  }
   #
   dB <- synB - tvrB
   dL <- -decL  + parms$iL
@@ -255,9 +266,11 @@ derivSesam3P <- function(
 # moved computation of elemental limitations to sesam4b
 
 calc_dAlphaP_relative_plant <- function(
+    ### compute time derivative of alpha with Relative approach
   alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
   cnL, cnR, cnB, cpL, cpR, cpB,
-  kmNZ = c(L=parms$kmN, R = parms$kmN, P = parms$kmN)
+  kmNZ = c(L=parms$kmN, R = parms$kmN, P = parms$kmN),
+  nuTZ = setNames(rep(1.0, length(limE)), names(limE))  ##<< proportion of biomass synthesis
 ){
   alphaTarget <- computeSesam4bAllocationPartitioning(
     dS = cbind(R = dRPot, L = dLPot)[1,]
@@ -270,19 +283,22 @@ calc_dAlphaP_relative_plant <- function(
     ,betaP = c(L = unname(cpL), R = unname(cpR), B=unname(cpB), E = parms$cpE)
     ,e_P = parms$e_P
     ,kmNZ = kmNZ
+    ,nuTZ = nuTZ
   )
   # microbial community change as fast as microbial turnover
   dAlpha <- (alphaTarget - alpha) *  (parms$tau + abs(synB)/B)
 }
 
 calc_dAlphaP_optimal <- function(
-  alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
-  cnL, cnR, cnB, cpL, cpR, cpB)
-{
+    ### compute time derivative of alpha with Optimal approach
+    alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+    cnL, cnR, cnB, cpL, cpR, cpB,
+    nuTZ = setNames(rep(1.0, length(limE)), names(limE))  ##<< proportion of biomass synthesis
+) {
   betaB <- c(C=1, N=cnB, P=cpB)
-  omega_L <- compute_elemental_weightfactor(limE, c(C=1, N=cnL, P=cpL), betaB)
-  omega_R <- compute_elemental_weightfactor(limE, c(C=1, N=cnR, P=cpR), betaB)
-  omega_P <- compute_elemental_weightfactor(limE["P"], c(P=1), betaB["P"])
+  omega_L <- compute_elemental_weightfactor(limE, c(C=1, N=cnL, P=cpL), betaB, nuTZ=nuTZ)
+  omega_R <- compute_elemental_weightfactor(limE, c(C=1, N=cnR, P=cpR), betaB, nuTZ=nuTZ)
+  omega_P <- compute_elemental_weightfactor(limE["P"], c(P=1), betaB["P"], nuTZ=nuTZ[["P"]])
   # dSw <- compute_eweighted_potential(
   #   dS = cbind(R = dRPot, L = dLPot)[1,]
   #   ,dSP = c(L = unname(dLPPot), R=unname(dRPPot))
@@ -325,9 +341,11 @@ calc_dAlphaP_optimal <- function(
 # }
 
 calc_dAlphaP_propto_du <- function(
-    alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
+    ### compute time derivative of alpha with Derivative approach
+  alpha, dRPot, dLPot, dRPPot, dLPPot, synB, B, parms, limE,
     cnL, cnR, cnB, cpL, cpR, cpB,
-    kmNZ = c(L=parms$kmN, R = parms$kmN, P = parms$kmN)
+    kmNZ = c(L=parms$kmN, R = parms$kmN, P = parms$kmN),
+    nuTZ = setNames(rep(1.0, length(limE)), names(limE))  ##<< proportion of biomass synthesis
 ) {
   # # try expressing elemental-weighted potential in biomass C units (*ceB)
   # dL <- dLPot * (limE["C"] + limE["N"]/cnL*cnB + limE["P"]/cpL*cpB)
@@ -336,9 +354,9 @@ calc_dAlphaP_propto_du <- function(
   # #dLPPot already in P units
   # dP <- limE["P"]*(dLPPot+dRPPot)*cpB
   betaB <- c(C=1, N=cnB, P=cpB)
-  omega_L <- compute_elemental_weightfactor(limE, c(C=1, N=cnL, P=cpL), betaB)
-  omega_R <- compute_elemental_weightfactor(limE, c(C=1, N=cnR, P=cpR), betaB)
-  omega_P <- compute_elemental_weightfactor(limE["P"], c(P=1), betaB["P"])
+  omega_L <- compute_elemental_weightfactor(limE, c(C=1, N=cnL, P=cpL), betaB, nuTZ=nuTZ)
+  omega_R <- compute_elemental_weightfactor(limE, c(C=1, N=cnR, P=cpR), betaB, nuTZ=nuTZ)
+  omega_P <- compute_elemental_weightfactor(limE["P"], c(P=1), betaB["P"], nuTZ=nuTZ[["P"]])
   dL <- dLPot * omega_L
   dR <- dRPot * omega_R
   #dLPPot already in P units

@@ -2,7 +2,8 @@
 
 # gC/m2 and gN/m2, /yr
 
-derivSesam3b <- function(
+# derivSesam3b conflicts with derivSesam3B in inlinedocs,
+derivSesam3b_ <- function(
   ### Soil Enzyme Steady Allocation model
   t,x,parms
 ){

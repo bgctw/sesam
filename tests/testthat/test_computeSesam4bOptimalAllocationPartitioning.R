@@ -28,9 +28,6 @@ test_that("computeSesam4bOptimalAllocationPartitioning", {
   expect_true( alpha3["P",nstep] > alpha3["L",nstep])
   #
   p = within(params, B<-B, synB <- synB)
-  uL <- u_decomp(dL, alpha3["L",], p)
-  uR <- u_decomp(dR, alpha3["R",], p)
-  uP <- u_biomin(dPs, alpha3["P",], p)
   # not equal, but derivatives need to be equal expect_equal(uL, uR)
   du <- du_dalpha(t(alpha3), dL, dR, dPs, p)
   expect_equal(du[,"L"], du[,"R"])

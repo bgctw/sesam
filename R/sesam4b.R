@@ -362,6 +362,7 @@ computeSesam4bAllocationPartitioning <- function(
   ,betaP   ##<< numeric vector of C/P ratios of substrates (L,R) and enzymes (E)
   ,e_P = 0
   ,kmNZ = c(L = kmkN, R = kmkN, P = kmkN)
+  ,nuTZ = setNames(rep(1.0, length(limE)), names(limE))  ##<< proportion of biomass synthesis
 ){
   #limE <- limEP <- c(C = 0, N = 0, P = 1)
   #limE <- limE0 <- c(C = 0, N = 0.408838431792989, P = 0.591161568206928  )
@@ -383,9 +384,9 @@ computeSesam4bAllocationPartitioning <- function(
   omega_Enz <- compute_elemental_weightfactor(
     limE, c(C=1, N=betaN["E"],P=betaP["E"]), betaB)
   omega_S <- list(
-    L = compute_elemental_weightfactor(limE, c(C=1, N=betaN["L"],P=betaP["L"]), betaB),
-    R = compute_elemental_weightfactor(limE, c(C=1, N=betaN["R"],P=betaP["R"]), betaB),
-    P = compute_elemental_weightfactor(limE["P"], c(P=1), betaB["P"])
+    L = compute_elemental_weightfactor(limE, c(C=1, N=betaN["L"],P=betaP["L"]), betaB, nuTZ=nuTZ),
+    R = compute_elemental_weightfactor(limE, c(C=1, N=betaN["R"],P=betaP["R"]), betaB, nuTZ=nuTZ),
+    P = compute_elemental_weightfactor(limE["P"], c(P=1), betaB["P"], nuTZ=nuTZ[["P"]])
   )
   invest <- alpha*synEnz *
     #(limE["C"] + limE["N"]/betaN["E"] + limE["P"]/betaP["E"])
@@ -471,14 +472,14 @@ compute_elemental_weightfactor <- function(
   limE,   ##<< elemental limitaions: vector with entry for each element
   betaZ,  ##<< E_in:E elemental ratios of mineralization flux for each element
   betaB,  ##<< C:E ratios of microbial biomass for each element
-  nuZ = rep(1.0, length(limE))  ##<< proportion of biomass synthesis
+  nuTZ = rep(1.0, length(limE))  ##<< proportion of biomass synthesis
   ## per mineralization flux
 ){
   # omega_Z will be multiplied by the mineralization flux
   # for depolymerizing enzymes this is carbon-flux and beta_Z denote C:E ratios
   # for biomineralizing enzymes this is already P-flux and betaZ=1 and only limP
   #   needs to be provided
-  wE <- limE*nuZ*betaB/betaZ
+  wE <- limE*nuTZ*betaB/betaZ
   sum(wE)
 }
 
@@ -542,7 +543,7 @@ computeSesam4bOptimalAllocationPartitioning <- function(
       du2 = du_dalphaS(alphaR, dR, p, e_P = 0)
       if (du2 > dumax[3]) return(c(L=0,R=alphaR,P=(1-alphaR)))
     }
-    alpha3 = calc_alpha3_LRP(dL,dR,dP,p)
+    alpha3 = calc_alpha3_optLRP(dL,dR,dP,p)
     return(alpha3)
   }
   if(names(dumax[1]) == "P") {
@@ -599,6 +600,7 @@ du_dalphaS <- function(
 }
 
 calc_alpha3_optLR <- function(dL, dR, p, alphaP=0){
+  ### compute optimal allocation for two depolymering enzymes
   dLmdR = dL - dR
   alphaL <- unname(ifelse(dLmdR == 0, 0.5, {
     aeB = p$aE*p$B
@@ -611,6 +613,7 @@ calc_alpha3_optLR <- function(dL, dR, p, alphaP=0){
   alphaL
 }
 calc_alpha3_optLRP <- function(dL,dR, dP, p){
+  ### compute optimal allocation for 2 depolymerizing and 1 biomineralizing enzyme
   aeB = p$aE*p$B
   A = 2*aeB*dL^(3/2)*dP*sqrt(dR) - aeB*dL^2*dP - aeB*dL*dP*dR + 4*dL^(3/2)*dP*sqrt(dR)*p$kmN - dL^3*p$e_P - dL^3*p$kmN -
     2*dL^2*dP*p$kmN + 2*dL^2*dR*p$e_P + 2*dL^2*dR*p$kmN - 2*dL*dP*dR*p$kmN - dL*dR^2*p$e_P - dL*dR^2*p$kmN
@@ -623,6 +626,7 @@ calc_alpha3_optLRP <- function(dL,dR, dP, p){
   alpha
 }
 calc_alphaS_optSP <- function(dS, dP, p){
+  ### compute optimal allocation for 1 depolymerizing and 1 biomineralizing enzyme
   dLmdR = dS - dP
   alphaL <- unname(ifelse(dLmdR == 0, 0.5, {
     aeB = p$aE*p$B
@@ -633,22 +637,6 @@ calc_alphaS_optSP <- function(dS, dP, p){
     alphaL <- pmin(1,pmax(0,alpha0))
   }))
   alphaL
-}
-
-
-
-
-u_decomp <- function(
-  ### compute the derivative of revenue of a depolymerizing enzyme
-  alpha, ##<< allocation to this enzyme
-  dLorR, ##<< elemental-limitation weighted potential decomposition
-  p,      ##<< list with entries kmN, aE and B
-  dE=1  ##<< elemental-limitation weighted enzyme investment
-){
-  dLorR/dE/(p$kmN + alpha * p$aE * p$B)
-}
-u_biomin <- function(alpha, dP, p, dE=1){
-  dP*p$kmN/dE/((p$kmN + p$e_P)^2 + alpha * p$aE * p$B * ((p$kmN + p$e_P)))
 }
 
 
