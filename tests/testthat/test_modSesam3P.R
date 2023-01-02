@@ -104,7 +104,7 @@ x0Nlim <- c( #aE = 0.001*365
   , alphaR = 0.5              ##<< initial community composition
 )
 # fixed substrate ---------------------------------------------------------
-test_that("same as sesam3a for fixed substrates", {
+test_that("fixed substrates", {
   parmsFixedS <- within(parms0,{
     isFixedS <- TRUE
   })
@@ -160,7 +160,7 @@ test_that("same as sesam3a for fixed substrates", {
 })
 
 # # substrate feedbacks ---------------------------------------------------------
-test_that("same as sesam3a with substrate feedbacks", {
+test_that("substrate feedbacks", {
   parmsInit <- within(parms0, {isFixedI <- TRUE})
   ans0 <- derivSesam3P(0, x0, parms = parmsInit)
   times <- seq(0,2000, length.out = 2)

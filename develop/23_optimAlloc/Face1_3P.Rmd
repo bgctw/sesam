@@ -121,9 +121,9 @@ parmsModel <- list(
   #
   ,lP = 0.001  # very small to not run into P limitation  
   ,nuP = 0.0     # microbial P use efficiency: no direct P uptake
-  , cpE = 1e5
-  , cpB = 1e8 # for not running into P limitation, here assume no P required in biomass
-  , iBP = 0.38 * 10.57 # start with same as N
+  , cpE = 50
+  , cpB = 40 # for not running into P limitation, here assume no P required in biomass
+  , iBP = 100 # arbitrarily high to not run into P limitation
   , kIPPlant = 0.0 #kINPlant  # plant uptake rate of P equals that of N
   , e_P = 0.0 # no plant P enzyme production
   #
@@ -180,8 +180,8 @@ The initial pools must be specified. The Steady models do not have the enzyme po
 x0 <- x0Explicit <- c( #aE = 0.001*365
         B = 17                     ##<< microbial biomass 
         ,R = 1100                ##<< N rich substrate
-        ,RN = 1100/parms0$cnIR   ##<< N rich substrate N pool
-        ,RP = 1100/parms0$cpIR
+        ,RN = 3000/parms0$cnIR   ##<< N rich substrate N pool
+        ,RP = 3000/parms0$cpIR
         ,L = 100                 ##<< N poor substrate
         ,LN = 100/parms0$cnIL    ##<< N poor substrate N pool
         ,LP = 100/parms0$cpIL    ##<< N poor substrate N pool
@@ -318,7 +318,7 @@ ggplot_vars <- function(resScen, vars, labelmap = list(alphaR="alpha[R]", R_norm
 #print(p2f + colScaleApproach)
 #vars <- c("L","R","alphaR","RL") 
 vars <- c("L","R","alphaR","B","RL","IN") 
-vars <- c("L","R","alphaR","B","IN","plantNUp","PhiNB","PhiNTotal","limN") 
+vars <- c("L","R","alphaR","B","IN","plantNUp","PhiNB","PhiNTotal","limN","limP") 
 #vars <- c("alpha","B", "cnL", "PhiNB","PhiNTotal","immoNPot", "CsynBC","CsynBN") 
 print(ggplot_vars(resScen, vars))
 ```
@@ -425,12 +425,13 @@ fcost_kmNR <- function(kmNRnew, scen){
 ```{r eval=FALSE, include=FALSE}
 tmp <- filter(resScen, scenario == "Derivative")
 s0 <- tmp[1,]
+c(s0$L, s0$R, s0$B)
+c(s0$alphaL, s0$alphaR, s0$alphaP)
 s0$R / c(s0$RN, s0$RP)
 s0$L / c(s0$LN, s0$LP)
 c(s0$IN , s0$IP)
 c(parms0$iIN, parms0$iIP)
 c(parms0$kINPlant, parms0$kIPPlant)
-c(s0$alphaL, s0$alphaR, s0$alphaP)
 
 c(parms0$cnB, parms0$cnE)
 c(parms0$cpB, parms0$cpE)
