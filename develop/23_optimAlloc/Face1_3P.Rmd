@@ -203,8 +203,8 @@ scenarios <- tibble::tibble(
     within(parms0,isOptimalAlpha<-TRUE), 
     parms0,
     within(parms0,isRelativeAlpha<-TRUE),
-    within(parms0, {isRelativeAlpha<-TRUE; kR <- kRP <- 1/33.80632}),
-    within(parms0, {isRelativeAlpha<-TRUE; kmNR <- 3.478608})
+    within(parms0, {isRelativeAlpha<-TRUE; kR <- kRP <- 1/33.67320}),
+    within(parms0, {isRelativeAlpha<-TRUE; kmNR <- 3.456718})
     )
 )
 scenarios$x0 <- list(x0)
@@ -406,7 +406,7 @@ fcost_kmNR <- function(kmNRnew, scen){
   scen <- filter(scenarios, scenario == "Relative")  
   fcost(parms$kR/2, scen)
   kR <- optimize(fcost, c(1e-8,0.05), scen)
-  c(1/parms$kR, 1/kR$minimum)  # 31.4 yrs vs 33.80632
+  c(1/parms$kR, 1/kR$minimum)  # 31.4 yrs vs 33.67320
 }
 .tmp.f <- function(){  
   #"Optimal","Relative","Derivative"
@@ -417,7 +417,7 @@ fcost_kmNR <- function(kmNRnew, scen){
   fcost_kmNR(scen2$parms[[1]]$kmNR, scen)
   resOpt <- optimize(fcost_kmNR, c(parms$kmN/10,parms$kmN*10), scen)
   kmNR <- resOpt$minimum
-  c(parms$kmN, kmNR)  # 3.0 vs 3.478608
+  c(parms$kmN, kmNR)  # 3.0 vs 3.456718
 }
 ```
 
@@ -425,7 +425,10 @@ fcost_kmNR <- function(kmNRnew, scen){
 ```{r eval=FALSE, include=FALSE}
 tmp <- filter(resScen, scenario == "Derivative")
 s0 <- tmp[1,]
-c(s0$L, s0$R, s0$B)
+tmp2 <- filter(resScen, scenario == "Relative")
+s0r <- tmp2[1,]
+c(s0$L, s0$R, s0$B, s0$L + s0$R)
+c(s0r$L, s0r$R, s0r$B, s0r$L + s0r$R)
 c(s0$alphaL, s0$alphaR, s0$alphaP)
 s0$R / c(s0$RN, s0$RP)
 s0$L / c(s0$LN, s0$LP)
