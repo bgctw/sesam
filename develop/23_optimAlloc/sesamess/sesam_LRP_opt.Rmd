@@ -1,0 +1,465 @@
+---
+title: "SESAM community composition"
+output:
+  pdf_document:
+    keep_tex: yes
+  html_notebook: default
+---
+
+# Optimum enzyme allocation {#app:optimum}
+
+This section derives explicit formulas of optimal enzyme allocation
+by finding the allocation that maximizes total return.
+It starts with a lemma that states conditions for which
+the optimum is attained when derivatives are equal.
+
+## Lemma 1: Optima at $\frac{d (\alpha_Z \operatorname{rev}_Z)}{d \alpha_Z}$ being equal
+
+Let $u_T(\vec{\alpha}) = C_2 \sum_Z \alpha_Z \operatorname{rev}_Z$ 
+be a function that is a weighted sum of components
+$\operatorname{rev}_Z$ up to some constant $C_2 \ne 0$, where weights 
+$\alpha_Z \in (0,1)$ add up to one: $\sum_Z^n \alpha_Z = 1$ and
+component $\operatorname{rev}_Z$ may depend on weight $\alpha_Z$ 
+but not on the other weights. 
+Further, let $\operatorname{rev}_Z$ be differentiable to $\alpha_Z$.
+Then at the optima of $u_T(\vec{\alpha})$ all derivatives $\frac{d (\alpha_Z 
+	\operatorname{rev}_Z)}{d \alpha_Z}$ are equal.
+
+
+Proof: Because of the adding constraint, we express one of the weights as a function
+of the other weights and have only $n-1$ free weights.
+
+$$
+\begin{aligned}
+\alpha_n &= 1 - \sum_{Z=1}^{n-1} \alpha_Z
+\\
+\frac{d \alpha_n}{d \alpha_Z} &= -1
+\end{aligned}
+$$
+
+We are interested in the optima of $u_T$. The optima are either at locations where
+all derivatives are zero or at the borders. Because of $\alpha_Z \in (0,1)$
+we do exclude the borders.
+In the derivative to $\alpha_Z$ all terms vanish except the term involving 
+$\operatorname{rev}_Z$ and
+the term involving $\operatorname{rev}_n$, because there $\alpha_n$ is a 
+function of $\alpha_Z$. By the chain rule we have:
+
+$$
+\begin{aligned}
+\frac{d u_T}{d \alpha_Z} = 0 &= C_2\left( \frac{d (\alpha_Z \operatorname{rev}_Z)}{d\alpha_Z} + \frac{d (\alpha_n \operatorname{rev}_n)}{d\alpha_n} \frac{d \alpha_n}{d \alpha_Z}\right)
+\\
+&= C_2 \left( \frac{d (\alpha_Z \operatorname{rev}_Z)}{d\alpha_Z} - \frac{d (\alpha_n \operatorname{rev}_n)}{d\alpha_n} \right)
+\end{aligned}
+$$
+
+Hence, each $\frac{d (\alpha_Z \operatorname{rev}_Z)}{d \alpha_Z}$ has to be equal to 
+$\frac{d (\alpha_n \operatorname{rev}_n)}{d \alpha_n}$, i.e. all these derivatives
+have to be equal.
+
+## Total return of enzyme action
+We seek the enzyme allocation $\vec{\alpha}$ that maximizes the total 
+limitation-weighted return, i.e. the action of enzymes, 
+depolymerization and biomineralization.
+
+The revenue of allocation to enzyme $Z$ is
+$\operatorname{rev}_Z = \frac{{d_Z}_w(\alpha_Z)}{\alpha_Z \omega_{Enz} a_E B}$,
+where the return of enzyme $Z$, ${d_Z}_w$, 
+is a limitation-weighted flux of nutrients and carbon as detailed below. 
+The investment is the share, $\alpha_Z$, invested into production of
+enzyme $Z$ multiplied by total limitation-weighted flux allocated
+to enzyme production, $\omega_{Enz} a_E B$.
+
+The total return that is optimized is the the sum of each revenue multiplied by 
+enzyme investment.
+
+
+
+$$
+u_T =  \omega_{Enz} a_E B \sum \alpha_Z \operatorname{rev}_Z 
+$$
+
+$u_T$ fulfills the conditions of Lemma 1. Therefore, potential optima
+are located at the borders or at condition 
+$\frac{d (\alpha_Z \operatorname{rev}_Z)}{d \alpha_Z} = C_3$.
+Note that 
+$\frac{d u_T}{d \alpha_Z} = \omega_{Enz} a_E B \frac{d(\alpha_Z \operatorname{rev}_Z)}{d \alpha_Z}$.
+
+In the next section we give precise meaning of $d_Z$ and $\omega_{Enz}$ in SESAM 
+that will be used in the following section to derive locations of 
+potential optima expressed as a function of SESAM parameters.
+
+
+### Depolymerizing enzymes
+The return of a depolymerizing enzyme is the elemental-limitation-weighted 
+average of the returns for all elements.
+
+$$
+\begin{aligned}
+{d_Z}_C &= k_Z S_Z \frac{\alpha a_E B}{{k_{mN}}_Z + \alpha a_E B}\\
+{d_Z}_N &= {d_Z}_C / {\beta_N}_Z \\
+{d_Z}_P &= {d_Z}_C / {\beta_P}_Z \\
+{d_Z}_w &= w_C {d_Z}_C ~ \nu_C + w_N {d_Z}_N ~\nu_N {\beta_N}_B + w_P {d_Z}_P ~\nu_P {\beta_P}_B
+\\
+&= k_Z S_Z \frac{\alpha a_E B}{{k_{mN}}_Z + \alpha a_E B} 
+   \left(w_C \nu_C + w_N \nu_N\frac{{\beta_N}_B}{{\beta_N}_Z} + w_P \nu_P \frac{{\beta_N}_B}{{\beta_P}_Z}\right) 
+\\
+&= d_Z \frac{\alpha a_E B}{{k_{mN}}_Z + \alpha a_E B}
+\\
+d_Z &= k_Z S_Z \omega_Z 
+\\
+\omega_Z &= w_C \nu_C + w_N \nu_N\frac{{\beta_N}_B}{{\beta_N}_Z} + w_P \nu_P \frac{{\beta_N}_B}{{\beta_P}_Z} 
+\end{aligned}
+$$
+\noindent $w_E$ are weights for the strength of microbial growth limitation
+by elements C,N, and P. 
+$\nu_E$ are proportions of the mineralization that are actually used for 
+microbial biomass synthesis.
+${\beta_E}_B$ are C:E ratios of microbial biomass, and ${\beta_E}_Z$ are
+C:E ratios of mineralization flux.
+$d_Z$ is the potential return for saturating enzyme production,
+and $\omega_Z$ is the combined elemental weighting factor for the
+carbon mineralization flux.
+
+Hence, the revenue for a depolymerizing enzyme and its derivative are
+$$
+\begin{aligned}
+\operatorname{rev}_Z(\alpha_Z) &= d_Z \frac{\alpha_Z a_e B}{{k_{mN}}_Z + \alpha_Z a_E B} \frac{1}{\alpha_Z \omega_{Enz} a_E B}
+\\
+&= \frac{d_Z}{\omega_{Enz}} \frac{1}{{k_{mN}}_Z + \alpha_Z a_E B}
+\\
+\frac{d(\alpha_Z \operatorname{rev}_Z)}{d \alpha_Z} 
+&=  \frac{d_Z}{\omega_{Enz}} \frac{({k_{mN}}_Z + \alpha_Z a_E B) - \alpha_Z a_E B}{({k_{mN}}_Z + \alpha_Z a_E B)^2} 
+\\
+&= \frac{d_Z}{\omega_{Enz}} \frac{{k_{mN}}_Z }{({k_{mN}}_Z + \alpha_Z a_E B)^2} 
+\\ 
+\omega_{Enz} &= w_C  + w_N \frac{{\beta_N}_B}{{\beta_N}_{Enz}} + w_P \nu_P \frac{{\beta_N}_B}{{\beta_P}_{Enz}}
+\end{aligned}
+$$
+\noindent where $\omega_{Enz}$ is a weighting of the total carbon flux
+of enzyme production, $a_E B$, for current elemental limitation.
+
+### Biomineralizing enzymes
+The phosphataes only cleave phosphate groups from soil organic matter
+making available only P for uptake, without making available C and N.
+They attack both labile and residue organic matter.
+Hence, their potential return includes the P-limitation weights $w_P$ only, 
+and considers them in P units: 
+$d_P = w_P (k_{LP} L_P + k_{RP} R_P)$.
+
+Moreover, these phosphatases are also produced by plant roots at a
+rate $e_P$. Hence, we need to calculate the return of microbe-produced enzyme 
+in addition the return by plant-produced enzymes.
+
+Return ${d_P}_m$, and revenue $\operatorname{rev}_P$ and its derivative are calculated as follows.
+
+$$
+\begin{aligned}
+{d_P}_m &= d_P \frac{ e_P + \alpha_P a_E B}{{k_{mN}}_P + e_P + \alpha_P a_E B} - 
+d_P \frac{ e_P}{{k_{mN}}_P + e_P}
+\\
+ &= d_P \frac{ (e_P + \alpha_P a_E B)({k_{mN}}_P + e_P) - e_P({k_{mN}}_P + 
+ e_P + \alpha_P a_E B)}{({k_{mN}}_P + e_P + \alpha_P a_E B)({k_{mN}}_P + e_P)} 
+\\
+ &= d_P \frac{ e_P {k_{mN}}_P + \alpha_P a_E B {k_{mN}}_P + e_P^2 + 
+ \alpha_P a_E B e_P - (e_P {k_{mN}}_P + e_P^2  + \alpha_P a_E B e_P)}
+{({k_{mN}}_P + e_P)^2 + \alpha_P a_E B ({k_{mN}}_P + e_P)} 
+\\
+ &= d_P \frac{ \alpha_P a_E B {k_{mN}}_P}
+{({k_{mN}}_P + e_P)^2 + \alpha_P a_E B ({k_{mN}}_P + e_P)} 
+\\
+ &= d_P \frac{{k_{mN}}_P}{e_P + {k_{mN}}_P} \frac{ \alpha_P a_E B }
+{(e_P + {k_{mN}}_P) + \alpha_P a_E B } 
+\\
+\operatorname{rev}_P &= \frac{d_P}{\omega_{Enz}} \frac{{k_{mN}}_P}{e_P + 
+{k_{mN}}_P} \frac{ 1 }{(e_P + {k_{mN}}_P) + \alpha_P a_E B } 
+\\
+\frac{d (\alpha_P \operatorname{rev}_P)}{d \alpha_P} 
+&= \frac{d_P}{\omega_{Enz}} \frac{{k_{mN}}_P}{e_P + {k_{mN}}_P} \frac{d }{d \alpha_P} 
+\left( \frac{ \alpha_P }{(e_P + {k_{mN}}_P) + \alpha_P a_E B }  \right)
+\\
+&= \frac{d_P}{\omega_{Enz}} \frac{{k_{mN}}_P}{e_P + {k_{mN}}_P} 
+\frac{(e_P + {k_{mN}}_P) + \alpha_P a_E B) - \alpha_P a_E B}
+{((e_P + {k_{mN}}_P) + \alpha_P a_E B)^2} 
+\\
+&= \frac{d_P}{\omega_{Enz}} \frac{ {k_{mN}}_P}
+{(e_P + {k_{mN}}_P + \alpha_P a_E B)^2} 
+\end{aligned}
+$$
+The derivative of the total return to the biomineralizing enzyme has the same
+form as the depolymerizing enzyme with the same common factor 
+$\frac{{k_{mN}}_P}{\omega_{Enz}}$, 
+unless a modified half-saturation constant in the Michaelis-Menten factor.
+
+## Explicit optimum formulas 
+
+We seek the $\vec{\alpha}$ that maximizes total return.
+This maximizer is located either at the borders of the domain 
+or at a location where all derivatives of the total return are zero. 
+We only look at cases where we know which several enzymes take part in the mix
+with positive allocation, i.e. having $\alpha_Z \in (0,1)$ and therefore
+do not need to look at the borders.
+
+The strategy is first to find the small set of allocations where all the 
+derivatives are zero, which includes maxima, minima, and saddle points.
+Second, we constrain the set to conditions $\alpha_Z \in (0,1)$ and select
+that element that results in highest return.
+
+For simplifying formulas we make the assumption that all half-saturation 
+parameters are equal: ${k_{mN}}_Z = {k_{mN}}$.
+
+### Two depolymerizing enzymes
+Utilizing Lemma1 we have:
+$$
+\begin{aligned}
+\frac{d (\alpha_L \operatorname{rev}_L)}{d \alpha_L}  &= \frac{d (\alpha_R \operatorname{rev}_R)}{d \alpha_R} 
+\\
+\frac{d_L }{(k_{mN} + \alpha a_E B)^2}  &= \frac{d_R }{(k_{mN} + (1-\alpha) a_E B)^2}
+\end{aligned}
+$$
+This provides a quadratic equation of $\alpha$, which one can solve.
+We used the Sympy symbolic math tool.
+
+That one of the two roots where $\alpha \in (0,1)$ and that yields a higher 
+$u_T(\alpha)$ provides the optimal $\alpha$.
+
+$$
+\begin{aligned}
+\alpha_{1,2} &=
+\frac{a_E B d_{L} + k_{mN}(d_{L} + d_{R}) \pm \sqrt{d_{L} d_{R}} 
+\left(a_E B + 2 k_{mN}\right) }{a_E B \left(d_{L} - d_{R}\right)}
+\end{aligned}
+$$
+
+### Depolymerizing and biomineralizing enzyme
+$$
+\begin{aligned}
+\frac{d(\alpha_L \operatorname{rev}_L)}{d \alpha_L} 
+&= \frac{d(\alpha_P \operatorname{rev}_P)}{d \alpha_P} 
+\\
+ \frac{d_L}{(k_{mN} + \alpha_L a_E B)^2} 
+&=  \frac{ d_P }
+{((e_P + k_{mN}) + (1-\alpha_L) a_E B)^2 }
+\end{aligned}
+$$
+
+$$
+\begin{aligned}
+{\alpha_L}_{12} = 
+\frac{(a_E B  + e_{P} + k_{mN}) d_{L} + k_{mN} d_{P}  \pm 
+\sqrt{d_{L}d_{P}} \left(a_E B + e_{P} + 2 k_{mN}\right)}
+{a_E B \left(d_{L} - d_{P}\right)}
+\end{aligned}
+$$
+
+### Two depolymerizing and one biomineralizing enzyme
+
+We set $\alpha_R = 1-\alpha-\alpha_P$ and have
+
+$$
+\begin{aligned}
+\frac{d(\alpha_L \operatorname{rev}_L)}{d \alpha_L} 
+&= \frac{d(\alpha_R \operatorname{rev}_R)}{d \alpha_R} 
+&= \frac{d(\alpha_P \operatorname{rev}_P)}{d \alpha_P} 
+\\
+ \frac{d_L}{(k_{mN} + \alpha a_E B)^2} 
+&=  \frac{d_R}{(k_{mN} + (1-\alpha-\alpha_P) a_E B)^2} 
+&=  \frac{ d_P }
+{((e_P + k_{mN}) + \alpha_P a_E B)^2 }
+\end{aligned}
+$$
+
+We first compute $\alpha$ given $\alpha_P$ using the first equality.
+(see sesam_LRP_deriv_sympy.py)
+
+$$
+\begin{aligned}
+{\alpha_L}_{12} &= \frac{a_E B( 1-  \alpha_{P}) d_{L}  + k_{mN}(d_{L} + d_{R}) \pm \sqrt{d_{L}d_{R}} \left(a_E B (1-\alpha_{P}) + 2 k_{mN}\right) }
+{a_E B \left(d_{L} - d_{R}\right)}
+\end{aligned}
+$$
+
+Next we insert the both roots of $\alpha_L(\alpha_P)$ in equating
+the first and third utility to solve for $\alpha_P$.
+
+For the first root of $\alpha_L$ we get:
+$$
+\begin{aligned}
+{\alpha_P}_{12} &= (A_1 \pm D_1)/B_1
+\\
+A_1 &= 2 B a d_{L}^{\frac{3}{2}} d_{P} \sqrt{d_{R}} - B a d_{L}^{2} d_{P} - B a d_{L} d_{P} d_{R} + 4 d_{L}^{\frac{3}{2}} d_{P} \sqrt{d_{R}} k_{mN} - d_{L}^{3} e_{P} - d_{L}^{3} k_{mN} \\
+&- 2 d_{L}^{2} d_{P} k_{mN} + 2 d_{L}^{2} d_{R} e_{P} + 2 d_{L}^{2} d_{R} k_{mN} - 2 d_{L} d_{P} d_{R} k_{mN} - d_{L} d_{R}^{2} e_{P} - d_{L} d_{R}^{2} k_{mN} 
+\\
+D_1 &= 
+ \sqrt{d_{P}} \left(B a + e_{P} + 3 k_{mN}\right) \sqrt{- 2 d_{L}^{\frac{9}{2}} \sqrt{d_{R}} + 4 d_{L}^{\frac{7}{2}} d_{R}^{\frac{3}{2}} - 2 d_{L}^{\frac{5}{2}} d_{R}^{\frac{5}{2}} + d_{L}^{5} - d_{L}^{4} d_{R} - d_{L}^{3} d_{R}^{2} + d_{L}^{2} d_{R}^{3}}
+\\
+B_1 &= B a \left(2 d_{L}^{\frac{3}{2}} d_{P} \sqrt{d_{R}} + d_{L}^{3} - d_{L}^{2} d_{P} - 2 d_{L}^{2} d_{R} - d_{L} d_{P} d_{R} + d_{L} d_{R}^{2}\right)
+\end{aligned}
+$$
+
+For the second root of $\alpha_L$ we get:
+$$
+\begin{aligned}
+{\alpha_P}_{34} &= (A_2 \pm D_2)/B_2
+\\
+A_2 &= 2 B a d_{L}^{\frac{3}{2}} d_{P} \sqrt{d_{R}} + B a d_{L}^{2} d_{P} + B a d_{L} d_{P} d_{R} + 4 d_{L}^{\frac{3}{2}} d_{P} \sqrt{d_{R}} k_{mN} + d_{L}^{3} e_{P} + d_{L}^{3} k_{mN} \\
+&+ 2 d_{L}^{2} d_{P} k_{mN} - 2 d_{L}^{2} d_{R} e_{P} - 2 d_{L}^{2} d_{R} k_{mN} + 2 d_{L} d_{P} d_{R} k_{mN} + d_{L} d_{R}^{2} e_{P} + d_{L} d_{R}^{2} k_{mN} 
+\\
+D_2 &= \sqrt{d_{P}} \left(B a + e_{P} + 3 k_{mN}\right) \sqrt{2 d_{L}^{\frac{9}{2}} \sqrt{d_{R}} - 4 d_{L}^{\frac{7}{2}} d_{R}^{\frac{3}{2}} + 2 d_{L}^{\frac{5}{2}} d_{R}^{\frac{5}{2}} + d_{L}^{5} - d_{L}^{4} d_{R} - d_{L}^{3} d_{R}^{2} + d_{L}^{2} d_{R}^{3}}
+\\
+B_2 &= B a \left(2 d_{L}^{\frac{3}{2}} d_{P} \sqrt{d_{R}} - d_{L}^{3} + d_{L}^{2} d_{P} + 2 d_{L}^{2} d_{R} + d_{L} d_{P} d_{R} - d_{L} d_{R}^{2}\right)
+\end{aligned}
+$$
+
+The products of the single parameters are the same as with ${\alpha_P}_{12}$,
+but they are combined with different signs.
+
+That one of the four roots where $\alpha_P \in (0,1)$ and derived 
+$\alpha_L(\alpha_P) \in (0,1)$ and that yields a highest 
+$u_T(\vec{\alpha})$ provides the optimal $\vec{\alpha}$.
+
+
+## Excursion: replacing revenue by relative profit
+
+Revenue, here, is defined as return per investment, 
+$\operatorname{rev}_Z = {d_Z}_w / {\operatorname{inv}_Z}_w$. 
+One could argue that
+one should rather optimize the profit, i.e. return - investment, 
+or the relative profit,${\operatorname{rev}_p}_Z$, i.e. profit/investment. 
+Here we show, that optimizing the profit yields the
+same optimal allocation as optimizing the return.
+
+$$
+\begin{aligned}
+{\operatorname{rev}_p}_Z &= ({d_Z}_w - {\operatorname{inv}_Z}_w)/ {\operatorname{inv}_Z}_w = \operatorname{rev}_Z - 1
+\\
+\frac{d (\alpha_Z {\operatorname{rev}_p}_Z)}{d \alpha_Z} 
+&=  \frac{d (\alpha_Z \operatorname{rev}_Z)}{d \alpha_Z} - \frac{d \alpha_Z}{d \alpha_Z}
+=  \frac{d (\alpha_Z \operatorname{rev}_Z)}{d \alpha_Z} - 1
+\end{aligned}
+$$
+The total profit is the sum of relative profits multiplied by 
+total enzyme investment, ${\operatorname{inv}}_w$.
+$$
+\begin{aligned}
+u_{Tp}(\vec{\alpha}) &= {\operatorname{inv}}_w  \sum_Z \alpha_Z {\operatorname{rev}_p}_Z (\alpha_Z )
+\end{aligned}
+$$
+This equation fulfills the conditions of Lemma 1 and at the optima all
+derivatives are equal.
+
+$$
+\begin{aligned}
+\frac{d (\alpha_i {\operatorname{rev}_p}_i)}{d \alpha_i} &= 
+\frac{d (\alpha_j {\operatorname{rev}_p}_j)}{d \alpha_j}
+\\
+\frac{d (\alpha_i \operatorname{rev}_i)}{d \alpha_i} - 1 &= 
+\frac{d (\alpha_j \operatorname{rev}_j)}{d \alpha_j} - 1
+\\
+\frac{d (\alpha_i \operatorname{rev}_i)}{d \alpha_i} &= 
+\frac{d (\alpha_j \operatorname{rev}_j)}{d \alpha_j}
+\end{aligned}
+$$
+
+
+Hence, optimizing profits yields the same conditions as optimizing returns.
+
+
+
+# Derivation of the relative approach
+
+For $\alpha_Z a_E B \gg {k_{mN}}_Z$, i.e. 
+$2 {k_{mN}}_Z + \alpha_Z a_E B \approx \alpha_Z a_E B$, 
+the half-saturation ${k_{mN}}_Z$ can be neglected in 
+the denominator of the revenue. This leads to the heuristics that
+allocation is approximately proportional to revenue, $\operatorname{rev}_Z$,
+as shown in the following.
+Note that $\alpha_Z a_E B \gg {k_{mN}}_Z$ implies 
+$(\alpha_Z a_E B)^2 \gg {k^2_{mN}}_Z$.
+
+For depolimerizing enzymes we have:
+
+$$
+\begin{aligned}
+\operatorname{rev}_Z &= \frac{d_Z}{\omega_{Enz} } \frac{1}{{k_{mN}}_Z + \alpha_Z a_E B} 
+\approx \frac{d_Z}{\omega_{Enz} } \frac{1}{\alpha_Z a_E B}
+\\
+\frac{d(\alpha_Z \operatorname{rev}_Z)}{d \alpha_Z} 
+&=  \frac{d_Z}{\omega_{Enz} } \frac{{k_{mN}}_Z }{({k_{mN}}_Z + \alpha_Z a_E B)^2} 
+=  \frac{d_Z}{\omega_{Enz} } \frac{{k_{mN}}_Z }
+{{k^2_{mN}}_Z + 2 {k_{mN}}_Z \alpha_Z a_E B + (\alpha_Z a_E B)^2} 
+\\
+&\approx  \frac{d_Z}{\omega_{Enz} } \frac{{k_{mN}}_Z }
+{\alpha_Z a_E B (2 {k_{mN}}_Z  + \alpha_Z a_E B)} 
+\\
+&= \operatorname{rev}_Z \frac{{k_{mN}}_Z }{2 {k_{mN}}_Z  + \alpha_Z  a_E B} 
+\\
+&\approx \operatorname{rev}_Z \frac{{k_{mN}}_Z }{\alpha_Z  a_E B} 
+\end{aligned} 
+$$
+
+\noindent where the first two relationships have been derived above.
+
+Similarly, for biomineralizing enzymes we require 
+$\alpha_Z a_E B \gg {k_{mN}}_Z + e_Z$, where $e_Z$ is the production of enzyme 
+$Z$ by plants.
+
+$$
+\begin{aligned}
+\operatorname{rev}_Z &= \frac{d_Z}{\omega_{Enz} } \frac{{k_{mN}}_Z}{e_Z + {k_{mN}}_Z} 
+\frac{1}{e_Z + {k_{mN}}_Z + \alpha_Z a_E B} 
+\approx \frac{d_Z}{\omega_{Enz} } \frac{{k_{mN}}_Z}{e_Z + {k_{mN}}_Z} \frac{1}{\alpha_Z a_E B}
+\\
+\frac{d(\alpha_Z \operatorname{rev}_Z)}{d \alpha_Z} 
+&= \frac{d_Z}{\omega_{Enz} } \frac{{k_{mN}}_Z }{(e_Z + {k_{mN}}_Z + \alpha_Z a_E B)^2} 
+= \frac{d_Z}{\omega_{Enz} } \frac{{k_{mN}}_Z }
+{(e_Z + {k_{mN}}_Z)^2 + 2 (e_Z + {k_{mN}}_Z) \alpha_Z a_E B + (\alpha_Z a_E B)^2} 
+\\
+&\approx \frac{d_Z}{\omega_{Enz} } \frac{{k_{mN}}_Z }
+{\alpha_Z a_E B (2 (e_Z + {k_{mN}}_Z) + \alpha_Z a_E B)}
+\\
+&= \operatorname{rev}_Z \frac{e_Z + {k_{mN}}_Z }{2 (e_Z + {k_{mN}}_Z) + \alpha_Z  a_E B} 
+\\
+&\approx \operatorname{rev}_Z \frac{e_Z + {k_{mN}}_Z }{ \alpha_Z  a_E B} 
+\end{aligned} 
+$$
+
+At the optimal solution all the derivatives of (revenue times 
+$\alpha$) for all enzymes in the mix are equal. 
+For any two enzymes $i,j$ we have:
+
+$$
+\begin{aligned}
+\frac{d(\alpha_i \operatorname{rev}_i)}{d \alpha_i} &= \frac{d(\alpha_j \operatorname{rev}_j)}{d \alpha_j}
+\\
+\operatorname{rev}_i \frac{e_i + {k_{mN}}_i }{\alpha_i  a_E B} 
+&\approx \operatorname{rev}_j \frac{e_j + {k_{mN}}_j }{ \alpha_j  a_E B}
+\\
+ \frac{\alpha_j }{ \alpha_i} 
+ &\approx \frac{\operatorname{rev}_j}{\operatorname{rev}_i} \frac{e_j + {k_{mN}}_j }{e_i + {k_{mN}}_i}
+\\
+\frac{\alpha_j}{\alpha_i} &\approx \frac{\operatorname{rev}_j}{\operatorname{rev}_i}
+\end{aligned} 
+$$
+The last approximation holds only for 
+similar half-saturation parameters across enzymes ${k_{mN}}_Z \approx k_{mN}$,
+and plant enzyme production low compared to this half-saturation:
+$e_Z \ll {k_{mN}}$.
+
+At very low $\alpha_Z$ the enzyme production flux is not larger than the 
+half-saturation, ${k_{mN}}_Z$ and simplifying conditions are violated also
+for larger microbial biomass.
+
+Hence, the optimal allocation is approximately proportional to the revenue 
+
+* for all enzymes with a non-negligible share 
+* at sufficiently high mirobial biomass 
+* at low plant enzyme production.
+
+
+
+$$
+\begin{aligned}
+\end{aligned}
+$$
+
