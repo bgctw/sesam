@@ -196,7 +196,7 @@ linetypeScaleApproach <- scale_linetype_manual(
 
 ```{r echo=FALSE}
 # utility of depolymerizing enzyme
-u_decomp <- function(alpha, dLorR, o_enz, p){
+revenue_decomp <- function(alpha, dLorR, o_enz, p){
   dLorR/o_enz/(p$k_mn + alpha * p$a_E * p$B)
 }
 p = within(list(
@@ -215,8 +215,8 @@ ds <- data.frame(
   o_enz = 0.2
 )
 ds2 <- bind_rows(
-  mutate(ds, Biomass="High", u_L = u_decomp(alpha, dL, o_enz,  within(p, B <-2))),
-  mutate(ds, Biomass="Low", u_L = u_decomp(alpha, dL, o_enz,  within(p, B <-1)))
+  mutate(ds, Biomass="High", u_L = revenue_decomp(alpha, dL, o_enz,  within(p, B <-2))),
+  mutate(ds, Biomass="Low", u_L = revenue_decomp(alpha, dL, o_enz,  within(p, B <-1)))
 )
 ds2 %>% ggplot(aes(alpha, u_L, color=Biomass, linetype=Biomass)) + geom_line() +
   xlab(bquote(~alpha[L])) +
@@ -226,12 +226,12 @@ ds2 %>% ggplot(aes(alpha, u_L, color=Biomass, linetype=Biomass)) + geom_line() +
 ```
 ```{r echo=FALSE}
 # utility of biomineralizing enzyme
-u_biomin <- function(alpha, dP, o_enz, p){
+revenue_biomin <- function(alpha, dP, o_enz, p){
   dP*p$k_mn/o_enz/((p$k_mn + p$e_P)^2 + alpha * p$a_E * p$B * ((p$k_mn + p$e_P)))
 }
 ds2 <- bind_rows(
-  mutate(ds, PlantProduction="none", u=u_biomin(alpha, dL, o_enz,  p)),
-  mutate(ds, PlantProduction="same magnitude", u=u_biomin(alpha, dL, o_enz, within(p, e_P <- k_mn/2))),
+  mutate(ds, PlantProduction="none", u=revenue_biomin(alpha, dL, o_enz,  p)),
+  mutate(ds, PlantProduction="same magnitude", u=revenue_biomin(alpha, dL, o_enz, within(p, e_P <- k_mn/2))),
 )
 ds2 %>% ggplot(aes(alpha, u, color=PlantProduction, linetype=PlantProduction)) + geom_line() +
   xlab(bquote(~alpha[P])) +
@@ -380,28 +380,28 @@ On prescribed potential returns ($d_L = 0.7, d_R = 0.5, d_P = \{0\ldots1\}$),
 The inferred optimum allocation differs across approaches.
 
 ```{r include=FALSE}
-compute_utilities <- function(alpha3,dL,dR,dP,p,o_enz=0.2){
+compute_revenues <- function(alpha3,dL,dR,dP,p,o_enz=0.2){
   c(
-      u_decomp(alpha3["L"], dL, o_enz, p), 
-      u_decomp(alpha3["R"], dR, o_enz, p), 
-      u_biomin(alpha3["P"], dP, o_enz, p)
+      revenue_decomp(alpha3["L"], dL, o_enz, p), 
+      revenue_decomp(alpha3["R"], dR, o_enz, p), 
+      revenue_biomin(alpha3["P"], dP, o_enz, p)
     )
 }
 compute_total_utilities <- function(alpha3,dL,dR,dP,p,o_enz=0.2){
-  u = compute_utilities(alpha3,dL,dR,dP,p,o_enz)
-  sum(alpha3 * u)*p$a_E*p$B
+  u = compute_revenues(alpha3,dL,dR,dP,p,o_enz)
+  o_enz*p$a_E*p$B*sum(alpha3 * u)
 }
 calc_alpha3_relative = function(dL,dR,dP,p,o_enz=0.2) {
   u0 = u1 = sapply(c(L=dL, R=dR, P=dP), function(x) x/(o_enz*p$k_mn))
   # fixpoint iteration
   for (i in 1:5) {
     alpha3 = u1/sum(u1)
-    u1 = compute_utilities(alpha3,dL,dR,dP,p,o_enz)
+    u1 = compute_revenues(alpha3,dL,dR,dP,p,o_enz)
     #print(c(u1, sum(alpha3*u1)))
   }
   alpha3
 }
-dL = 0.7; dR = 0.5; dP = 0.3
+dL = 0.7; dR = 0.5; dP = 0.1
 calc_alpha3_relative(dL,dR,dP,p)
 
 dL = 0.7; dR = 0.5; dP = 0.3
