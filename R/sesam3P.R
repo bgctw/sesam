@@ -54,16 +54,15 @@ derivSesam3P <- function(
   uNOrg <- parms$nuN*(decL/cnL + decR/cnR + tvrERecycling/cnE)
   uPOrg <- parms$nuP*(decL/cpL + decR/cpR + tvrERecycling/cpE)
   uC <- decL + decR + tvrERecycling
-  CsynBC <- uC - rM - synE/parms$eps
-  CsynBN <- cnB/parms$eps*(uNOrg + immoNPot - synE/cnE)
-  CsynBP <- cpB/parms$eps*(uPOrg + immoPPot - synE/cpE)
-  CsynB <- min(CsynBC, CsynBN, CsynBP)
-  if (CsynB > 0) {
-    synB <- parms$eps*CsynB
-    rG <- (1 - parms$eps)*CsynB
+  CsynBCt <- uC - rM - synE/parms$eps
+  CsynBC <- if (CsynBCt > 0) parms$eps*CsynBCt else CsynBCt
+  CsynBN <- cnB*(uNOrg + immoNPot - synE/cnE)
+  CsynBP <- cpB*(uPOrg + immoPPot - synE/cpE)
+  synB <- min(CsynBC, CsynBN, CsynBP)
+  if (synB > 0) {
+    rG <- (1 - parms$eps)/parms$eps * synB
   } else {
-    synB <- CsynB # with negative biomass change, do growth respiration
-    rG <- 0
+    rG <- 0 # with negative biomass change, do growth respiration
   }
   PhiNB <- uNOrg - synB/cnB - synE/cnE
   PhiPB <- uPOrg - synB/cpB - synE/cpE
