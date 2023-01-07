@@ -12,6 +12,7 @@ derivSesam3P <- function(
   ## Compared to Sesam3P, here
   ## - the biomineralizing enzmye attacks both L and R pool
   ## - the biomineralizing enzyme is also produced by plants at rate e_P
+  x_neg <- x # remember original potential negative values
   x <- pmax(unlist(x),1e-16)      # no negative masses
   # compute steady state enzyme levels for N and for C limitation
   dRPot <- parms$kR * x["R"]
@@ -46,7 +47,7 @@ derivSesam3P <- function(
   # enzyme limitations of decomposition
   decL <- dLPot * alpha["L"]*aeB/(kmNL + alpha["L"]*aeB)
   decR <- dRPot * alpha["R"]*aeB/(kmNR + alpha["R"]*aeB)
-  limEnzP <- (parms$e_P * alpha["P"]*aeB)/(kmNP + parms$e_P + alpha["P"]*aeB)
+  limEnzP <- (parms$e_P + alpha["P"]*aeB)/(kmNP + parms$e_P + alpha["P"]*aeB)
   decLP_P <- dLPPot * limEnzP # P units
   decRP_P <- dRPPot * limEnzP
   #
@@ -96,8 +97,7 @@ derivSesam3P <- function(
   }
   PhiNU <- (1 - parms$nuN)*(decL/cnL + decR/cnR + tvrERecycling/cnE)
   leachP <- parms$lP*x["IP"]
-  PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE) +
-    decLP_P +decRP_P
+  PhiPU <- (1 - parms$nuP)*(decL/cpL + decR/cpR + tvrERecycling/cpE)
   #
   # community composition and enzyme allocation
   limE <- computeElementLimitations(
@@ -140,7 +140,10 @@ derivSesam3P <- function(
   if (x["alphaR"] <= 1e-16){
     tmp = 1
   }
-  #
+  # make sure to not decrease already negative alpha - workaround solver
+  dAlpha[c("L","R")] = ifelse(
+    x_neg[c("alphaL","alphaR")] < 0,
+    -x_neg[c("alphaL","alphaR")], dAlpha[c("L","R")])
   dB <- synB - tvrB
   dL <- -decL  + parms$iL
   dLN <- -decL/cnL   + parms$iL/parms$cnIL
@@ -150,7 +153,8 @@ derivSesam3P <- function(
   dRP <- -decR/cpR  -decRP_P + parms$iR/parms$cpIR  + tvrP
   # here plant uptake as absolute parameter
   dIN <-  +parms$iIN  - plantNUp  - leachN  + PhiNU  + PhiNB  + PhiNTvr
-  dIP <-  +parms$iIP  - plantPUp  - leachP  + PhiPU  + PhiPB  + PhiPTvr
+  dIP <-  +parms$iIP  - plantPUp  - leachP  + PhiPU  + PhiPB  + PhiPTvr +
+    decLP_P +decRP_P
   #
   if (isTRUE(parms$isFixedS)) {
     # scenario of fixed substrate
@@ -244,6 +248,8 @@ derivSesam3P <- function(
     , structure(limZ, names = paste0("limZ",names(limZ)))
     #, structure(alphaTarget, names = paste0("alphat",names(alphaTarget)))
     , alphaP = alpha[["P"]]
+    , dAlphaR = dAlpha[["R"]]
+    , dAlphaR2 = resDeriv[["dAlphaR"]]
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
     , cpR = as.numeric(cpR), cpL = as.numeric(cpL)
     , decR = as.numeric(decR), decL = as.numeric(decL)

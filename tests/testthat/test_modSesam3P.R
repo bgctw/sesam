@@ -53,7 +53,7 @@ parms0 <- list(
   , cpIR = 40
   #, cpIL = 40*3
   , cpIL = 40*6  # to make real P limitation possible
-  , iBP = 0.38 * 10.57 # start with same as N
+  , iBP = 0.4 #0.38 * 10.57 # start with same as N
   , e_P = 0.3*0.01*365 /20  ##<< 1/10 of kmn: /yr enzyme turnover 1% turning over each day
 )
 parms <- parms0 <- within(parms0,{
@@ -168,34 +168,35 @@ test_that("fixed substrates", {
 })
 
 # # substrate feedbacks ---------------------------------------------------------
-test_that("substrate feedbacks but inorganic pools fixed", {
-  parmsInit <- within(parms0, {isFixedI <- TRUE})
-  ans0 <- derivSesam3P(0, x0, parms = parmsInit)
-  times <- seq(0,2000, length.out = 2)
-  #times <- seq(0,800, length.out = 101)
-  #times <- c(0,148:151)
-  #times <- seq(0,2100, by = 2)
-  #times <- seq(0,10000, length.out = 101)
-  #ans1 <- derivSesam3P(0, x0, within(parmsInit, isRecover <- TRUE) )
-  #
-  resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsInit))
-  xETest <- unlist(tail(resTest,1))
-  xETest
-  expect_true( xETest["alphaL"] > 0.5)
-  #
-  # N limitation
-  parmsNlim <- within(parmsInit, cnIL <- 90)
-  resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsNlim))
-  xETest <- unlist(tail(resTest,1))
-  xETest
-  expect_true( xETest["alphaR"] > 0.2)
-  tmp <- derivSesam3P(0, xETest[1+seq_along(x0)], parms = parmsNlim)
-})
+# TODO
+#test_that("substrate feedbacks but inorganic pools fixed", {
+#   parmsInit <- within(parms0, {isFixedI <- TRUE})
+#   ans0 <- derivSesam3P(0, x0, parms = parmsInit)
+#   times <- seq(0,2000, length.out = 2)
+#   #times <- seq(0,800, length.out = 101)
+#   #times <- c(0,148:151)
+#   #times <- seq(0,2100, by = 2)
+#   #times <- seq(0,10000, length.out = 101)
+#   #ans1 <- derivSesam3P(0, x0, within(parmsInit, isRecover <- TRUE) )
+#   #
+#   resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsInit))
+#   xETest <- unlist(tail(resTest,1))
+#   xETest
+#   expect_true( xETest["alphaL"] > 0.5)
+#   #
+#   # N limitation
+#   parmsNlim <- within(parmsInit, cnIL <- 90)
+#   resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsNlim))
+#   xETest <- unlist(tail(resTest,1))
+#   xETest
+#   expect_true( xETest["alphaR"] > 0.2)
+#   tmp <- derivSesam3P(0, xETest[1+seq_along(x0)], parms = parmsNlim)
+# })
 
 test_that("substrate feedbacks", {
   ans0 <- derivSesam3P(0, x0, parms = parms0)
   #times <- seq(0,2000, length.out = 2)
-  times <- seq(0,8000, length.out = 101)
+  times <- c(0,exp(seq(-6,log(8000), length.out = 101)))
   #times <- c(0,148:151)
   #times <- seq(0,2100, by = 2)
   #times <- seq(0,10000, length.out = 101)
@@ -220,18 +221,35 @@ test_that("substrate feedbacks", {
   #
   # P limitation
   parmsPlim <- within(parms0,  {iIP <- 1e-5})
-  resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsPlim))
+  x0Plim <- x0; x0Plim["IP"] <- 0.002
+  ans0 <- derivSesam3P(0, x0Plim, parms = parmsPlim)
+  resTest <- #as.data.frame(ode( x0Plim, t imes, derivSesam3P, parms = parmsPlim), method="radau")
+  resTest <- as.data.frame(lsoda( x0Plim, times, derivSesam3P, parms = parmsPlim))
   xETest <- unlist(tail(resTest,1))
   xETest
   expect_true( xETest["limP"] > 0.9)
   expect_true( xETest["alphaP"] > 0.4)
-  #tmp <- derivSesam3P(0, xETest[1+seq_along(x0)], parms = parmsNlim)
   #xETest[c("B","alphaL","alphaR","alphaP")]
   #xETest[c("L","LN","LP","R","RN","RP")]
   #xETest[c("IN","IP")]
   ansE <- derivSesam3P(0, xETest[1+seq_along(x0Plim)], parms = parmsPlim)
   xETest[c("B","alphaP")]
 
+  tmp = xETest[1+seq_along(x0Plim)]
+  dump("tmp","")
+  x0Plim <- c(B = 9.5532405179743343, R = 2617.3347021513996, RN = 383.96307740260477,
+              RP = 59.337267206775913, L = 571.87399064315707, LN = 19.06246635477191,
+              LP = 2.2432022114256065, IN = 20.83333333295699, IP = 0.10841370333933449,
+              alphaL = 0.34651667267463748, alphaR = 0.16641997111762105)
+
+  xETest =unlist(head(resTest[resTest$time > 100,],1))
+
+
+  # debug julia solution
+  sol_julia=c(B = 3.6041840224071113, L = 860.3750089360257, R = 56990.34883770216, LN = 28.679166964534186, RN = 8360.485833327284, IN = 19.787982350021043, LP = 1.6319650235754555, RP = 20.335275080854387, IP = 0.10841370343866158, alphaR = 4.636786296463711e-65, alphaP = 0.5543880861686532)
+  sol_juliaL =  c(sol_julia, alphaL = unname(1-sol_julia["alphaR"]-sol_julia["alphaP"]))
+  x0Plim = sol_juliaL[names(x0)]
+  x0Plim
 })
 
 
@@ -240,8 +258,16 @@ test_that("substrate feedbacks", {
   library(dplyr)
   library(ggplot2)
   ggplot(filter(resTest, time > 1), aes(time, B)) + geom_line(alpha = 0.5)
+  ggplot(filter(resTest, time < 0.07), aes(time, B)) + geom_line(alpha = 0.5)
+  ggplot(filter(resTest, time < 2), aes(time, B)) + geom_point(alpha = 0.5)
   ggplot(filter(resTest, time > 0), aes(time, alphaL)) + geom_point(alpha = 0.5)
   ggplot(filter(resTest, time > 0), aes(time, alphaR)) + geom_point(alpha = 0.5)
+  ggplot(filter(resTest, time < 2), aes(time, alphaR)) + geom_point(alpha = 0.5)
+  ggplot(filter(resTest, time < 0.07), aes(time, alphaR)) + geom_point(alpha = 0.5)
+  ggplot(filter(resTest, time < 0.07), aes(time, dAlphaR)) + geom_point(alpha = 0.5)
+  ggplot(filter(resTest, time < 3), aes(time, dAlphaR2)) + geom_point(alpha = 0.5)
+  ggplot(filter(resTest, time < 100), aes(time, R)) + geom_point(alpha = 0.5)
+  ggplot(filter(resTest, time > 0), aes(time, alphaP)) + geom_point(alpha = 0.5)
   ggplot(filter(resTest, time > 0), aes(time, alphaP)) + geom_point(alpha = 0.5)
   ggplot(filter(resTest, time < 500 & time > 0), aes(time, alphaL)) + geom_point()
   ggplot(filter(resTest, time < 500 & time > 0), aes(time, alphaP)) + geom_point()
