@@ -55,6 +55,7 @@ parms0 <- list(
   , cpIL = 40*6  # to make real P limitation possible
   , iBP = 0.4 #0.38 * 10.57 # start with same as N
   , e_P = 0.3*0.01*365 /20  ##<< 1/10 of kmn: /yr enzyme turnover 1% turning over each day
+  , cpm = 500 # at a c:P ratio of cpm biomineralization rate decreases to 1/2
 )
 parms <- parms0 <- within(parms0,{
 #  kmR <- kmL <- km
@@ -217,7 +218,7 @@ test_that("substrate feedbacks", {
   expect_true( xETest["limN"] > 0.9)
   expect_true( xETest["alphaR"] > 0.4)
   #tmp <- derivSesam3P(0, xETest[1+seq_along(x0)], parms = parmsNlim)
-  xETest[c("B","alphaR")]
+  #xETest[c("B","alphaR")]
   #
   # P limitation
   parmsPlim <- within(parms0,  {iIP <- 1e-5})
@@ -232,8 +233,8 @@ test_that("substrate feedbacks", {
   #xETest[c("B","alphaL","alphaR","alphaP")]
   #xETest[c("L","LN","LP","R","RN","RP")]
   #xETest[c("IN","IP")]
-  ansE <- derivSesam3P(0, xETest[1+seq_along(x0Plim)], parms = parmsPlim)
-  xETest[c("B","alphaP")]
+  #ansE <- derivSesam3P(0, xETest[1+seq_along(x0Plim)], parms = parmsPlim)
+  #xETest[c("B","alphaP")]
 
   tmp = xETest[1+seq_along(x0Plim)]
   dump("tmp","")

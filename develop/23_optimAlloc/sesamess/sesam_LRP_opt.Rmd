@@ -143,9 +143,29 @@ of enzyme production, $a_E B$, for current elemental limitation.
 The phosphataes only cleave phosphate groups from soil organic matter
 making available only P for uptake, without making available C and N.
 They attack both labile and residue organic matter.
-Hence, their potential return includes the P-limitation weights $w_P$ only, 
-and considers them in P units: 
-$d_P = w_P (k_{LP} L_P + k_{RP} R_P)$.
+Hence, their potential return weight includes the P-limitation weights $w_P$ only, 
+and does not devide by the C/P ratio of the substrate, as the substrate is 
+already a P pool: 
+$$
+\begin{aligned}
+d_P &= \omega_P (k_{LP} l_{{\beta_P}_L} L_P + k_{RP} l_{{\beta_P}_R} R_P)
+\\
+\omega_P &= w_P \nu_P {\beta_N}_B
+\\
+l_{{\beta_P}_S} &= \frac{1}{ 1 + {\beta_P}_S/{\beta_P}_m }
+= \frac{{\beta_P}_m}{ {\beta_P}_m + {\beta_P}_S }
+\end{aligned}
+$$
+```{r eval=FALSE, include=FALSE}
+# l_{{\beta_P}_S} &= \frac{ {\beta_P}_S^{-1} }{ {k_m}_{\beta_P} + {\beta_P}_S^{-1}}
+#  = \frac{ S_P }{ {k_m}_{\beta_P} S + S_P}
+```
+
+\noindent where limitation factor $l_{{\beta_P}_S} \in (0,1)$ decreases
+the potential rate of a biomineralizing enzymes with 
+increasing C/P ratio, ${\beta_P}_S$ of the substrate $S$. 
+Parameter ${\beta_P}_m$ is the C/P ratio at which the 
+limitation factor decreased to 1/2.
 
 Moreover, these phosphatases are also produced by plant roots at a
 rate $e_P$. Hence, we need to calculate the return of microbe-produced enzyme 

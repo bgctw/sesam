@@ -172,6 +172,7 @@ parms0 <- within( c(parmsModel, drivers), {
   #lN <- 0 # no leaching
   kLP <- kL # same efficiency as depolymerizing enzyme 
   kRP <- kR
+  cpm <- 500
 })
 ```
 
@@ -203,8 +204,9 @@ scenarios <- tibble::tibble(
     within(parms0,isOptimalAlpha<-TRUE), 
     parms0,
     within(parms0,isRelativeAlpha<-TRUE),
-    within(parms0, {isRelativeAlpha<-TRUE; kR <- kRP <- 1/33.67320}),
-    within(parms0, {isRelativeAlpha<-TRUE; kmNR <- 3.456718})
+    #33.51384 3.429475
+    within(parms0, {isRelativeAlpha<-TRUE; kR <- kRP <- 1/33.51384}),
+    within(parms0, {isRelativeAlpha<-TRUE; kmNR <- 3.429475})
     )
 )
 scenarios$x0 <- list(x0)
@@ -406,7 +408,7 @@ fcost_kmNR <- function(kmNRnew, scen){
   scen <- filter(scenarios, scenario == "Relative")  
   fcost(parms$kR/2, scen)
   kR <- optimize(fcost, c(1e-8,0.05), scen)
-  c(1/parms$kR, 1/kR$minimum)  # 31.4 yrs vs 33.67320
+  c(1/parms$kR, 1/kR$minimum)  # 31.40989 33.51384 
 }
 .tmp.f <- function(){  
   #"Optimal","Relative","Derivative"
@@ -417,7 +419,7 @@ fcost_kmNR <- function(kmNRnew, scen){
   fcost_kmNR(scen2$parms[[1]]$kmNR, scen)
   resOpt <- optimize(fcost_kmNR, c(parms$kmN/10,parms$kmN*10), scen)
   kmNR <- resOpt$minimum
-  c(parms$kmN, kmNR)  # 3.0 vs 3.456718
+  c(parms$kmN, kmNR)  # 3.0 vs 3.429475
 }
 ```
 

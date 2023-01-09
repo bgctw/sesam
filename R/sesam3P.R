@@ -27,8 +27,11 @@ derivSesam3P <- function(
   cpL <- x["L"]/x["LP"]
   cpE <- parms$cpE
   cpB <- parms$cpB
-  dLPPot <- parms$kLP * x["LP"] # potential biomineralization in P units
-  dRPPot <- parms$kRP * x["RP"]
+  if (is.null(parms$cpm) ) stop("need to provide parameter cpm (C:P for which dec_LP decreases to 1/2.")
+  lim_LP <- 1/(1 + cpL/parms$cpm)
+  lim_RP <- 1/(1 + cpR/parms$cpm)
+  dLPPot <- parms$kLP * x["LP"] * lim_LP # potential biomineralization in P units
+  dRPPot <- parms$kRP * x["RP"] * lim_RP
   # one state variable less, here P, because alphas sum to one
   alpha <- cbind(L = x["alphaL"], R = x["alphaR"], P = NA)[1,]
   # take care for small negative alphas and renormalize to sum to 1
@@ -265,6 +268,8 @@ derivSesam3P <- function(
     , uptakeC = as.numeric(uC)
     #, decN = as.numeric(decN)
     , decLP_P = as.numeric(decLP_P), decRP_P = as.numeric(decRP_P)
+    , lim_LP = unname(lim_LP)
+    , lim_RP = unname(lim_RP)
   ))
 }
 
