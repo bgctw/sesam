@@ -183,6 +183,7 @@ extend_CNP_setting <- function(x0, parms, drivers) {
      e_P <- 0.0 # no plant P enzyme production
      kLP <- kL
      kRP <- kR
+     cpm <- 500
   })
   x0P <- c( 
         x0[c("B","R","RN")]
