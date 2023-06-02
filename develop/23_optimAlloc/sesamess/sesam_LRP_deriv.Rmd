@@ -331,7 +331,7 @@ decreases with increasing allocation.
 They decrease stronger with higher biomass and less with plant enzyme
 production.
 
-```{r echo=FALSE}
+```{r sesamalloc_derivative, echo=FALSE}
 # d alpha * revenue of two depolymerizing enzymes
 nrow <- 31
 ds <- data.frame(
