@@ -352,8 +352,11 @@ vars <- c("R","R_diff")
 vars <- c("R") 
 p4 <- resScen %>% filter(scenario %in% c("Optimal","Relative","Relative_kR","Relative_kmNR")) %>% 
   ggplot_vars(vars) + colScaleApproach + linetypeScaleApproach +
-    theme(axis.title.y = element_blank()) +
-    theme(legend.title = element_blank())
+    #theme(axis.title.y = element_blank()) +
+    ylab(expression(Residue~stock~(gCm^{-2}))) +
+    theme(legend.title = element_blank()) +
+    facet_null() +
+    c()
 p4
 ```
 

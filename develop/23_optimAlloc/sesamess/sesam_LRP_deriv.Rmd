@@ -220,7 +220,7 @@ ds2 <- bind_rows(
 )
 ds2 %>% ggplot(aes(alpha, u_L, color=Biomass, linetype=Biomass)) + geom_line() +
   xlab(bquote(~alpha[L])) +
-  ylab(bquote('Revenue '*rev[L]*'('*g~ m^-2~s^-1*')')) +
+  ylab(bquote('Revenue '*rev[L]*'('*g~ m^-2~yr^-1*')')) +
   theme(legend.position = c(0.95,0.95), legend.justification = c(1,1)) +
   c()
 ```
@@ -235,7 +235,7 @@ ds2 <- bind_rows(
 )
 ds2 %>% ggplot(aes(alpha, u, color=PlantProduction, linetype=PlantProduction)) + geom_line() +
   xlab(bquote(~alpha[P])) +
-  ylab(bquote('Revenue '*rev[P]*'('*g~ m^-2~s^-1*')')) +
+  ylab(bquote('Revenue '*rev[P]*'('*g~ m^-2~yr^-1*')')) +
   theme(legend.position = c(0.95,0.95), legend.justification = c(1,1)) +
   c()
 ```
@@ -301,8 +301,8 @@ ds2 <- bind_rows(
 )
 ds2 %>% ggplot(aes(alpha, u_L, color=Biomass, linetype=Biomass)) + geom_line() +
   xlab(bquote(~alpha[L])) +
-  #ylab(bquote(d(alpha[L]*rev[L])/d*alpha[L]*' ('*gC~ m^-2~s^-1*')')) +
-  ylab(bquote(d~return/d*alpha[L]*' ('*g~ m^-2~s^-1*')')) +
+  #ylab(bquote(d(alpha[L]*rev[L])/d*alpha[L]*' ('*gC~ m^-2~yr^-1*')')) +
+  ylab(bquote(d~return/d*alpha[L]*' ('*g~ m^-2~yr^-1*')')) +
   theme(legend.position = c(0.95,0.95), legend.justification = c(1,1)) +
   c()
 ```
@@ -319,8 +319,8 @@ ds2 <- bind_rows(
 )
 ds2 %>% ggplot(aes(alpha, u_P, color=PlantProduction, linetype=PlantProduction)) + geom_line() +
   xlab(bquote(~alpha[P])) +
-  #ylab(bquote(d(alpha[P]*rev[P])/d*alpha[P]*' ('*g~ m^-2~s^-1*')')) +
-  ylab(bquote(d~return/d*alpha[P]*' ('*g~ m^-2~s^-1*')')) +
+  #ylab(bquote(d(alpha[P]*rev[P])/d*alpha[P]*' ('*g~ m^-2~yr^-1*')')) +
+  ylab(bquote(d~return/d*alpha[P]*' ('*g~ m^-2~yr^-1*')')) +
   theme(legend.position = c(0.95,0.95), legend.justification = c(1,1)) +
   c()
 ```
@@ -351,9 +351,9 @@ p1 <- ds2 %>% ggplot(aes(alpha, du_Z, color=Enzyme, linetype=Enzyme)) +
   geom_hline(yintercept=du_equal, linetype="dashed", color="gray") +
   geom_line() +
   xlab(bquote(~alpha[Z])) +
-  #ylab(bquote(d(alpha[Z]*rev[Z])/d*alpha[Z]*' ('*gC~ m^-2~s^-1*')')) +
-  #ylab(bquote(d~return/d*alpha[Z]*' ('*g~ m^-2~s^-1*')')) +
-  ylab(bquote(d*u[T]/d*alpha[Z]*' ('*g~ m^-2~s^-1*')')) +
+  #ylab(bquote(d(alpha[Z]*rev[Z])/d*alpha[Z]*' ('*gC~ m^-2~yr^-1*')')) +
+  #ylab(bquote(d~return/d*alpha[Z]*' ('*g~ m^-2~yr^-1*')')) +
+  ylab(bquote(d*u[T]/d*alpha[Z]*' ('*g~ m^-2~yr^-1*')')) +
   theme(legend.position = c(0.95,0.95), legend.justification = c(1,1)) +
   c()
 print(p1)
@@ -466,7 +466,7 @@ p2 <- pivot_longer(dsAlpha, !c(dP,Approach,Biomass), names_to="Enzyme") %>%
   mutate(Enzyme = fct_relevel(Enzyme, "L","R")) %>% 
   #ggplot(aes(dP, value, color=Enzyme, linetype=Approach)) + geom_line() +
   ggplot(aes(dP, value, color=Enzyme, linetype=Approach, size=Biomass)) + geom_line() +
-  xlab(bquote('Potential return from biomineralization ('*g~ m^-2~s^-1*')')) +
+  xlab(bquote('Potential return from biomineralization ('*g~ m^-2~yr^-1*')')) +
   ylab(bquote('Allocation '*alpha)) +
   #theme(axis.title.y = element_blank()) +
   c()
