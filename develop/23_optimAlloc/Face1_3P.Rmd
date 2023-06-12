@@ -1,0 +1,464 @@
+---
+title: "SESAM Soil enzyme steady allocoation model"
+output:
+  html_notebook: default
+  pdf_document:
+    keep_tex: true
+---
+
+Simplified from 19GMD_paper/CompareModels.Rmd
+Based on Sesam3P version, which includes potential P limitation.
+
+## Simulate a FACE scenario using the Sesam3b model
+```{r, echo=FALSE, results='hide', message=FALSE}
+library(ggplot2)
+library(grid)   #unit
+library(RColorBrewer) # brewer.pal
+library(tidyr)
+library(dplyr)
+library(purrr)
+library(forcats)
+library(knitr)
+
+mycolors <- brewer.pal(5,"Dark2")
+mylinetypes <- c("solid","dashed","dotdash","twodash","dotted","longdash")
+scale_colour_discrete <- function(...) scale_colour_manual(...,values=mycolors)
+
+adjust_facets <- function(theme){
+  theme +
+    theme(panel.border = element_rect(colour = "black", fill = NA)) +
+    theme(strip.background = element_blank()) 
+}
+themePaper <- (theme_classic(base_size = 10) + theme(axis.title = element_text(size = 9))) %>% 
+  adjust_facets()
+themePres <- theme_classic(base_size = 18) %>% 
+  adjust_facets()
+
+#figWidthPage <- 18/2.54; figHeightPage <- figWidthPage/1.6 
+# GMD fixes at 12 instead of entire page 18
+figWidthPage <- 12/2.54; figHeightPage <- figWidthPage/1.6 
+#, fig.height=4.43, fig.width=7.1
+#figWidthWide <- 12/2.54; figHeightWide <- figWidthWide/1.6
+figWidthWide <- 3.8; figHeightWide <- 5
+#, fig.height=2.95, fig.width=4.72
+figWidthCol <- 8.3/2.54; figHeightCol <- figWidthCol/1.6
+#, fig.height=2.04, fig.width=3.27
+#
+theme_set(themePres); figWidth <- figWidthWide; figHeight <- figHeightWide 
+theme_set(themePaper); figWidth <- figWidthCol; figHeight <- figHeightCol
+
+
+opts_chunk$set(
+   # out.extra='style="display:block; margin: auto"'
+    fig.width = figWidth, fig.height = figHeight #goldener Schnitt 1.6 #GI single column
+    #, dev.args = list(pointsize = 11)
+    , dev = c('pdf','png')
+    , echo = FALSE
+    )
+knit_hooks$set(spar  =  function(before, options, envir) {
+    if (before) {
+        par( las = 1 )                   #also y axis labels horizontal
+        par(mar = c(2.0,3.3,0,0) + 0.3 )  #margins
+        par(tck = 0.02 )                          #axe-tick length inside plots             
+        par(mgp = c(1.1,0.2,0) )  #positioning of axis title, axis labels, axis
+    }
+})
+
+.simpleCap <- function(s) {
+    paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
+}
+.approaches <- c("Optimal","Derivative","Relative")
+.approaches_ext <- c(.approaches, c("Relative_kR","Relative_kmNR"))
+colScaleApproach <- scale_colour_manual(
+  name = "Approach", values = c(
+    setNames(mycolors[seq_along(.approaches)], .approaches)
+  ,c(Relative_kR = mycolors[3], Relative_kmNR=mycolors[3])))
+linetypeScaleApproach <- scale_linetype_manual(
+  name = "Approach",values = setNames(mylinetypes[seq_along(.approaches_ext)], .approaches_ext))
+.treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
+sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
+```
+
+### Setup parameters and drivers
+Mass units are $gC/m^2$ or $gN/m^2$. Time unit is $yr$.
+```{r}
+require(sesam, quietly = TRUE)
+
+parmsModel <- list(
+  cnB = 11
+  ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P) need 
+    # to have low C/N for CO2 increase scenario
+  ,kN = 60       ##<< /yr enzyme turnover 60 times a year, each 6 days -> fast 
+    # priming pulses
+  ,km = 0.05     ##<< enzyme half-saturation constant, in magnitude of enzymes, 
+    # determined by kN
+  ,kNB = 0.8     ##<< amount of recycling enzyme turnover by biomass (
+    # added to assimilable, i.e. uptake instead of R)
+  #,kR = 1/(10)        ##<< 1/(x years) # to demonstrate changes on short time scale
+  ,kR = 1/31.40989 # matching initial R pools of about 3200 g/m2
+  #,kR = 1/(20)        ##<< 1/(x years) # to demonstrate changes on short time scale
+  ,kL = 5           ##<< 1/(x years)   # formerly 1 year
+  ,aE = 0.001*365   ##<< C biomass allocated to enzymes 1/day /microbial biomass
+  ,m = 0.016*365    ##<< maintenance respiration rate   1/day /microbial biomass, 
+  ## Bogedom Fig. 1
+  ,tau = 1/60*365  ##<< biomass turnover rate (12 days)
+  ,eps = 0.68      ##<< carbon use efficiency for growth respiration
+  #,eps = 0.5      ##<< carbon use efficiency for growth respiration
+  ,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (part by predators 
+  #,epsTvr = 0.45   ##<< carbon use efficiency of microbial tvr (part by predators 
+  #,epsPred = 3     ##<< carbon use efficiency of microbial tvr (part by predators 
+  ## which respire and corresponding amount of N must be mineralized)
+  #,iBN = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
+  ,iBN = 0.4 ##<< potential immobilization flux rate of inorganic N
+  #,iBN = 1/12*(24*365) # tvr of IN of 12 hours
+  ## (immoNPot = iBN IN)
+  ,lN = 0.96       #0.00262647*365     ##<< leaching rate of mineral N: lN IN
+  ,nuN = 0.9     # microbial N use efficiency accounting for apparent 
+  ## minceralization of N during uptake in heterogeneous soils
+  , isEnzymeMassFlux = TRUE  ##<< compute enzyme mass fluxes
+  , kINPlant = 10.57 #0.0289652*365          ##<< plant uptake iP IN
+  #
+  #
+  ,lP = 0.001  # very small to not run into P limitation  
+  ,nuP = 0.0     # microbial P use efficiency: no direct P uptake
+  , cpE = 50
+  , cpB = 40 # for not running into P limitation, here assume no P required in biomass
+  , iBP = 100 # arbitrarily high to not run into P limitation
+  , kIPPlant = 0.0 #kINPlant  # plant uptake rate of P equals that of N
+  , e_P = 0.0 # no plant P enzyme production
+  #
+  # additional parameters with version 4: detailed microbial turnover
+  #, cnBW = 10    ##<< C/N ratio of cell walls (that go to R, )
+  # , cnBW = cnB    ##<< do not partition
+  # , cpBW = 1e8   # not running into P limitation
+  # #, cW = 0.5 # proportion of cell wall within microbial biomass
+  # , cW = 1 # proportion of cell wall within microbial biomass
+  # , B0 = 0  # minimal biomass, below which predation rate is zero
+  # #, tauP = 0.1 # slope of predation rate with biomass
+  # , tauP = 0 # slope of predation rate with biomass
+  #, kSP = 1/30 # 1/x years
+  # , pESP = 0.01  # /year production of phospatase by plants, small to check balance
+  # , nuPP = 0.05 # most of the phosphats to to mineral pool
+)
+
+parmsModel <- within(parmsModel, {
+    kmN <- km*kN     # Sesam2 only uses a lumped parameter instead of km and kN
+    kmR <- kmL <- km  # seam2 can accept parameters differing by substrate
+    cnER <- cnEL <- cnE 
+    kNR <- kNL <- kN    
+    #isFixedI <- TRUE  # in this demonstration keep inorganic pool fixed
+})
+```
+
+For simplicity model drivers currently are prescribed as constant parameters.
+```{r}
+drivers <- list(
+  iR = 0          ##<< input of residue litter
+  ,iL = 400         # g/m2 input per year (half NPP)
+  ,cnIR = 7       ##<< C/N ratio of the residue litter input
+#  ,cnIL = 30      ##<< C/N ratio of the labile litter input: 
+  ,cnIL = 28      ##<< C/N ratio of the labile litter input: 
+  ,iIN = 0.0         ##<< input of mineral N
+  ,iIP = 0.0 # no inorganic P inputs
+  , cpIR = 40
+  , cpIL = 40*3
+)
+parms0 <- within( c(parmsModel, drivers), {
+  iIN <- iL/cnIL/200    # assume a fraction of 1/10 of annual litter production
+  kINPlant <- 1/5*365 # tvr of 5 days
+  plantNUpAbs <- iL/cnIL + iIN # plants take maximum out as much as returned by litter
+  # plus inorganic input, difference is grazed
+  # keep leaching as otherwise it accumulates during priming
+  #lN <- 0 # no leaching
+  kLP <- kL # same efficiency as depolymerizing enzyme 
+  kRP <- kR
+  cpm <- 500
+})
+```
+
+The initial pools must be specified. The Steady models do not have the enzyme pools as state variables.
+```{r}
+x0 <- x0Explicit <- c( #aE = 0.001*365
+        B = 17                     ##<< microbial biomass 
+        ,R = 1100                ##<< N rich substrate
+        ,RN = 3000/parms0$cnIR   ##<< N rich substrate N pool
+        ,RP = 3000/parms0$cpIR
+        ,L = 100                 ##<< N poor substrate
+        ,LN = 100/parms0$cnIL    ##<< N poor substrate N pool
+        ,LP = 100/parms0$cpIL    ##<< N poor substrate N pool
+        ,IN =  0.04 #150 #0.04                ##<< inorganic pool gN/m2
+        #,IP =  0.04 #150 #0.04                ##<< inorganic pool gN/m2
+        ,IP =  150 # prevent P limitation          ##<< inorganic pool gN/m2
+        #, alpha = 0.5            ##<< microbial community partitioning [0,1]
+        #, alphaL=0.4, alphaR = 0.5, alphaRP=0.1    ##<< microbial community partitioning [0,1]
+        , alphaL=0.4, alphaR = 0.5    ##<< microbial community partitioning [0,1]
+)
+parms = parms0
+```
+
+We store the information that differs between scenarios in a tibble.
+```{r}
+scenarios <- tibble::tibble(
+  scenario = c("Optimal","Derivative","Relative","Relative_kR","Relative_kmNR")
+  ,parms = list(
+    within(parms0,isOptimalAlpha<-TRUE), 
+    parms0,
+    within(parms0,isRelativeAlpha<-TRUE),
+    #33.51384 3.429475
+    within(parms0, {isRelativeAlpha<-TRUE; kR <- kRP <- 1/33.51384}),
+    within(parms0, {isRelativeAlpha<-TRUE; kmNR <- 3.429475})
+    )
+)
+scenarios$x0 <- list(x0)
+scenarios$mod <- list(derivSesam3P)
+scenarios
+```
+
+Next the simulation runs are performed.
+```{r}
+runFaceSimulation <- function(mod, x0, parms, t1S =20, t2I = 40, t3S = 70) {
+  #t1S =20; t2I = 40; t3S = 70; parms = parms0
+  tmp = derivSesam3P(0, x0, parms)
+
+  # spinup to steady state
+  times <- seq(0,1000, length.out = 500)
+  #times <- seq(0,0.07, length.out = 50)
+  #times <- seq(0,0.06, length.out = 50)
+  #times <- seq(0,20, length.out = 50)
+  res <- res1 <- as.data.frame(lsoda( x0, times, mod, parms = parms))
+  
+  #ggplot(res, aes(time, IN)) + geom_line()
+  #ggplot(res, aes(time, alphaR)) + geom_line()
+  #ggplot(res, aes(time, alphaL)) + geom_line()
+  #ggplot(res, aes(time, B)) + geom_line()
+  #ggplot(res, aes(time, R)) + geom_line()
+  #ggplot(res, aes(time, limP)) + geom_line()
+  xE <- unlist(tail(res,1)); xE
+  .interactive_trythis <- function(){
+    # one call to the derivative function, 
+    #    first element returns the derivative
+    #    second element is a vector of additonal fluxes/outputs
+    #      e.g. tmp[[2]]["uC"] is the carbon uptake of microbial biomass
+    tmp = derivSesam3P(0, xE[1+(1:length(x0))], parms); tmp
+    # task: compute CUE from these outputs
+  }
+  #
+  # t1S years of steady state recorded
+  # task: get familiar with lsoda from package deSolve
+  res <- res1S <- as.data.frame(lsoda( 
+    xE[1:length(x0) + 1], 1:t1S, mod, parms = parms))
+  #
+  # t2I years of increased input
+  fInputInc = 1.2
+  parmsC2 <- within(parms, {# more C in litter, but not more N 
+    iL <- iL*fInputInc
+    cnIL <- cnIL*fInputInc
+  }) 
+  #derivSesam3P(0, xE, parmsC2)
+  times <- seq(0,t2I, length.out = t2I*6 + 1)# record by-monthly
+  res <- res2I <- as.data.frame(lsoda( 
+    xE[1:length(x0) + 1], times, mod, parms = parmsC2))
+  res2I$time <- res2I$time + t1S 
+  xE2 <- unlist(tail(res2I,1))
+  #
+  # t3S years of initial input
+  times <- seq(0,t3S, length.out = t3S*6 + 1) # record bymonthly
+  res <- res3S <- as.data.frame(lsoda( 
+    xE2[1:length(x0) + 1], times, mod, parms = parms))
+  res3S$time <- res3S$time + t1S + t2I
+  xE3 <- tail(res3S,1)
+  resc <- rbind( res1S, res2I[-1,], res3S[-1,])
+}
+.tmp.f <- function(){
+  #"Optimal","Relative","Derivative"
+  scen <- filter(scenarios, scenario == "Optimal")
+  scen <- filter(scenarios, scenario == "Derivative")
+  scen <- filter(scenarios, scenario == "Relative")
+  scen <- filter(scenarios, scenario == "Relative_kR")
+  scen <- filter(scenarios, scenario == "Relative_kmR")
+  # resScen <- runFaceSimulation( scen$mod[[1]], scen$x0[[1]], scen$parms[[1]] ) %>% 
+  #mutate(scenario = scen$scenario) %>% select(scenario, everything())
+}
+resScen <- scenarios %>% nest(data=!scenario) %>% mutate(res=map(data, function(df_scen){
+  runFaceSimulation(df_scen$mod[[1]], df_scen$x0[[1]], df_scen$parms[[1]])
+  })) %>%  select(scenario,res) %>% unnest(cols=res)
+```
+
+Plot some results.
+
+```{r}
+replace_labels <- function(labels, labelmap) {
+  sapply(labels, function(label){
+    if (is.null(labelmap[[label]])) label else labelmap[[label]]
+  })
+}
+#replace_labels(c("a",names(labelmap)), labelmap)
+ggplot_vars <- function(resScen, vars, labelmap = list(alphaR="alpha[R]", R_norm="R[norm]", R_diff="R[diff]")) {
+  dsp <- 
+    #resc %>% 
+    resScen %>% 
+    #filter(time >= 20, time <= 40) %>% 
+    mutate(RL = R + L, cnRL = (R + L)/(RN + LN)) %>% # compute additional quantities
+    group_by(scenario) %>% 
+    mutate(R_norm = R/R[1], L_norm = L/L[1], RL_norm = RL/RL[1], R_diff = R-R[1]) %>% 
+    ungroup() %>% 
+    mutate(scenario = fct_relevel(scenario, c("Optimal","Derivative","Relative"))) %>% 
+    #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
+    select(any_of(c("time","scenario",vars))) %>% gather("Pool","value", vars) %>% 
+    mutate(Pool = fct_relabel(Pool, ~replace_labels(.,labelmap))) 
+  p2f <- ggplot( dsp, aes(x = time, y = value, col = scenario, linetype = scenario)) + geom_line(linewidth = 1) +
+    facet_grid(Pool ~ .,scales = "free",labeller = label_parsed) + 
+    xlab("Time (yr)") + ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
+    #themeDefault +
+    #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
+    theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
+    theme(panel.border = element_rect(colour = "black", fill = NA)) +
+    theme(strip.background = element_blank()) +			
+    theme(panel.grid.major.x = element_line(colour = "grey75")) +
+    c()
+}
+#print(p2f + colScaleApproach)
+#vars <- c("L","R","alphaR","RL") 
+vars <- c("L","R","alphaR","B","RL","IN") 
+vars <- c("L","R","alphaR","B","IN","plantNUp","PhiNB","PhiNTotal","limN","limP") 
+#vars <- c("alpha","B", "cnL", "PhiNB","PhiNTotal","immoNPot", "CsynBC","CsynBN") 
+print(ggplot_vars(resScen, vars))
+```
+
+
+```{r}
+vars <- c("L","R_norm","alphaR") 
+#vars <- c("L","R_diff","alphaR") 
+p3 <- resScen %>% 
+  filter(scenario %in% c("Optimal","Derivative","Relative")) %>% 
+  ggplot_vars(vars)+ colScaleApproach + linetypeScaleApproach +
+    theme(axis.title.y = element_blank()) +
+    theme(legend.title = element_blank()) +
+    c()
+p3
+```
+```{r eval=FALSE, include=FALSE}
+p3b <- p3 +
+  theme(legend.position = c(0.91,0.98), legend.justification = c(1,1))+
+  theme(legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid', linewidth = 0.02))+
+  theme(legend.spacing.y = unit(0.00, 'cm'))+
+  theme(legend.margin = margin(0,4,0,4,unit="pt"))+
+  theme()
+ggsave("sesamalloc_FACE1.pdf", p3b, width = figWidthCol, height = figHeightCol) 
+```
+
+### Supplementary plot
+
+```{r}
+vars <- c("L","R","alphaR") 
+vars <- c("L","R","alphaR","R_diff") 
+vars <- c("R","R_diff") 
+vars <- c("R") 
+p4 <- resScen %>% filter(scenario %in% c("Optimal","Relative","Relative_kR","Relative_kmNR")) %>% 
+  ggplot_vars(vars) + colScaleApproach + linetypeScaleApproach +
+    #theme(axis.title.y = element_blank()) +
+    ylab(expression(Residue~stock~(gCm^{-2}))) +
+    theme(legend.title = element_blank()) +
+    facet_null() +
+    c()
+p4
+```
+
+```{r eval=FALSE, include=FALSE}
+p4b <- p4 +
+  #theme(legend.position = c(0.93,1.15), legend.justification = c(1,1))
+  theme(legend.position = "bottom") +
+  theme(legend.title = element_blank()) +
+  guides(linetype = guide_legend(nrow = 2, byrow = TRUE)) +
+  guides(color = guide_legend(nrow = 2, byrow = TRUE))
+ggsave("sesamalloc_FACE2.pdf", p4b, width = figWidthCol, height = figHeightCol*1.3) 
+```
+
+
+The Optimal and Derivative Scenario show the same results. 
+All scenarios predict the same pattern of loss of SOM during
+FACE.
+The Relative Scenario overestimates the allocation to R by 6% 
+and predicts a lower loss of R during FACE.
+
+
+
+```{r eval=FALSE, include=FALSE}
+(0.34-0.32)/0.32 # compute the relative overestimation of alpha_R Relative
+(3800-3480)/3800
+```
+
+```{r eval=FALSE, include=FALSE}
+# determine kR so that initial R is 3200
+tmp <- filter(resScen, scenario == "Derivative")
+LR_target <- head(tmp,1)$R + head(tmp,1)$L # targetSOM = 3314.14
+runSteady <- function(mod, x0, parms) {
+  times <- seq(0,1000, length.out = 2)
+  res <- res1 <- as.data.frame(lsoda( x0, times, mod, parms = parms))
+}
+fcost <- function(kRnew, scen){
+  p <- within(scen$parms[[1]],{
+    kR <- kRP <- kRnew
+  })
+  res <- runSteady( scen$mod[[1]], scen$x0[[1]], p ) 
+  (tail(res$R,1)+tail(res$L,1) - LR_target)^2
+}
+fcost_kmNR <- function(kmNRnew, scen){
+  p <- within(scen$parms[[1]],{
+    kmNR <- kmNRnew
+  })
+  res <- runSteady( scen$mod[[1]], scen$x0[[1]], p ) 
+  (tail(res$R,1)+tail(res$L,1) - LR_target)^2
+}
+.tmp.f <- function(){  
+  #"Optimal","Relative","Derivative"
+  scen <- filter(scenarios, scenario == "Relative")  
+  fcost(parms$kR/2, scen)
+  kR <- optimize(fcost, c(1e-8,0.05), scen)
+  c(1/parms$kR, 1/kR$minimum)  # 31.40989 33.51384 
+}
+.tmp.f <- function(){  
+  #"Optimal","Relative","Derivative"
+  scen <- filter(scenarios, scenario == "Relative")  
+  parms <-scen$parms[[1]]
+  fcost_kmNR(parms$kmN, scen)
+  scen2 <- filter(scenarios, scenario == "Relative_kmNR")  
+  fcost_kmNR(scen2$parms[[1]]$kmNR, scen)
+  resOpt <- optimize(fcost_kmNR, c(parms$kmN/10,parms$kmN*10), scen)
+  kmNR <- resOpt$minimum
+  c(parms$kmN, kmNR)  # 3.0 vs 3.429475
+}
+```
+
+### Steady State for Table
+```{r eval=FALSE, include=FALSE}
+tmp <- filter(resScen, scenario == "Derivative")
+s0 <- tmp[1,]
+tmp2 <- filter(resScen, scenario == "Relative")
+s0r <- tmp2[1,]
+c(s0$L, s0$R, s0$B, s0$L + s0$R)
+c(s0r$L, s0r$R, s0r$B, s0r$L + s0r$R)
+c(s0$alphaL, s0$alphaR, s0$alphaP)
+s0$R / c(s0$RN, s0$RP)
+s0$L / c(s0$LN, s0$LP)
+c(s0$IN , s0$IP)
+c(parms0$iIN, parms0$iIP)
+c(parms0$kINPlant, parms0$kIPPlant)
+
+c(parms0$cnB, parms0$cnE)
+c(parms0$cpB, parms0$cpE)
+c(parms0$kL, parms0$kR)
+c(parms0$aE)
+c(parms0$kmN)
+c(parms0$tau, parms$m)
+c(parms0$eps, parms$epsTvr)
+c(parms0$nuN, parms$nuP)
+c(parms0$iBN, parms$iBP)
+c(parms0$lN, parms$lP)
+```
+
+
+```{r}
+.tmp.f <- function(){}
+```
+

@@ -69,7 +69,7 @@ parms0 <- within(parms0,{
   lP <- lN       # leaching rate of inorganic P equals that of N
   nuP <- nuN     # mineralization of P during decomposiition equals that of N
   kIPPlant <- kINPlant  # plant uptake rate of P equals that of N
-  iIP <- lN      # assume no P inputs compensate for leaching
+  iIP <- lP      # assume no P inputs compensate for leaching
   kLP <- kRP <- kSP
   pELP <- pERP <- pESP
 })
@@ -163,6 +163,16 @@ test_that("computeSesam4bAllocationPartitioning carbon limited",{
   limE <- c(C = 1, N = 1e-5, P = 1e-5)
   alpha0 <- c(L = 0.6, R = 0.4, LP = 1e-5, RP = 1e-5)
   limE <- limE/sum(limE); alpha0 <- alpha0/sum(alpha0)
+  alpha_noCB <- computeSesam4bAllocationPartitioning_noCNB(
+    dS = cbind(R = parms$kR*x["RC"], L = parms$kL*x["LC"]) [1,]
+    ,dSP = cbind(RP = parms$kRP*x["RC"], LP = parms$kLP*x["LC"])[1,]
+    , B = x["BC"]
+    ,kmkN = parms$km*parms$kN, aE =  parms$aE
+    ,alpha = alpha0
+    ,limE = limE
+    ,betaN = cbind(L = cnL, R = cpR, B = parms$cnB, E = parms$cnE)[1,]
+    ,betaP = cbind(L = cpL, R = cpR, B = parms$cpB, E = parms$cpE)[1,]
+  )
   alpha <- computeSesam4bAllocationPartitioning(
     dS = cbind(R = parms$kR*x["RC"], L = parms$kL*x["LC"]) [1,]
     ,dSP = cbind(RP = parms$kRP*x["RC"], LP = parms$kLP*x["LC"])[1,]
@@ -170,8 +180,8 @@ test_that("computeSesam4bAllocationPartitioning carbon limited",{
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     ,alpha = alpha0
     ,limE = limE
-    ,betaN = cbind(L = cnL, R = cpR, E = parms$cnE)[1,]
-    ,betaP = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
+    ,betaN = cbind(L = cnL, R = cpR, B = parms$cnB, E = parms$cnE)[1,]
+    ,betaP = cbind(L = cpL, R = cpR, B = parms$cpB, E = parms$cpE)[1,]
   )
   expect_equal(names(alpha), c("L", "R", "LP", "RP"))
   expect_equal(sum(alpha),1)
@@ -180,7 +190,7 @@ test_that("computeSesam4bAllocationPartitioning carbon limited",{
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     ,alpha = alpha0["R"]
   ), names = "R")
-  expect_equal(alpha["R"], alphaC, tolerance = 0.05 )
+  expect_equal(alpha_noCB["R"], alphaC, tolerance = 0.05 )
 })
 
 test_that("computeSesam4bAllocationPartitioning nitrogen limited",{
@@ -200,8 +210,18 @@ test_that("computeSesam4bAllocationPartitioning nitrogen limited",{
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     ,alpha = alpha0
     ,limE = limE
-    ,betaN = cbind(L = cnL, R = cnR, E = parms$cnE)[1,]
-    ,betaP = cbind(L = cpL, R = cpR, E = parms$cpE)[1,]
+    ,betaN = cbind(L = cnL, R = cnR, B = parms$cnB, E = parms$cnE)[1,]
+    ,betaP = cbind(L = cpL, R = cpR, B = parms$cpB, E = parms$cpE)[1,]
+  )
+  alpha_noCNB <- computeSesam4bAllocationPartitioning_noCNB(
+    dS = cbind(R = parms$kR*x["RC"], L = parms$kL*x["LC"]) [1,]
+    ,dSP = cbind(RP = parms$kRP*x["RC"], LP = parms$kLP*x["LC"])[1,]
+    , B = x["BC"]
+    ,kmkN = parms$km*parms$kN, aE =  parms$aE
+    ,alpha = alpha0
+    ,limE = limE
+    ,betaN = cbind(L = cnL, R = cnR, B = parms$cnB, E = parms$cnE)[1,]
+    ,betaP = cbind(L = cpL, R = cpR, B = parms$cpB, E = parms$cpE)[1,]
   )
   expect_equal(names(alpha), c("L", "R", "LP", "RP"))
   expect_equal(sum(alpha),1)
@@ -210,7 +230,7 @@ test_that("computeSesam4bAllocationPartitioning nitrogen limited",{
     ,kmkN = parms$km*parms$kN, aE =  parms$aE
     ,alpha = alpha0["R"]
   ), names = "R")
-  expect_equal(alpha["R"], alphaN, tolerance = 0.05 )
+  expect_equal(alpha_noCNB["R"], alphaN, tolerance = 0.05 )
 })
 
 test_that("computeElementLimitations",{
@@ -218,33 +238,45 @@ test_that("computeElementLimitations",{
   scen <- "C - limited"
   CsynBE <- c(C = 40, N = 6000, P = 6000)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   expect_equal(names(limE), names(CsynBE))
   expect_equal(limE["C"], c(C = 1), tolerance = 1e-2)
   #
   scen <- "N - limited"
   CsynBE <- c(C = 6000, N = 40, P = 6000)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   expect_equal(limE["N"], c(N = 1), tolerance = 1e-2)
   #
   scen <- "P - limited"
   CsynBE <- c(C = 6000, N = 6000, P = 40)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   expect_equal(limE["P"], c(P = 1), tolerance = 1e-2)
   #
   scen <- "CN - limited"
   CsynBE <- c(C = 40, N = 40, P = 6000)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   expect_equivalent(sum(limE[c("C","N")]), 1, tolerance = 1e-2)
   expect_equivalent(limE["C"], limE["N"], tolerance = 1e-2)
+  # really want exact co-limitaiton at same CsynBE
+  #expect_equivalent(limE["C"], limE["N"]/parms$cnB, tolerance = 1e-2)
   #
   scen <- "CN - limited, slightly more N limted"
   CsynBE <- c(C = 40, N = 40 - 1e-1, P = 6000)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   limE
   expect_equivalent(sum(limE[c("C","N")]), 1, tolerance = 1e-2)
   expect_true(limE["N"] > limE["C"])
@@ -252,14 +284,18 @@ test_that("computeElementLimitations",{
   scen <- "NP - limited"
   CsynBE <- c(C = 6000, N = 40, P = 40)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   expect_equivalent(sum(limE[c("N","P")]), 1, tolerance = 1e-2)
   expect_equivalent(limE["P"], limE["N"], tolerance = 1e-2)
   #
   scen <- "equal co-limitation"
   CsynBE <- c(C = 40, N = 40, P = 40)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   expect_equivalent(limE["C"], limE["N"], tolerance = 1e-2)
   expect_equivalent(limE["C"], limE["P"], tolerance = 1e-2)
   expect_equivalent(sum(limE), 1, tolerance = 1e-2)
@@ -269,20 +305,26 @@ test_that("computeElementLimitations",{
     limN <- sapply(epsNs, function(epsN){
       CsynBE <- c(C = 40, N = 40 - epsN, P = 6000)
       alphaBalanced <- computeElementLimitations(
-        CsynBE, tauB = 1, delta = 5)["N"]
+        CsynBE, tauB = 1, delta = 5
+        , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+      )["N"]
       #CsynBE, tauB = 1)#, ce, eps  )
     })
     plot(limN ~ epsNs, type = "lN")
     limN10 <- sapply(epsNs, function(epsN){
       CsynBE <- c(C = 40, N = 40 - epsN, P = 6000)
       alphaBalanced <- computeElementLimitations(
-        CsynBE, tauB = 1, delta = 10)["N"]
+        CsynBE, tauB = 1, delta = 10
+        , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+      )["N"]
     })
     lines(limN10 ~ epsNs, lty = "dashed")
     limN20 <- sapply(epsNs, function(epsN){
       CsynBE <- c(C = 40, N = 40 - epsN, P = 6000)
       alphaBalanced <- computeElementLimitations(
-        CsynBE, tauB = 1, delta = 20)["N"]
+        CsynBE, tauB = 1, delta = 20
+        , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+      )["N"]
     })
     lines(limN20 ~ epsNs, lty = "dotted")
   }
@@ -291,7 +333,9 @@ test_that("computeElementLimitations",{
   # negative carbon balance
   CsynBE <- c(C = -40, N = 4, P = 4)
   limE <- computeElementLimitations(
-    CsynBE, tauB = 1)#, ce, eps  )
+    CsynBE, tauB = 1
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+  )#, ce, eps  )
   limE
   # think of accounting for negative biomass balance
   expect_equivalent(limE["C"], 1, tolerance = 1e-2)
@@ -300,6 +344,7 @@ test_that("computeElementLimitations",{
 
 # CN limitations----------------------------------------------------
 testParmsScen <- function(parmsInit){
+  parmsInit$use_noCNB_return <- TRUE
   ans0 <- derivSesam4b(0, x0, parms = within(
     parmsInit, {tauP <- tau/x0["BC"]; tau <- 0}))
   ans0E <- derivSesam3a(0, getX0SingleAlpha(getX0NoC(x0)), parms = within(
@@ -521,13 +566,8 @@ x0P["alphaRP"] <- 0.1
 x0P["alphaL"] <- x0P["alphaL"]*(1 - x0P["alphaRP"])
 x0P["alphaR"] <- x0P["alphaR"]*(1 - x0P["alphaRP"])
 
-test_that("same as sesam2 with biomineralization", {
-  ans0 <- derivSesam4b(0, x0P, parms = within(
-    parms0PBiomin, {tauP <- tau/x0P["BC"]; tau <- 0}))
-  parmsInit <- within(parms0PBiomin,{isFixedS <- TRUE })
-})
-
 testParmsScenBiomin <- function(parmsInit){
+  parmsInit$use_noCNB_return <- TRUE
   ans0 <- derivSesam4b(0, x0P, parms = within(
     parmsInit, {tauP <- tau/x0P["BC"]; tau <- 0}))
   times <- seq(0, 2100, length.out = 2)
@@ -562,6 +602,13 @@ testParmsScenBiomin <- function(parmsInit){
     , parms = within(parmsInitPlim,{tauP <- tau/xEExp["B"]; tau <- 0})))
   xETest <- unlist(tail(resTest,1))
 }
+
+test_that("same as sesam2 with biomineralization", {
+  ans0 <- derivSesam4b(0, x0P, parms = within(
+    parms0PBiomin, {tauP <- tau/x0P["BC"]; tau <- 0}))
+  parmsInit <- within(parms0PBiomin,{isFixedS <- TRUE })
+  #testParmsScenBiomin(parmsInit)  # TODO
+})
 
 
 

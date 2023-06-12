@@ -17,10 +17,10 @@
     <node id="n0">
       <data key="d6">
         <y:ShapeNode>
-          <y:Geometry height="85.56995884773659" width="119.17746913580254" x="553.5510515164724" y="244.00000000000003"/>
+          <y:Geometry height="97.36643884773662" width="131.76038113580262" x="553.5510515164724" y="244.0"/>
           <y:Fill hasColor="false" transparent="false"/>
           <y:BorderStyle color="#000000" raised="false" type="dashed" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="sides" modelPosition="n" textColor="#000000" verticalTextPosition="bottom" visible="true" width="116.4296875" x="1.3738908179012697" xml:space="preserve" y="-21.96875">Quasi steady state</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="sides" modelPosition="n" textColor="#000000" verticalTextPosition="bottom" visible="true" width="116.4296875" x="7.665346817901309" xml:space="preserve" y="-21.96875">Quasi steady state</y:NodeLabel>
           <y:Shape type="roundrectangle"/>
         </y:ShapeNode>
       </data>
@@ -41,7 +41,7 @@
     <node id="n2">
       <data key="d6">
         <y:GenericNode configuration="com.yworks.flowchart.process">
-          <y:Geometry height="30.0" width="61.3798828125" x="474.62333622685196" y="324.8471009807957"/>
+          <y:Geometry height="30.0" width="61.3798828125" x="474.62333622685196" y="334.56995884773664"/>
           <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
           <y:BorderStyle color="#808080" type="line" width="1.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="c" textColor="#000000" verticalTextPosition="bottom" visible="true" width="12.337890625" x="24.52099609375" xml:space="preserve" y="6.015625">R</y:NodeLabel>
@@ -54,7 +54,7 @@
     <node id="n3">
       <data key="d6">
         <y:GenericNode configuration="com.yworks.flowchart.process">
-          <y:Geometry height="30.0" width="61.3798828125" x="689.9856864604767" y="244.0"/>
+          <y:Geometry height="30.0" width="61.3798828125" x="701.2578784604766" y="241.63585269547337"/>
           <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
           <y:BorderStyle color="#808080" type="line" width="1.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="c" textColor="#000000" verticalTextPosition="bottom" visible="true" width="12.232421875" x="24.57373046875" xml:space="preserve" y="6.015625">B</y:NodeLabel>
@@ -67,7 +67,7 @@
     <node id="n4">
       <data key="d6">
         <y:GenericNode configuration="com.yworks.bpmn.Event.withShadow">
-          <y:Geometry height="13.0" width="14.0" x="713.6756278667267" y="335.7112482853223"/>
+          <y:Geometry height="13.0" width="14.0" x="724.9478198667266" y="343.06995884773664"/>
           <y:Fill color="#FFFFFFE6" color2="#D4D4D4CC" transparent="false"/>
           <y:BorderStyle color="#808080" type="line" width="1.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="eight_pos" modelPosition="se" textColor="#000000" verticalTextPosition="bottom" visible="true" width="20.740234375" x="18.0" xml:space="preserve" y="13.0">tvr</y:NodeLabel>
@@ -84,7 +84,7 @@
     <node id="n5">
       <data key="d6">
         <y:GenericNode configuration="com.yworks.bpmn.Event.withShadow">
-          <y:Geometry height="11.111754115226347" width="11.111754115226347" x="817.6724088273749" y="337.45912637174206"/>
+          <y:Geometry height="11.111754115226347" width="11.111754115226347" x="828.9446008273748" y="344.8178369341564"/>
           <y:Fill color="#FFFFFFE6" color2="#D4D4D4CC" transparent="false"/>
           <y:BorderStyle color="#808080" type="line" width="1.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="24.0" horizontalTextPosition="center" iconTextGap="4" modelName="sides" modelPosition="s" textColor="#000000" verticalTextPosition="bottom" visible="true" width="64.0" x="-26.444122942386798" xml:space="preserve" y="15.111754115226347">&lt;html&gt;CO&lt;sub&gt;2&lt;/sub&gt; efflux&lt;/html&gt;</y:NodeLabel>
@@ -101,10 +101,10 @@
     <node id="n6">
       <data key="d6">
         <y:GenericNode configuration="com.yworks.flowchart.process">
-          <y:Geometry height="30.0" width="44.3798828125" x="806.8655692729767" y="244.0"/>
+          <y:Geometry height="30.0" width="44.3798828125" x="818.1377612729766" y="241.63585269547337"/>
           <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
           <y:BorderStyle color="#808080" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="24.0" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="c" textColor="#000000" verticalTextPosition="bottom" visible="true" width="15.0" x="14.68994140625" xml:space="preserve" y="3.0">&lt;html&gt;I&lt;sub&gt;N&lt;/sub&gt;&lt;/html&gt;</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="24.0" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="c" textColor="#000000" verticalTextPosition="bottom" visible="true" width="25.0" x="9.68994140625" xml:space="preserve" y="3.0">&lt;html&gt;I&lt;sub&gt;N,P&lt;/sub&gt;&lt;/html&gt;</y:NodeLabel>
           <y:StyleProperties>
             <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="true"/>
           </y:StyleProperties>
@@ -114,7 +114,7 @@
     <node id="n7">
       <data key="d6">
         <y:ShapeNode>
-          <y:Geometry height="13.0" width="99.3145177565043" x="677.5510515164724" y="220.50406499999985"/>
+          <y:Geometry height="13.0" width="99.3145177565043" x="688.8232435164723" y="218.13991769547323"/>
           <y:Fill hasColor="false" transparent="false"/>
           <y:BorderStyle hasColor="false" type="line" width="2.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="19.0" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="c" textColor="#000000" verticalTextPosition="bottom" visible="true" width="84.0" x="7.657258878252151" xml:space="preserve" y="-3.0">&lt;html&gt;community &amp;alpha;&lt;/html&gt;</y:NodeLabel>
@@ -172,6 +172,30 @@
         </y:ShapeNode>
       </data>
     </node>
+    <node id="n12">
+      <data key="d6">
+        <y:ShapeNode>
+          <y:Geometry height="17.83978091096127" width="18.68929428767371" x="654.1010720179918" y="298.32730519790545"/>
+          <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
+          <y:BorderStyle color="#808080" raised="false" type="line" width="1.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="24.0" horizontalTextPosition="center" iconTextGap="4" modelName="eight_pos" modelPosition="s" textColor="#000000" verticalTextPosition="bottom" visible="true" width="19.0" x="-0.1553528561631765" xml:space="preserve" y="21.83978091096128">&lt;html&gt;E&lt;sub&gt;P&lt;/sub&gt;&lt;/html&gt;</y:NodeLabel>
+          <y:Shape type="roundrectangle"/>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="n13">
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.flowchart.start2">
+          <y:Geometry height="13.0" width="26.0" x="673.8057439999998" y="87.03833599999993"/>
+          <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
+          <y:BorderStyle color="#808080" type="line" width="1.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="c" textColor="#000000" verticalTextPosition="bottom" visible="true" width="19.26953125" x="3.365234375" xml:space="preserve" y="-2.484375">14</y:NodeLabel>
+          <y:StyleProperties>
+            <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="true"/>
+          </y:StyleProperties>
+        </y:GenericNode>
+      </data>
+    </node>
     <edge id="e0" source="n10" target="n3">
       <data key="d10">
         <y:GenericEdge configuration="com.yworks.bpmn.Connection">
@@ -226,11 +250,11 @@
       <data key="d10">
         <y:GenericEdge configuration="com.yworks.bpmn.Connection">
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
-            <y:Point x="810.0617283950617" y="326.1159122085047"/>
+            <y:Point x="821.3339203950616" y="333.47462277091904"/>
           </y:Path>
           <y:LineStyle color="#000000" type="dotted" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="six_pos" modelPosition="stail" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="13.162214910400394" y="14.886350138671446">
+          <y:EdgeLabel alignment="center" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="six_pos" modelPosition="stail" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="11.628077691812223" y="15.43432700441582">
             <y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/>
           </y:EdgeLabel>
           <y:StyleProperties>
@@ -257,7 +281,7 @@
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
           <y:LineStyle color="#000000" type="dashed" width="1.0"/>
           <y:Arrows source="plain" target="standard"/>
-          <y:EdgeLabel alignment="center" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="19.0" horizontalTextPosition="center" iconTextGap="4" modelName="six_pos" modelPosition="head" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="15.0" x="20.27285687063295" xml:space="preserve" y="-21.0">&lt;html&gt;&amp;Phi;&lt;sub&gt;&lt;/sub&gt;&lt;/html&gt;<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>
+          <y:EdgeLabel alignment="center" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="19.0" horizontalTextPosition="center" iconTextGap="4" modelName="six_pos" modelPosition="head" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" verticalTextPosition="bottom" visible="true" width="15.0" x="20.272893108914104" xml:space="preserve" y="-21.000011562339125">&lt;html&gt;&amp;Phi;&lt;sub&gt;&lt;/sub&gt;&lt;/html&gt;<y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>
           <y:StyleProperties>
             <y:Property class="com.yworks.yfiles.bpmn.view.BPMNTypeEnum" name="com.yworks.bpmn.type" value="CONNECTION_TYPE_SEQUENCE_FLOW"/>
           </y:StyleProperties>
@@ -293,11 +317,11 @@
       <data key="d10">
         <y:ArcEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
-            <y:Point x="685.3869018554688" y="281.87335205078125"/>
+            <y:Point x="691.2103271484375" y="281.5841369628906"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:Arc height="6.580005645751953" ratio="0.31683892011642456" type="fixedRatio"/>
+          <y:Arc height="7.474469184875488" ratio="0.31683892011642456" type="fixedRatio"/>
         </y:ArcEdge>
       </data>
     </edge>
@@ -347,11 +371,11 @@
       <data key="d10">
         <y:ArcEdge>
           <y:Path sx="0.0" sy="0.0" tx="30.697028507540608" ty="-6.018094043735346">
-            <y:Point x="593.6396484375" y="321.8880615234375"/>
+            <y:Point x="594.4097900390625" y="326.7494812011719"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:Arc height="9.208686828613281" ratio="0.31683892011642456" type="fixedRatio"/>
+          <y:Arc height="9.508345603942871" ratio="0.31683892011642456" type="fixedRatio"/>
         </y:ArcEdge>
       </data>
     </edge>
@@ -359,11 +383,11 @@
       <data key="d10">
         <y:ArcEdge>
           <y:Path sx="0.0" sy="0.0" tx="22.413322077647763" ty="-15.041170844845738">
-            <y:Point x="554.6146240234375" y="253.0948944091797"/>
+            <y:Point x="550.9950561523438" y="257.956298828125"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:Arc height="-45.736820220947266" ratio="-1.4890834093093872" type="fixedRatio"/>
+          <y:Arc height="-47.79332733154297" ratio="-1.4890834093093872" type="fixedRatio"/>
         </y:ArcEdge>
       </data>
     </edge>

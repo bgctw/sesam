@@ -6,7 +6,7 @@ Maintainer: Thomas Wutzler <twutz@bgc-jena.mpg.de>
 Description: Aggregating the SEAM model.
 Depends: R (>= 3.5.0), deSolve
 Imports: twModMeta
-Suggests: testthat
+Suggests: testthat, dplyr, ggplot2, tidyr
 License: GPL-2
 LazyLoad: yes
-RoxygenNote: 7.1.1
+RoxygenNote: 7.2.2

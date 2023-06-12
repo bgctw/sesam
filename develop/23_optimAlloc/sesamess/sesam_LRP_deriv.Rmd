@@ -1,0 +1,654 @@
+---
+title: "SESAM community composition"
+output:
+  pdf_document: 
+    keep_tex: yes
+  html_notebook: default
+---
+
+# Derivate-based community allocation change 
+
+## Methodology outline
+
+SESAM assumes that microbial community develops in a way to optimize growth
+of the entire community. 
+We approximate growth by the total limitation-weighted return, i.e. decomposition
+and depolymerization flux, for given enzyme allocation.
+The revenue of allocation to enzyme $Z$ is
+$\operatorname{rev}_Z = \frac{{d_Z}_w(\alpha_Z)}{\alpha_Z \omega_{Enz} a_E B}$.
+The return ${d_Z}_w$ is a limitation-weighted mineralization flux 
+or uptake flux of nutrients and carbon as detailed below. 
+The investment is the share, $\alpha_Z$, invested into production of
+enzyme $Z$ multiplied by total limitation-weighted flux, $\omega_{Enz} a_E B$, allocated
+to enzyme production.
+
+Although its possible to derive explicit formula for the allocation that 
+optimizes total return for simple cases, 
+the formulas quickly grow and involve higher-order 
+polynomials of $\alpha$ with several solutions outside the reasonable bound 
+$\alpha_Z \in [0,1]$.
+
+Here we follow an alternative local approach 
+were we assume the rate change of $\alpha_Z$ over time 
+to be proportional to the deviation of 
+the derivative of change of total return to $\alpha_Z$ to the average across
+the derivatives for different enzymes.
+The higher the increase in total return for shifting allocation towards a specific
+enzyme, the faster the community changes in this direction.
+
+The total return has been derived in Appendix x to be a weighted sum
+of enzyme revenues, and derivatives of 
+$\frac{d (\alpha_Z \operatorname{rev}_Z)}{d\alpha_Z}$ 
+have been derived for depolymerizing and biomineralizing enzymes.
+
+$$
+\begin{aligned}
+u_T &=  \omega_{Enz} a_E B \sum_Z \alpha_Z \operatorname{rev}_Z(\alpha_Z)
+\\
+\frac{d u_T}{d \alpha_Z} &= \omega_{Enz} a_E B \sum_Z \frac{d (\alpha_Z \operatorname{rev}_Z)}{d\alpha_Z}
+\end{aligned}
+$$
+
+Because the different $\alpha_Z$ occur in different terms, it is sufficient
+to compute the derivative for the return of each enzyme separately.
+
+We assume that the larger the change in return with increasing allocation, i.e. 
+the derivative to allocation coefficient $\alpha_Z$,
+the larger is the change in allocation.
+In addition to the assumption of proportionaly to the derivative, we assume that
+the community changes
+at a rate of the same magnitude as synthesis and turnover of microbial biomass.
+
+$$
+\begin{aligned}
+\frac{d \alpha_Z}{dt} &\propto \frac{d u}{d \alpha_Z} - m_{du}
+\\
+&= \left( \frac{|\operatorname{syn}_B|}{B} + \tau \right) 
+\frac{\frac{d u}{d \alpha_Z} - m_{du}}{m_{du}}
+\\
+m_{du} &= \operatorname{mean}_\zeta\left(  \frac{d u}{d \alpha_\zeta} \right)
+\end{aligned}
+$$
+where $m_{du}$ is the average across derivatives of return across enzymes 
+that are allocated to.
+If all changes are the same, i.e. equal to the mean, the allocation 
+is optimal, since it does not increase in any direction.
+
+We want the change to be proportional to the change in return compared 
+to the average return.
+Subtracting this mean ensures that the sum of all the changes in $\alpha$ 
+sums to zero so that the sum across $\alpha$ is preserved.
+The proportionality factor normalizes the change in return and multiplies
+this relative change by the rate of microbial turnover, composed of biomass
+synthesis and biomass turnover.
+
+
+### Exclude enzymes whose negative relative change is larger than its share
+
+Community may not allocate to all enzymes. Hence, $m_{du}$ averages only across 
+a subset of enzymes.
+An enzyme is not allocated to if its normalized change towards zero is larger than 
+than its current share, i.e. is more negative than $-\alpha_Z$.
+
+$$
+\begin{aligned}
+Z_0 &= \left\{ Z | \frac{\frac{d u}{d \alpha_Z} - m_{due}}{m_{due}} < -\alpha_Z  \right\}
+\\
+\frac{d \alpha_Z}{dt} &= \left( \frac{|\operatorname{syn}_B|}{B} + \tau \right)
+\begin{cases}
+-\alpha_Z &\text{ for } Z \in Z_0
+\\
+ \frac{\frac{d u}{d \alpha_Z} - m_{due}}{m_{due}} &\text{ otherwise}
+\end{cases}
+\\
+&= \left( \frac{|\operatorname{syn}_B|}{B} + \tau \right) 
+\max \left( \frac{\frac{d u}{d \alpha_Z} - m_{due}}{m_{due}}, -\alpha_Z \right)
+\\
+m_{due} &= \frac{\sum_{\zeta \notin Z_0} \frac{d u}{d \alpha_Z} }
+{ |\{Z\} \setminus Z_0| + \sum_{\zeta \in Z_0} \alpha_Z}
+\end{aligned}
+$$
+Where $|\{Z\} \setminus Z_0|$ denotes the number of enzymes allocated to, 
+i.e. the cardinality of the set of all enzymes without those in $Z_0$
+The relative change of those excluded enzymes is set to $-\alpha_Z$, resulting
+in negative changes going to zero as $\alpha_Z$ approaches zero.
+Hence, the relative change is lower-bounded by $-\alpha_Z$.
+
+$m_{due}$ has to be adjusted, so that $\sum \frac{d \alpha_Z}{dt} = 0$ holds.
+$$
+\begin{aligned}
+\sum_{\zeta \notin Z_0} \frac{\frac{d u}{d \alpha_Z} - m_{due}}{m_{due}} + \sum_{\zeta \in Z_0} -\alpha_Z = 0
+\end{aligned}
+$$
+
+This definition is recursive, because $m_{due}$ is computed 
+across a set that is defined using $m_{due}$
+In order to determine $Z_0$ 
+one can start with the empty set and add all enzymes that fulfill the condition. 
+If enzymes were added then the mean across remaining derivatives increases, 
+and the condition has to be checked again. Hence, we repeat checking until 
+no more enzymes fulfill the
+condition and the mean does not change any more.
+
+
+## Vizualization
+
+```{r include=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(RColorBrewer) # brewer.pal
+library(knitr)
+
+mycolors <- brewer.pal(5,"Dark2")
+mylinetypes <- c("solid","dashed","dotdash","twodash","dotted","longdash")
+scale_colour_discrete <- function(...) scale_colour_manual(...,values=mycolors)
+
+adjust_facets <- function(theme){
+  theme +
+    theme(panel.border = element_rect(colour = "black", fill = NA)) +
+    theme(strip.background = element_blank()) 
+}
+themePaper <- (theme_classic(base_size = 10) + theme(axis.title = element_text(size = 9))) %>% 
+  adjust_facets()
+themePres <- theme_classic(base_size = 18) %>% 
+  adjust_facets()
+
+#figWidthPage <- 18/2.54; figHeightPage <- figWidthPage/1.6 
+# GMD fixes at 12 instead of entire page 18
+figWidthPage <- 12/2.54; figHeightPage <- figWidthPage/1.6 
+#, fig.height=4.43, fig.width=7.1
+#figWidthWide <- 12/2.54; figHeightWide <- figWidthWide/1.6
+figWidthWide <- 3.8; figHeightWide <- 5
+#, fig.height=2.95, fig.width=4.72
+figWidthCol <- 8.3/2.54; figHeightCol <- figWidthCol/1.6
+#, fig.height=2.04, fig.width=3.27
+#
+theme_set(themePres); figWidth <- figWidthWide; figHeight <- figHeightWide 
+theme_set(themePaper); figWidth <- figWidthCol; figHeight <- figHeightCol
+
+
+opts_chunk$set(
+   # out.extra='style="display:block; margin: auto"'
+    fig.width = figWidth, fig.height = figHeight #goldener Schnitt 1.6 #GI single column
+    #, dev.args = list(pointsize = 11)
+    , dev = c('pdf','png')
+    , echo = FALSE
+    )
+knit_hooks$set(spar  =  function(before, options, envir) {
+    if (before) {
+        par( las = 1 )                   #also y axis labels horizontal
+        par(mar = c(2.0,3.3,0,0) + 0.3 )  #margins
+        par(tck = 0.02 )                          #axe-tick length inside plots             
+        par(mgp = c(1.1,0.2,0) )  #positioning of axis title, axis labels, axis
+    }
+})
+
+.approaches <- c("Optimal","Derivative","Relative")
+colScaleApproach <- scale_colour_manual(
+  name = "Approach", values = setNames(mycolors[seq_along(.approaches)], .approaches))
+linetypeScaleApproach <- scale_linetype_manual(
+  name = "Approach",values = setNames(mylinetypes[seq_along(.approaches)], .approaches))
+
+```
+
+### Revenues
+
+```{r echo=FALSE}
+# utility of depolymerizing enzyme
+revenue_decomp <- function(alpha, dLorR, o_enz, p){
+  dLorR/o_enz/(p$k_mn + alpha * p$a_E * p$B)
+}
+p = within(list(
+  a_E = 0.1, 
+  B=1, 
+  e_P = 0,
+  tau = 365/30,
+  synB = 15
+), k_mn <- a_E*B/2)
+nrow <- 31
+ds <- data.frame(
+  alpha = seq(0,1,length.out=nrow),
+  dL = 1,
+  dR = 0.7,
+  dP = seq(0,1,length.out=nrow),
+  o_enz = 0.2
+)
+ds2 <- bind_rows(
+  mutate(ds, Biomass="High", u_L = revenue_decomp(alpha, dL, o_enz,  within(p, B <-2))),
+  mutate(ds, Biomass="Low", u_L = revenue_decomp(alpha, dL, o_enz,  within(p, B <-1)))
+)
+ds2 %>% ggplot(aes(alpha, u_L, color=Biomass, linetype=Biomass)) + geom_line() +
+  xlab(bquote(~alpha[L])) +
+  ylab(bquote('Revenue '*rev[L]*'('*g~ m^-2~yr^-1*')')) +
+  theme(legend.position = c(0.95,0.95), legend.justification = c(1,1)) +
+  c()
+```
+```{r echo=FALSE}
+# utility of biomineralizing enzyme
+revenue_biomin <- function(alpha, dP, o_enz, p){
+  dP*p$k_mn/o_enz/((p$k_mn + p$e_P)^2 + alpha * p$a_E * p$B * ((p$k_mn + p$e_P)))
+}
+ds2 <- bind_rows(
+  mutate(ds, PlantProduction="none", u=revenue_biomin(alpha, dL, o_enz,  p)),
+  mutate(ds, PlantProduction="same magnitude", u=revenue_biomin(alpha, dL, o_enz, within(p, e_P <- k_mn/2))),
+)
+ds2 %>% ggplot(aes(alpha, u, color=PlantProduction, linetype=PlantProduction)) + geom_line() +
+  xlab(bquote(~alpha[P])) +
+  ylab(bquote('Revenue '*rev[P]*'('*g~ m^-2~yr^-1*')')) +
+  theme(legend.position = c(0.95,0.95), legend.justification = c(1,1)) +
+  c()
+```
+
+The utility of a depolymerizing enzmye, i.e. its return per enzyme, 
+decreases with $\alpha$ and stronger
+with larger microbial biomass.
+The revenue of the biomineralizing enzyme is smaller when plant also produces 
+enzymes but does not decrease as strongly.
+
+### Derivatives of $\alpha$ times Revenues
+```{r include=FALSE}
+library(rootSolve)
+# this is du/dalpha, i.e. o_enz*ae*B * d(alpha * u_Z)/dalpha
+calc_du_dalpha <- function(alpha, dS, p, e_P =  p$e_P){
+  aeB = p$a_E * p$B
+  aeB * p$k_mn * dS / (e_P + p$k_mn + alpha*aeB)^2
+}
+fdu  <- function(alpha3, dL, dR, dP, p) c(
+  L = calc_du_dalpha(alpha3[["L"]], dL, p, e_P = 0),
+  R = calc_du_dalpha(alpha3[["R"]], dR, p, e_P = 0),
+  P = calc_du_dalpha(alpha3[["P"]], dP, p)
+  )
+fdalpha = function(alpha3, dL, dR, dP, p){
+  du = fdu(alpha3, dL, dR, dP, p)
+  # only change alpha if its larger than zero or if the change is positive
+  mean_du_prev <- -Inf; mean_du <- mean(du)
+  is <- rep(TRUE, length(alpha3))
+  while (mean_du_prev != mean_du) {
+    is <- is & (alpha3 > 0 | du > mean(du))
+    mean_du_prev <- mean_du
+    mean_du <- mean(du[is])
+  }
+  du[!is] <- mean_du
+  dud = (du - mean_du)/mean_du
+  #u_total = compute_total_utilities(alpha3, dL, dR, dP, p)
+  dalpha = (p$tau + abs(p$synB)/p$B) * dud
+  dalpha
+}
+calc_alpha3_proptoderiv <- function(dL,dR, dP, p){
+  alpha0 = alpha3 = c(L=1,R=1,P=1)/3 #compute_alpha3_relative(dL,dR,dP,p)
+  #steady(alpha0, 0, function(t,alpha3,p){list(fdalpha(alpha3))})
+  res_steady <- runsteady(alpha0, c(0,Inf), function(t,alpha3,p){
+    list(fdalpha(alpha3,dL,dR,dP,p))}, p)
+  alpha3 = setNames(pmax(0,res_steady$y), names(alpha0))
+  alpha3 = alpha3/sum(alpha3)
+  alpha3
+}
+```
+
+
+
+```{r echo=FALSE}
+# d alpha * revenue of depolymerizing enzyme
+nrow <- 31
+ds <- data.frame(
+  alpha = seq(0,1,length.out=nrow),
+  dL = 1
+)
+ds2 <- bind_rows(
+  mutate(ds, Biomass="High", u_L = calc_du_dalpha(alpha, dL, within(p, B <-2), e_P = 0)),
+  mutate(ds, Biomass="Low", u_L = calc_du_dalpha(alpha, dL, within(p, B <-1), e_P = 0))
+)
+ds2 %>% ggplot(aes(alpha, u_L, color=Biomass, linetype=Biomass)) + geom_line() +
+  xlab(bquote(~alpha[L])) +
+  #ylab(bquote(d(alpha[L]*rev[L])/d*alpha[L]*' ('*gC~ m^-2~yr^-1*')')) +
+  ylab(bquote(d~return/d*alpha[L]*' ('*g~ m^-2~yr^-1*')')) +
+  theme(legend.position = c(0.95,0.95), legend.justification = c(1,1)) +
+  c()
+```
+```{r echo=FALSE}
+# d alpha * revenue of biomineralizing enzyme
+nrow <- 31
+ds <- data.frame(
+  alpha = seq(0,1,length.out=nrow),
+  dP = 1
+)
+ds2 <- bind_rows(
+  mutate(ds, PlantProduction="none", u_P = calc_du_dalpha(alpha, dP, p, e_P = 0)),
+  mutate(ds, PlantProduction="same magnitude", u_P = calc_du_dalpha(alpha, dP, p, e_P = p$k_mn/2))
+)
+ds2 %>% ggplot(aes(alpha, u_P, color=PlantProduction, linetype=PlantProduction)) + geom_line() +
+  xlab(bquote(~alpha[P])) +
+  #ylab(bquote(d(alpha[P]*rev[P])/d*alpha[P]*' ('*g~ m^-2~yr^-1*')')) +
+  ylab(bquote(d~return/d*alpha[P]*' ('*g~ m^-2~yr^-1*')')) +
+  theme(legend.position = c(0.95,0.95), legend.justification = c(1,1)) +
+  c()
+```
+
+Similar to the Revenues, the derivatives of (revenue times allocation), 
+which are proportional to the derivatives of total return, 
+decreases with increasing allocation.
+They decrease stronger with higher biomass and less with plant enzyme
+production.
+
+```{r sesamalloc_derivative, echo=FALSE}
+# d alpha * revenue of two depolymerizing enzymes
+nrow <- 31
+ds <- data.frame(
+  alpha = seq(0,1,length.out=nrow),
+  dL = 2,
+  dR = 1
+)
+ds2 <- bind_rows(
+  mutate(ds, Enzyme="Labile", du_Z = calc_du_dalpha(alpha, dL, p, e_P = 0)),
+  mutate(ds, Enzyme="Residue", du_Z = calc_du_dalpha(alpha, dR, p, e_P = 0))
+)
+du_R_max = max(filter(ds2,Enzyme=="Residue")$du_Z)
+alpha3 = calc_alpha3_proptoderiv(ds$dL[1], ds$dR[1], 0, p)
+du_equal = calc_du_dalpha(alpha3[["L"]], ds$dL[1], p, e_P = 0)
+p1 <- ds2 %>% ggplot(aes(alpha, du_Z, color=Enzyme, linetype=Enzyme)) + 
+  geom_hline(yintercept=du_R_max, linetype="dotted", color="gray") +
+  geom_hline(yintercept=du_equal, linetype="dashed", color="gray") +
+  geom_line() +
+  xlab(bquote(~alpha[Z])) +
+  #ylab(bquote(d(alpha[Z]*rev[Z])/d*alpha[Z]*' ('*gC~ m^-2~yr^-1*')')) +
+  #ylab(bquote(d~return/d*alpha[Z]*' ('*g~ m^-2~yr^-1*')')) +
+  ylab(bquote(d*u[T]/d*alpha[Z]*' ('*g~ m^-2~yr^-1*')')) +
+  theme(legend.position = c(0.95,0.95), legend.justification = c(1,1)) +
+  c()
+print(p1)
+```
+```{r eval=FALSE, include=FALSE}
+ggsave("sesamalloc_derivative.pdf", p1, width = figWidthCol, height = figHeightCol)
+```
+
+Although potential return is higher for labile litter degrading enzyme 
+($d_L = 2 gm^{-2}yr^{-1}$) 
+than residue degrading enzyme ($d_R = 1 gm^{-2}yr^{-1}$) 
+optimal allocation includes both enzymes in the mix.
+When increasing $\alpha_L > 0.25$, is is not benefitial to invest
+only into the labile enzyme, because the increase in return with 
+further increasing $\alpha_L$ is lower than with increasing $\alpha_R$.
+Optimal allocation is attained when both derivatives are equal and allocation
+shares add up to one, which happens here at allocation about 1/3 to residue
+depolymerizing enzyme and 2/3 to labile depolymerizing enzyme.
+
+
+### Allocation
+
+On prescribed potential returns ($d_L = \{0\ldots1\}, d_R = 0.7, d_P = 0.5),
+The inferred optimum allocation differs across approaches.
+
+```{r include=FALSE}
+compute_revenues <- function(alpha3,dL,dR,dP,p,o_enz=0.2){
+  c(
+      revenue_decomp(alpha3["L"], dL, o_enz, p), 
+      revenue_decomp(alpha3["R"], dR, o_enz, p), 
+      revenue_biomin(alpha3["P"], dP, o_enz, p)
+    )
+}
+compute_total_utilities <- function(alpha3,dL,dR,dP,p,o_enz=0.2){
+  u = compute_revenues(alpha3,dL,dR,dP,p,o_enz)
+  o_enz*p$a_E*p$B*sum(alpha3 * u)
+}
+calc_alpha3_relative = function(dL,dR,dP,p,o_enz=0.2) {
+  u0 = u1 = sapply(c(L=dL, R=dR, P=dP), function(x) x/(o_enz*p$k_mn))
+  # fixpoint iteration
+  for (i in 1:5) {
+    alpha3 = u1/sum(u1)
+    u1 = compute_revenues(alpha3,dL,dR,dP,p,o_enz)
+    #print(c(u1, sum(alpha3*u1)))
+  }
+  alpha3
+}
+dL = 0.1; dR = 0.7; dP = 0.5
+calc_alpha3_relative(dL,dR,dP,p)
+
+dL = 0.3; dR = 0.7; dP = 0.5
+dalpha <- fdalpha(c(L=1,R=1,P=1)/3, dL, dR, dP, p)
+alpha3 = calc_alpha3_proptoderiv(dL, dR, dP, p)
+alpha3
+fdu(alpha3, dL, dR, dP, p)  # all equal
+alpha3r = calc_alpha3_relative(dL, dR, dP, p)
+alpha0 = c(L=1,R=1,P=1)/3 #compute_alpha3_relative(dL,dR,dP,p)
+c(alpha0 = compute_total_utilities(alpha0, dL, dR, dP, p), 
+  alpha3r = compute_total_utilities(alpha3r, dL, dR, dP, p), 
+  alpha3 = compute_total_utilities(alpha3, dL, dR, dP, p)
+  )
+```
+
+```{r include=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(forcats)
+```
+
+```{r echo=FALSE, fig.width=figWidthPage, fig.height=figHeightPage}
+dL = 0.3; dR = 0.7; dP = 0.5
+unit = 1000
+unit = 1
+#dL = 0.7; dR = 0.5; dP = 0
+calc_alpha3_proptoderiv(dL, dR, dP, p)
+calc_alpha3_relative(dL*unit, dR*unit, dP*unit, p, o_enz=1)
+dLs = seq(0,1,length.out=51)[-1]
+dsAlpha_prop = cbind(dL=dLs, bind_rows(lapply(dLs, function(dL){calc_alpha3_proptoderiv(dL, dR, dP, p)})))
+dsAlpha_prop_highB = cbind(dL=dLs, bind_rows(lapply(dLs, function(dL){calc_alpha3_proptoderiv(dL, dR, dP, within(p, B <- 5))})))
+dsAlpha_rel = cbind(dL=dLs, bind_rows(lapply(dLs, function(dL){calc_alpha3_relative(dL, dR, dP, p)})))
+dsAlpha = bind_rows(
+  cbind(Approach = "Derivative", Biomass="Moderate", dsAlpha_prop),
+  #cbind(Approach = "Deriv+high biomass", Biomass="High", dsAlpha_prop_highB),
+  cbind(Approach = "Derivative", Biomass="High", dsAlpha_prop_highB),
+  cbind(Approach = "Relative", Biomass="Moderate", dsAlpha_rel)
+) %>% 
+  mutate(Approach = fct_relevel(Approach, "Derivative"))  
+p2 <- pivot_longer(dsAlpha, !c(dL,Approach,Biomass), names_to="Enzyme") %>% 
+  mutate(Enzyme = fct_relevel(Enzyme, "R","P")) %>% 
+  #ggplot(aes(dP, value, color=Enzyme, linetype=Approach)) + geom_line() +
+  ggplot(aes(dL, value, color=Enzyme, linetype=Approach, size=Biomass)) + geom_line() +
+  xlab(bquote('Potential return from depolymerizing labile ('*g~ m^-2~s^-1*')')) +
+  ylab(bquote('Allocation '*alpha)) +
+  #theme(axis.title.y = element_blank()) +
+  c()
+.values <- c(
+  setNames(mylinetypes[seq_along(.approaches)], .approaches), 
+  "Deriv+high biomass" = mylinetypes[which(.approaches == "Derivative")]
+)
+p2 <- p2 + scale_linetype_manual("Approach", values = .values) +
+  scale_size_manual("Biomass", values = c(High=1.2,Moderate=0.8))
+print(p2)  
+```
+
+```{r eval=FALSE, include=FALSE}
+ggsave("sesamalloc_prescribed_returns.pdf", p2, width = figWidthPage, height = figHeightPage*1.1)
+```
+
+The Realative approach allocates larger shares to less proficient enzymes
+at low biomass. The Optimal approach only does this, if microbial biomass
+levels are high.
+
+```{r echo=FALSE}
+#trace(compute_total_utilities, recover) # untrace(compute_total_utilities)
+dsU <- dsAlpha %>%
+  rowwise() %>% 
+  mutate(u = compute_total_utilities(c(L=L, R=R, P=P), dL, dR, dP, p)) %>% 
+  select(Approach, Biomass, dL, u)
+ggplot(dsU, aes(dL,u, linetype=Approach, color=Biomass)) + geom_line() +
+  scale_size_manual("Biomass", values = c(High=1.2,Moderate=0.8))
+```
+
+While allocations differ, the total returns are similar across approaches.
+The differences are most pronounced near situations where 
+it is not profitable to invest into an enzyme at all.
+
+
+```{r eval=FALSE, include=FALSE}
+# plot the difference - does not add to plotting both utilities
+library(purrr)
+calc_diff = function(.data){
+  filter(.data, Approach=="Derivative")$u[1] - filter(.data, Approach=="Relative")$u[1]
+}
+dsUdiff <- dsU %>% group_by(dL) %>% nest() %>% mutate(udiff = map_dbl(data, calc_diff))
+ggplot(dsUdiff, aes(dL, udiff)) + geom_line() + ylim(0,NA)
+```
+
+
+```{r eval=FALSE, include=FALSE}
+# The time scale of adaptation
+# is about one month, as expected.
+# This is shown by inspect the time course of the solved system. 
+library(deSolve)
+res_ode <- lsode(alpha0, seq(0,0.5,length.out=201), function(t,alpha3,p){list(fdalpha(alpha3,dL,dR,dP,p))}, p)
+plot(res_ode)
+```
+
+### Allocation d_P
+
+same as Allocation section, but previously did on biomineralization 
+dP instead of dL, which caused confusion in the paper.
+
+On prescribed potential returns ($d_L = 0.7, d_R = 0.5, d_P = \{0\ldots1\}$),
+The inferred optimum allocation differs across approaches.
+
+```{r include=FALSE}
+compute_revenues <- function(alpha3,dL,dR,dP,p,o_enz=0.2){
+  c(
+      revenue_decomp(alpha3["L"], dL, o_enz, p), 
+      revenue_decomp(alpha3["R"], dR, o_enz, p), 
+      revenue_biomin(alpha3["P"], dP, o_enz, p)
+    )
+}
+compute_total_utilities <- function(alpha3,dL,dR,dP,p,o_enz=0.2){
+  u = compute_revenues(alpha3,dL,dR,dP,p,o_enz)
+  o_enz*p$a_E*p$B*sum(alpha3 * u)
+}
+calc_alpha3_relative = function(dL,dR,dP,p,o_enz=0.2) {
+  u0 = u1 = sapply(c(L=dL, R=dR, P=dP), function(x) x/(o_enz*p$k_mn))
+  # fixpoint iteration
+  for (i in 1:5) {
+    alpha3 = u1/sum(u1)
+    u1 = compute_revenues(alpha3,dL,dR,dP,p,o_enz)
+    #print(c(u1, sum(alpha3*u1)))
+  }
+  alpha3
+}
+dL = 0.7; dR = 0.5; dP = 0.1
+calc_alpha3_relative(dL,dR,dP,p)
+
+dL = 0.7; dR = 0.5; dP = 0.3
+#dL = 0.7; dR = 0.5; dP = 0.01
+#alpha3 <- c(L=0.5652477, R=0.4572952, P=-0.02254293)
+dalpha <- fdalpha(c(L=1,R=1,P=1)/3, dL, dR, dP, p)
+alpha3 = calc_alpha3_proptoderiv(dL, dR, dP, p)
+alpha3
+fdu(alpha3, dL, dR, dP, p)  # all equal
+alpha3r = calc_alpha3_relative(dL, dR, dP, p)
+alpha0 = c(L=1,R=1,P=1)/3 #compute_alpha3_relative(dL,dR,dP,p)
+c(alpha0 = compute_total_utilities(alpha0, dL, dR, dP, p), 
+  alpha3r = compute_total_utilities(alpha3r, dL, dR, dP, p), 
+  alpha3 = compute_total_utilities(alpha3, dL, dR, dP, p)
+  )
+```
+
+```{r eval=FALSE, include=FALSE}
+# Inspect specific case 
+dL = 0.7; dR = 0.1; dP = 0.3; pB <- within(p, B <- 1)
+dL = 0.5; dR = 0.4; dP = 0.0; pB <- within(p, B <- 0.5)
+dL = 0.7; dR = 0.5; dP = 0.3; pB <- within(p, B <- 1)
+
+
+dalpha <- fdalpha(c(L=1,R=1,P=1)/3, dL, dR, dP, pB)
+alpha3 = calc_alpha3_proptoderiv(dL, dR, dP, pB)
+alpha3
+fdu(alpha3, dL, dR, dP, pB)  # they are all equal
+compute_total_utilities(alpha3, dL, dR, dP, pB)
+# deviation has smaller utility
+alpha3p <- alpha3 + c(-0.01, +0.01, 0)
+u = c(compute_total_utilities(alpha3p, dL, dR, dP, pB), compute_total_utilities(alpha3, dL, dR, dP, pB) )
+u[1] - u[2]
+```
+
+```{r include=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(forcats)
+```
+
+```{r echo=FALSE, fig.width=figWidthPage, fig.height=figHeightPage}
+dL = 0.7; dR = 0.5; dP = 0.3
+unit = 1000
+unit = 1
+#dL = 0.7; dR = 0.5; dP = 0
+calc_alpha3_proptoderiv(dL, dR, dP, p)
+calc_alpha3_relative(dL*unit, dR*unit, dP*unit, p, o_enz=1)
+dPs = seq(0,1,length.out=51)[-1]
+dsAlpha_prop = cbind(dP=dPs, bind_rows(lapply(dPs, function(dP){calc_alpha3_proptoderiv(dL, dR, dP, p)})))
+dsAlpha_prop_highB = cbind(dP=dPs, bind_rows(lapply(dPs, function(dP){calc_alpha3_proptoderiv(dL, dR, dP, within(p, B <- 5))})))
+dsAlpha_rel = cbind(dP=dPs, bind_rows(lapply(dPs, function(dP){calc_alpha3_relative(dL, dR, dP, p)})))
+dsAlpha = bind_rows(
+  cbind(Approach = "Derivative", Biomass="Moderate", dsAlpha_prop),
+  #cbind(Approach = "Deriv+high biomass", Biomass="High", dsAlpha_prop_highB),
+  cbind(Approach = "Derivative", Biomass="High", dsAlpha_prop_highB),
+  cbind(Approach = "Relative", Biomass="Moderate", dsAlpha_rel)
+) %>% 
+  mutate(Approach = fct_relevel(Approach, "Derivative"))  
+p2 <- pivot_longer(dsAlpha, !c(dP,Approach,Biomass), names_to="Enzyme") %>% 
+  mutate(Enzyme = fct_relevel(Enzyme, "L","R")) %>% 
+  #ggplot(aes(dP, value, color=Enzyme, linetype=Approach)) + geom_line() +
+  ggplot(aes(dP, value, color=Enzyme, linetype=Approach, size=Biomass)) + geom_line() +
+  xlab(bquote('Potential return from biomineralization ('*g~ m^-2~yr^-1*')')) +
+  ylab(bquote('Allocation '*alpha)) +
+  #theme(axis.title.y = element_blank()) +
+  c()
+.values <- c(
+  setNames(mylinetypes[seq_along(.approaches)], .approaches), 
+  "Deriv+high biomass" = mylinetypes[which(.approaches == "Derivative")]
+)
+p2 <- p2 + scale_linetype_manual("Approach", values = .values) +
+  scale_size_manual("Biomass", values = c(High=1.2,Moderate=0.8))
+print(p2)  
+```
+
+```{r eval=FALSE, include=FALSE}
+ggsave("sesamalloc_prescribed_returns.pdf", p2, width = figWidthPage, height = figHeightPage*1.1)
+```
+
+The Realtive approach allocates larger shares to less proficient enzymes
+at low biomass. The Optimal approach only does this, if microbial biomass
+levels are high.
+
+```{r echo=FALSE}
+#trace(compute_total_utilities, recover) # untrace(compute_total_utilities)
+dsU <- dsAlpha %>%
+  rowwise() %>% 
+  mutate(u = compute_total_utilities(c(L=L, R=R, P=P), dL, dR, dP, p)) %>% 
+  select(Approach, Biomass, dP, u)
+ggplot(dsU, aes(dP,u, linetype=Approach, color=Biomass)) + geom_line() +
+  scale_size_manual("Biomass", values = c(High=1.2,Moderate=0.8))
+```
+
+While allocations differ, the total returns are similar across approaches.
+The differences are most pronounced near situations where 
+it is not profitable to invest into an enzyme at all.
+
+
+```{r eval=FALSE, include=FALSE}
+# plot the difference - does not add to plotting both utilities
+library(purrr)
+calc_diff = function(.data){
+  filter(.data, Approach=="Derivative")$u[1] - filter(.data, Approach=="Relative")$u[1]
+}
+dsUdiff <- dsU %>% group_by(dP) %>% nest() %>% mutate(udiff = map_dbl(data, calc_diff))
+ggplot(dsUdiff, aes(dP, udiff)) + geom_line() + ylim(0,NA)
+```
+
+
+```{r eval=FALSE, include=FALSE}
+# The time scale of adaptation
+# is about one month, as expected.
+# This is shown by inspect the time course of the solved system. 
+library(deSolve)
+res_ode <- lsode(alpha0, seq(0,0.5,length.out=201), function(t,alpha3,p){list(fdalpha(alpha3,dL,dR,dP,p))}, p)
+plot(res_ode)
+```
