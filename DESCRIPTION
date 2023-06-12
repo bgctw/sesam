@@ -1,6 +1,6 @@
 Package: sesam
 Title: Soil Enzyme Steady Allocation Model
-Version: 0.5.230
+Version: 3.1
 Author: Thomas Wutzler
 Maintainer: Thomas Wutzler <twutz@bgc-jena.mpg.de>
 Description: Aggregating the SEAM model.
