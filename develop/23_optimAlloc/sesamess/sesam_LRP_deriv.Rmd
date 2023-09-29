@@ -446,7 +446,7 @@ p2 <- pivot_longer(dsAlpha, !c(dL,Approach,Biomass), names_to="Enzyme") %>%
   mutate(Enzyme = fct_relevel(Enzyme, "R","P")) %>% 
   #ggplot(aes(dP, value, color=Enzyme, linetype=Approach)) + geom_line() +
   ggplot(aes(dL, value, color=Enzyme, linetype=Approach, size=Biomass)) + geom_line() +
-  xlab(bquote('Potential return from depolymerizing labile ('*g~ m^-2~s^-1*')')) +
+  xlab(bquote('Potential return from depolymerizing labile ('*gC~ m^-2~yr^-1*')')) +
   ylab(bquote('Allocation '*alpha)) +
   #theme(axis.title.y = element_blank()) +
   c()
@@ -462,6 +462,14 @@ print(p2)
 ```{r eval=FALSE, include=FALSE}
 ggsave("sesamalloc_prescribed_returns.pdf", p2, width = figWidthPage, height = figHeightPage*1.1)
 ```
+
+For consistency, we need to give a figure (or text?) of 
+total respiration, microbial growth, carbon in key model compartments, CUE
+
+```{r}
+
+```
+
 
 The Realative approach allocates larger shares to less proficient enzymes
 at low biomass. The Optimal approach only does this, if microbial biomass
