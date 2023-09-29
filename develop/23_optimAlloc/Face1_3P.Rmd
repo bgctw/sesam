@@ -67,7 +67,7 @@ knit_hooks$set(spar  =  function(before, options, envir) {
 .simpleCap <- function(s) {
     paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
 }
-.approaches <- c("Optimal","Derivative","Relative")
+.approaches <- c("Optimal","Derivative","Relative","Fixed")
 .approaches_ext <- c(.approaches, c("Relative_kR","Relative_kmNR"))
 colScaleApproach <- scale_colour_manual(
   name = "Approach", values = c(
@@ -293,18 +293,18 @@ replace_labels <- function(labels, labelmap) {
   })
 }
 #replace_labels(c("a",names(labelmap)), labelmap)
-ggplot_vars <- function(resScen, vars, labelmap = list(alphaR="alpha[R]", R_norm="R[norm]", R_diff="R[diff]")) {
+ggplot_vars <- function(resScen, vars, labelmap = list(alphaR="alpha[R]", R_norm="R[norm]", R_diff="R[diff]", cueDef="CUE")) {
   dsp <- 
     #resc %>% 
     resScen %>% 
     #filter(time >= 20, time <= 40) %>% 
     mutate(RL = R + L, cnRL = (R + L)/(RN + LN)) %>% # compute additional quantities
     group_by(scenario) %>% 
-    mutate(R_norm = R/R[1], L_norm = L/L[1], RL_norm = RL/RL[1], R_diff = R-R[1]) %>% 
     ungroup() %>% 
-    mutate(scenario = fct_relevel(scenario, c("Optimal","Derivative","Relative"))) %>% 
+    mutate(scenario = fct_relevel(scenario, "Optimal","Derivative","Relative","Fixed")) %>% 
     #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
     select(any_of(c("time","scenario",vars))) %>% gather("Pool","value", vars) %>% 
+    mutate(Pool = factor(Pool, levels = vars)) %>%  
     mutate(Pool = fct_relabel(Pool, ~replace_labels(.,labelmap))) 
   p2f <- ggplot( dsp, aes(x = time, y = value, col = scenario, linetype = scenario)) + geom_line(linewidth = 1) +
     facet_grid(Pool ~ .,scales = "free",labeller = label_parsed) + 
@@ -327,7 +327,7 @@ print(ggplot_vars(resScen, vars))
 
 
 ```{r}
-vars <- c("L","R_norm","alphaR") 
+vars <- c("alphaR","L","R_norm") 
 #vars <- c("L","R_diff","alphaR") 
 p3 <- resScen %>% 
   filter(scenario %in% c("Optimal","Derivative","Relative")) %>% 
@@ -348,6 +348,30 @@ ggsave("sesamalloc_FACE1.pdf", p3b, width = figWidthCol, height = figHeightCol)
 ```
 
 ### Supplementary plot
+
+Additional variables across experiments
+```{r}
+vars <- c("alphaR","B","synB","cueDef","L","R","resp") 
+#vars <- c("L","R_diff","alphaR") 
+p3c <- resScen %>% 
+  cueSesam() %>% 
+  filter(scenario %in% c("Optimal","Derivative","Relative")) %>% 
+  ggplot_vars(vars)+ colScaleApproach + linetypeScaleApproach +
+    theme(axis.title.y = element_blank()) +
+    theme(legend.title = element_blank()) +
+    c()
+p3c
+```
+```{r eval=FALSE, include=FALSE}
+p3cp <- p3c +
+  theme(legend.position = c(0.91,0.98), legend.justification = c(1,1))+
+  theme(legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid', linewidth = 0.02))+
+  theme(legend.spacing.y = unit(0.00, 'cm'))+
+  theme(legend.margin = margin(0,4,0,4,unit="pt"))+
+  theme()
+ggsave("sesamalloc_FACE1_supp.pdf", p3cp, width = figWidthCol, height = 4) 
+```
+
 
 ```{r}
 vars <- c("L","R","alphaR") 
