@@ -20,7 +20,7 @@ library(purrr)
 library(forcats)
 library(knitr)
 
-mycolors <- brewer.pal(5,"Dark2")
+mycolors <- brewer.pal(6,"Dark2")
 mylinetypes <- c("solid","dashed","dotdash","twodash","dotted","longdash")
 scale_colour_discrete <- function(...) scale_colour_manual(...,values=mycolors)
 
@@ -191,7 +191,7 @@ x0 <- x0Explicit <- c( #aE = 0.001*365
         ,IP =  150 # prevent P limitation          ##<< inorganic pool gN/m2
         #, alpha = 0.5            ##<< microbial community partitioning [0,1]
         #, alphaL=0.4, alphaR = 0.5, alphaRP=0.1    ##<< microbial community partitioning [0,1]
-        , alphaL=0.4, alphaR = 0.5    ##<< microbial community partitioning [0,1]
+        , alphaL=0.7, alphaR = 0.3    ##<< microbial community partitioning [0,1]
 )
 parms = parms0
 ```
@@ -199,14 +199,15 @@ parms = parms0
 We store the information that differs between scenarios in a tibble.
 ```{r}
 scenarios <- tibble::tibble(
-  scenario = c("Optimal","Derivative","Relative","Relative_kR","Relative_kmNR")
+  scenario = c("Optimal","Derivative","Relative","Relative_kR","Relative_kmNR","Fixed")
   ,parms = list(
     within(parms0,isOptimalAlpha<-TRUE), 
     parms0,
     within(parms0,isRelativeAlpha<-TRUE),
     #33.51384 3.429475
     within(parms0, {isRelativeAlpha<-TRUE; kR <- kRP <- 1/33.51384}),
-    within(parms0, {isRelativeAlpha<-TRUE; kmNR <- 3.429475})
+    within(parms0, {isRelativeAlpha<-TRUE; kmNR <- 3.429475}),
+    within(parms0,isFixedAlpha<-TRUE)
     )
 )
 scenarios$x0 <- list(x0)
@@ -276,6 +277,7 @@ runFaceSimulation <- function(mod, x0, parms, t1S =20, t2I = 40, t3S = 70) {
   scen <- filter(scenarios, scenario == "Relative")
   scen <- filter(scenarios, scenario == "Relative_kR")
   scen <- filter(scenarios, scenario == "Relative_kmR")
+  scen <- filter(scenarios, scenario == "Fixed")
   # resScen <- runFaceSimulation( scen$mod[[1]], scen$x0[[1]], scen$parms[[1]] ) %>% 
   #mutate(scenario = scen$scenario) %>% select(scenario, everything())
 }
@@ -298,7 +300,7 @@ ggplot_vars <- function(resScen, vars, labelmap = list(alphaR="alpha[R]", R_norm
     #resc %>% 
     resScen %>% 
     #filter(time >= 20, time <= 40) %>% 
-    mutate(RL = R + L, cnRL = (R + L)/(RN + LN)) %>% # compute additional quantities
+    mutate(RL = R + L, cnRL = (R + L)/(RN + LN), R_norm = R/R[1]) %>% # compute additional quantities
     group_by(scenario) %>% 
     ungroup() %>% 
     mutate(scenario = fct_relevel(scenario, "Optimal","Derivative","Relative","Fixed")) %>% 
@@ -331,7 +333,8 @@ vars <- c("alphaR","L","R_norm")
 #vars <- c("L","R_diff","alphaR") 
 p3 <- resScen %>% 
   filter(scenario %in% c("Optimal","Derivative","Relative")) %>% 
-  ggplot_vars(vars)+ colScaleApproach + linetypeScaleApproach +
+  ggplot_vars(vars)+ 
+    colScaleApproach + linetypeScaleApproach +
     theme(axis.title.y = element_blank()) +
     theme(legend.title = element_blank()) +
     c()
@@ -355,8 +358,9 @@ vars <- c("alphaR","B","synB","cueDef","L","R","resp")
 #vars <- c("L","R_diff","alphaR") 
 p3c <- resScen %>% 
   cueSesam() %>% 
-  filter(scenario %in% c("Optimal","Derivative","Relative")) %>% 
-  ggplot_vars(vars)+ colScaleApproach + linetypeScaleApproach +
+  filter(scenario %in% c("Optimal","Derivative","Relative","Fixed")) %>% 
+  ggplot_vars(vars)+ 
+    colScaleApproach + linetypeScaleApproach +
     theme(axis.title.y = element_blank()) +
     theme(legend.title = element_blank()) +
     c()
@@ -364,6 +368,9 @@ p3c
 ```
 ```{r eval=FALSE, include=FALSE}
 p3cp <- p3c +
+  themePaper +
+    theme(axis.title.y = element_blank()) +
+    theme(legend.title = element_blank()) +
   theme(legend.position = c(0.91,0.98), legend.justification = c(1,1))+
   theme(legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid', linewidth = 0.02))+
   theme(legend.spacing.y = unit(0.00, 'cm'))+

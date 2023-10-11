@@ -462,7 +462,7 @@ and relative approaches.
 ### paper plot
 ```{r}
 vars <- c("synB","alphaR","respO") 
-labelmap = list(synB = "syn[B]", alphaR="alpha[R]", respO="resp[O]")
+labelmap = list(synB = "syn[B]", alphaR="alpha[R]", respO="resp[O]", cueDef="CUE")
 dsp0 <- resP %>% filter(.data$time <= 0.5) %>% cueSesam() 
 dsp <- dsp0 %>% select(all_of(c("time", "scen", "cn0", vars))) %>%
   gather("Pool","value", vars)
@@ -499,13 +499,16 @@ ggsave("pulse_approaches.pdf", p3b, width = figWidthCol, height = figHeightCol)
 
 ```{r}
 #vars2 <- c("cueDef", "cueSyn") 
-vars2 <- c("cueDef") 
+vars2 <- c("cueDef","alphaR") 
 dsp2 <- resP %>% 
   cueSesam() %>% 
   mutate(S = R + L, cnS = (R + L)/(RN + LN)) %>% 
   mutate(relS = S/S[1], relL = L/L[1], fracDecomp = 1 - relL) %>% 
   mutate(cn0 = as.factor(cn0)) %>% 
-  select(all_of(c("time","relS","relL","fracDecomp","scen","cn0", vars2))) %>% gather("Pool","value", vars2)
+  select(all_of(c("time","relS","relL","fracDecomp","scen","cn0", vars2))) %>% gather("Pool","value", vars2) %>% 
+  mutate(Pool = fct_relevel(Pool, vars2)) %>% 
+  mutate(Pool = fct_relabel(Pool, ~replace_labels(.,labelmap)))
+
 
 # theme_set(themeUsed) 
 
@@ -515,7 +518,7 @@ p2 <- dsp2 %>%
   ggplot(aes(x = fracDecomp, y = value, col = cn0, linetype = cn0)) + 
 #p2 <- ggplot( dsp2, aes(x = fracDecomp, y = value, col = cn0, linetype = cn0)) + 
   geom_line(linewidth = 1) +
-  facet_grid(~ scen) + #,scales = "free") + 
+  facet_grid(Pool ~ scen,scales = "free_y",labeller = label_parsed) + 
   #xlab("Time (yr)") + 
   #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
   xlab("Fraction C decomposed") +
@@ -527,7 +530,8 @@ p2 <- dsp2 %>%
   #themeDefault +
   # scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
   #theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
-  theme(legend.position = c(0.05,0.05), legend.justification = c(0,0)) +
+  #theme(legend.position = c(0.05,0.05), legend.justification = c(0,0)) +
+  theme(legend.position = c(0.95,0.05), legend.justification = c(1,0)) +
   #theme(panel.border = element_rect(colour = "black", fill = NA)) +
   #theme(strip.background = element_blank()) +			
   #theme(panel.grid.major.x = element_line(colour = "grey75")) +
@@ -544,12 +548,13 @@ p3b <- p2p +
   #theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
   theme(axis.text.x = element_text(angle = 60, vjust = 0.5)) +
   theme(legend.position = "bottom") +
+  theme(axis.title.y = element_blank()) +
   guides(linetype = guide_legend(title = "C:N", nrow = 1, byrow = TRUE)) +
   guides(color = guide_legend(title = "C:N", nrow = 1, byrow = TRUE)) +
   #facet_grid(scen ~ .) + #,scales = "free") + 
   #theme(legend.title = element_blank()) +
   c()
-ggsave("pulse_cn.pdf", p3b, width = figWidthCol, height = figHeightCol*1.2) 
+ggsave("pulse_cn.pdf", p3b, width = figWidthCol, height = figHeightCol*1.5) 
 ```
 
 ## Inspect at low biomass
