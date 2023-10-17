@@ -130,6 +130,29 @@ and the condition has to be checked again. Hence, we repeat checking until
 no more enzymes fulfill the
 condition and the mean does not change any more.
 
+### Weverka23 payoff
+
+Weverka et al. 2023 propose a co-limitation strategy where allocation is proportional
+to payoff, $p$, but excluding allocating to enzymes with $p<1$.
+
+They define payoff as change in return return multiplied by enzyme lifetime devided by enzyme production cost.
+(In the manuscript both, numerator and denominator devided by microbial biomass, $B$)
+$$
+p_i = \frac{\frac{du}{dE_i}\frac{1}{\tau_E}}{\frac{1}{\epsilon}a_e B}
+$$
+For a given biomass, $B$, this payoff is proportional to the change in return in SESAM
+$$
+\frac{du}{dE_i} = \frac{du}{d\alpha_i} \frac{d\alpha_i}{dE_i} 
+\\
+E_i = \frac{\alpha_i a_E B}{\tau_E}
+\\
+\alpha_i = \frac{\tau_E E }{a_E B}
+\\
+\frac{d\alpha_i}{dE_i} = \frac{\tau_E}{a_E B}
+\\
+p_i = \frac{\frac{du}{d\alpha_i}\frac{1}{a_E B}}{\frac{1}{\epsilon}a_e B}
+= \frac{\epsilon}{(a_E B)^2} \frac{du}{d\alpha_i}
+$$
 
 ## Vizualization
 
@@ -184,7 +207,7 @@ knit_hooks$set(spar  =  function(before, options, envir) {
     }
 })
 
-.approaches <- c("Optimal","Derivative","Relative")
+.approaches <- c("Optimal","Derivative","Relative","Payoff")
 colScaleApproach <- scale_colour_manual(
   name = "Approach", values = setNames(mycolors[seq_along(.approaches)], .approaches))
 linetypeScaleApproach <- scale_linetype_manual(
@@ -204,7 +227,8 @@ p = within(list(
   B=1, 
   e_P = 0,
   tau = 365/30,
-  synB = 15
+  synB = 15,
+  eps = 0.3
 ), k_mn <- a_E*B/2)
 nrow <- 31
 ds <- data.frame(
@@ -285,7 +309,32 @@ calc_alpha3_proptoderiv <- function(dL,dR, dP, p){
   alpha3
 }
 ```
-
+```{r}
+falpha3_proptopayoff <- function(alpha3, dL,dR, dP, p){
+  du = fdu(alpha3, dL, dR, dP, p)
+  # decision if payof iss positive requires enzyme steady states
+  aeB = p$a_E*p$B
+  payoff = du * 1/(p$eps * aeB^2)
+  is_expressed = payoff > 1
+  alpha3 <- payoff/(sum(payoff[is_expressed]))
+  alpha3[!is_expressed] <- 0
+  alpha3
+}
+calc_alpha3_proptopayoff <- function(dL,dR, dP, p){
+  #dL=0.01; dR=0.5; dP=0.3
+  # in Weverka23 allocation is proportional to payoff, which corresponds to du/dalpha
+  alpha0 = alpha3 = setNames(c(dL,dR,dP)/(dL+dR+dP), c("L","R","P"))
+  # fixpoint iteration to stabilize alpha
+  for (i in 1:50) {
+    alpha3 <- falpha3_proptopayoff(alpha3, dL, dR, dP, p)
+  }
+  alpha3
+}
+tmp <- calc_alpha3_proptopayoff(1,1,1,p)
+#tmp <- 
+  calc_alpha3_proptopayoff(1e-3,1e-2,1,within(p, {B <- 1}))
+  calc_alpha3_proptopayoff(1e-3,1e-2,1,within(p, {B <- 5}))
+```
 
 
 ```{r echo=FALSE}
@@ -428,21 +477,31 @@ library(forcats)
 dL = 0.3; dR = 0.7; dP = 0.5
 unit = 1000
 unit = 1
-#dL = 0.7; dR = 0.5; dP = 0
-calc_alpha3_proptoderiv(dL, dR, dP, p)
-calc_alpha3_relative(dL*unit, dR*unit, dP*unit, p, o_enz=1)
+.tmpf <- function(){
+  #dL = 0.7; dR = 0.5; dP = 0
+  calc_alpha3_proptoderiv(dL, dR, dP, p)
+  calc_alpha3_relative(dL*unit, dR*unit, dP*unit, p, o_enz=1)
+}
 dLs = seq(0,1,length.out=51)[-1]
 dsAlpha_prop = cbind(dL=dLs, bind_rows(lapply(dLs, function(dL){calc_alpha3_proptoderiv(dL, dR, dP, p)})))
 dsAlpha_prop_highB = cbind(dL=dLs, bind_rows(lapply(dLs, function(dL){calc_alpha3_proptoderiv(dL, dR, dP, within(p, B <- 5))})))
 dsAlpha_rel = cbind(dL=dLs, bind_rows(lapply(dLs, function(dL){calc_alpha3_relative(dL, dR, dP, p)})))
+dsAlpha_payoff = cbind(dL=dLs, bind_rows(lapply(dLs, function(dL){calc_alpha3_proptopayoff(dL, dR, dP, p)})))
+dsAlpha_payoff_highB = cbind(dL=dLs, bind_rows(lapply(dLs, function(dL){calc_alpha3_proptopayoff(dL, dR, dP, within(p, B <- 1.2))})))
 dsAlpha = bind_rows(
   cbind(Approach = "Derivative", Biomass="Moderate", dsAlpha_prop),
   #cbind(Approach = "Deriv+high biomass", Biomass="High", dsAlpha_prop_highB),
   cbind(Approach = "Derivative", Biomass="High", dsAlpha_prop_highB),
-  cbind(Approach = "Relative", Biomass="Moderate", dsAlpha_rel)
+  cbind(Approach = "Relative", Biomass="Moderate", dsAlpha_rel),
+  cbind(Approach = "Payoff", Biomass="Moderate", dsAlpha_payoff),
+  cbind(Approach = "Payoff", Biomass="High", dsAlpha_payoff_highB)
 ) %>% 
   mutate(Approach = fct_relevel(Approach, "Derivative"))  
-p2 <- pivot_longer(dsAlpha, !c(dL,Approach,Biomass), names_to="Enzyme") %>% 
+.approaches_p2 <- .approaches # to compare to payoff approach
+.approaches_p2 <- setdiff(.approaches, "Payoff")
+#.approaches_p2 <- setdiff(.approaches, "Relative")
+p2 <- pivot_longer(
+  filter(dsAlpha, Approach %in% .approaches_p2), !c(dL,Approach,Biomass), names_to="Enzyme") %>% 
   mutate(Enzyme = fct_relevel(Enzyme, "R","P")) %>% 
   #ggplot(aes(dP, value, color=Enzyme, linetype=Approach)) + geom_line() +
   ggplot(aes(dL, value, color=Enzyme, linetype=Approach, size=Biomass)) + geom_line() +
@@ -451,7 +510,7 @@ p2 <- pivot_longer(dsAlpha, !c(dL,Approach,Biomass), names_to="Enzyme") %>%
   #theme(axis.title.y = element_blank()) +
   c()
 .values <- c(
-  setNames(mylinetypes[seq_along(.approaches)], .approaches), 
+  setNames(mylinetypes[seq_along(.approaches)], .approaches_p2), 
   "Deriv+high biomass" = mylinetypes[which(.approaches == "Derivative")]
 )
 p2 <- p2 + scale_linetype_manual("Approach", values = .values) +
