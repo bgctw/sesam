@@ -425,7 +425,7 @@ depolymerizing enzyme and 2/3 to labile depolymerizing enzyme.
 
 ### Allocation
 
-On prescribed potential returns ($d_L = \{0\ldots1\}, d_R = 0.7, d_P = 0.5),
+On prescribed potential returns ($d_L = \{0\ldots1\}$, $d_R = 0.7$, $d_P = 0.5$),
 The inferred optimum allocation differs across approaches.
 
 ```{r include=FALSE}
@@ -504,7 +504,7 @@ p2 <- pivot_longer(
   filter(dsAlpha, Approach %in% .approaches_p2), !c(dL,Approach,Biomass), names_to="Enzyme") %>% 
   mutate(Enzyme = fct_relevel(Enzyme, "R","P")) %>% 
   #ggplot(aes(dP, value, color=Enzyme, linetype=Approach)) + geom_line() +
-  ggplot(aes(dL, value, color=Enzyme, linetype=Approach, size=Biomass)) + geom_line() +
+  ggplot(aes(dL, value, color=Enzyme, linetype=Approach, linewidth=as.factor(Biomass))) + geom_line() +
   xlab(bquote('Potential return from depolymerizing labile ('*gC~ m^-2~yr^-1*')')) +
   ylab(bquote('Allocation '*alpha)) +
   #theme(axis.title.y = element_blank()) +
@@ -514,21 +514,14 @@ p2 <- pivot_longer(
   "Deriv+high biomass" = mylinetypes[which(.approaches == "Derivative")]
 )
 p2 <- p2 + scale_linetype_manual("Approach", values = .values) +
-  scale_size_manual("Biomass", values = c(High=1.2,Moderate=0.8))
+  #scale_size_manual("Biomass", values = c(High=1.2,Moderate=0.8))
+  scale_linewidth_manual("Biomass", values = c(High=1.2,Moderate=0.8))
 print(p2)  
 ```
 
 ```{r eval=FALSE, include=FALSE}
 ggsave("sesamalloc_prescribed_returns.pdf", p2, width = figWidthPage, height = figHeightPage*1.1)
 ```
-
-For consistency, we need to give a figure (or text?) of 
-total respiration, microbial growth, carbon in key model compartments, CUE
-
-```{r}
-
-```
-
 
 The Realative approach allocates larger shares to less proficient enzymes
 at low biomass. The Optimal approach only does this, if microbial biomass
@@ -622,11 +615,20 @@ c(alpha0 = compute_total_utilities(alpha0, dL, dR, dP, p),
 dL = 0.7; dR = 0.1; dP = 0.3; pB <- within(p, B <- 1)
 dL = 0.5; dR = 0.4; dP = 0.0; pB <- within(p, B <- 0.5)
 dL = 0.7; dR = 0.5; dP = 0.3; pB <- within(p, B <- 1)
-
-
+# regression test for julia
+p_reg = within(list(
+  a_E = 0.1, 
+  B=1, 
+  e_P = 0,
+  tau = 365/30,
+  synB = 15,
+  eps = 0.3
+), k_mn <- a_E*B/2)
+dL = 0.7; dR = 0.5; dP = 0; 
+pB <- within(p_reg, B <- 1) 
 dalpha <- fdalpha(c(L=1,R=1,P=1)/3, dL, dR, dP, pB)
-alpha3 = calc_alpha3_proptoderiv(dL, dR, dP, pB)
-alpha3
+(alpha3 = calc_alpha3_proptoderiv(dL, dR, 0, pB))
+
 fdu(alpha3, dL, dR, dP, pB)  # they are all equal
 compute_total_utilities(alpha3, dL, dR, dP, pB)
 # deviation has smaller utility
