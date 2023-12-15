@@ -171,11 +171,20 @@ simLPulse <- function(x0, parms, cn0=75){
   x0P["IN"] <- 1
   timesP <- c(0,exp(seq(log(0.002),log(10), length.out = 200)))
   res <- resP <- as.data.frame(lsoda( x0P, timesP, derivSesam3a, parms = parms))
+  .tmp.f <- function(){
+    derivSesam3a(0, x0P, parms)
+    res <- resP <- as.data.frame(lsoda( x0P, c(0,0.1), derivSesam3a, parms = parms))
+    xE <- unlist(resP[nrow(resP),1+seq_along(x0)])
+    derivSesam3a(0, xE, parms)
+  }
+  res
 }
+#x0<-x0SteadyA; parms<-parms0; cn0<-50
 resVarAlpha <- simLPulse(x0SteadyA, parms0, cn0 = 50)
 resVarAlphaCN60 <- simLPulse(x0SteadyA, parms0, cn0 = 70)
 resVarAlphaCN90 <- simLPulse(x0SteadyA, parms0, cn0 = 90)
 x0FixedAlpha <- x0SteadyA; x0FixedAlpha["alpha"] <- 0.3
+#x0<-x0FixedAlpha; parms<-parmsFixedAlpha; cn0<-50
 resAlpha30  <- simLPulse(x0FixedAlpha, parmsFixedAlpha, cn0 = 50)
 resAlpha30CN60  <- simLPulse(x0FixedAlpha, parmsFixedAlpha, cn0 = 70)
 resAlpha30CN90  <- simLPulse(x0FixedAlpha, parmsFixedAlpha, cn0 = 90)
@@ -206,19 +215,22 @@ str(parms0)
 
 ```{r}
 vars <- c("L","R","alpha","B", "cueDef", "cueSyn") 
+vars <- c("alpha","B", "cueSyn", "limN","R") 
 #vars <- c("L","R","alpha","B", "IN","cueDef", "cueSyn") 
 #vars <- c("L","R","alpha","B","RL","cnRL") 
 #vars <- c("alpha","B", "cnL", "PhiNB","PhiNTotal","immoNPot", "CsynBC","CsynBN") 
-dsp0 <- resP %>% #filter(.data$time < 5) %>%  
+dsp0 <- resP %>% filter(.data$time < 3) %>%  
   rename(uptakeC = uC, respTotal = resp) %>% mutate(tvrBPred = 0.0) %>% 
   cueSesam() %>% 
   mutate(cn0 = as.factor(cn0)) %>% 
   mutate(S = R + L, cnS = (R + L)/(RN + LN)) %>% 
-  mutate(relS = S/S[1], relL = L/L[1], fracDecomp = 1 - relL) %>% 
+  mutate(relS = S/S[1], relL = L/L[1], fracDecomp = 1 - relL) 
   #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
-  select(one_of(c("time","relS","relL","fracDecomp","scen","cn0", vars))) 
-dsp <- dsp0 %>% gather("Pool","value", vars)
-p2f <- ggplot( dsp, aes(x = time, y = value, col = cn0, linetype = cn0)) + geom_line(size = 1) +
+dsp <- dsp0 %>% 
+  select(one_of(c("time","relS","relL","fracDecomp","scen","cn0", vars))) %>% 
+  gather("Pool","value", vars)
+p2f <- ggplot( dsp, aes(x = time, y = value, col = cn0, linetype = cn0)) + 
+  geom_line(linewidth = 1) +
   facet_grid(Pool ~ scen,scales = "free") + 
   xlab("Time (yr)") + 
   #xlab("Substrate (proportion of initial)") + scale_x_reverse() +

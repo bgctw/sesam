@@ -1,0 +1,673 @@
+---
+title: "SESAM CUE in substrate pulse"
+output: 
+  pdf_document:
+    keep_tex: true
+  html_notebook: default
+---
+
+## Purpose
+Kaiser14 showed emergent CUE stabilized during substrate pulse by
+microbial competition.
+Here we simulate a similar scenario using Sesam3a
+
+```{r, echo=FALSE, results='hide', message=FALSE}
+library(ggplot2)
+library(grid)   #unit
+#library(reshape)  # melt
+library(RColorBrewer) # brewer.pal
+library(tidyr)
+library(dplyr)
+library(knitr)
+library(forcats)
+
+myColors <- brewer.pal(5,"Dark2")	
+myLinetypes <- c("solid","dashed","dotdash", "dotted","longdash","twpdash")
+#adjust color default discrete color scale
+scale_colour_discrete <- function(...) scale_colour_manual(...,values=myColors)
+
+.simpleCap <- function(s) {
+    paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
+}
+colScale <- scale_colour_manual(name = "Variant",values = myColors)
+.treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
+sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
+
+.approaches <- c("Optimal","Derivative","Relative","Fixed")
+scale_color_approach <- scale_colour_manual(name = "Approach",values = setNames(myColors[seq_along(.approaches)],.approaches) )
+scale_linetype_approach <- scale_linetype_manual(name = "Approach",values = setNames(myLinetypes[seq_along(.approaches)],.approaches) )
+
+adjust_facets <- function(theme){
+  theme +
+    theme(panel.border = element_rect(colour = "black", fill = NA)) +
+    theme(strip.background = element_blank()) 
+}
+themePaper <- (theme_classic(base_size = 10) + theme(axis.title = element_text(size = 9))) %>% 
+  adjust_facets()
+themePres <- theme_classic(base_size = 18) %>% 
+  adjust_facets()
+theme_set(themePres) # also adjust fig.with in opts_chunk below to paper Wide
+
+#figWidthPage <- 18/2.54; figHeightPage <- figWidthPage/1.6 
+figWidthPage <- 12/2.54; figHeightPage <- figWidthPage/1.6 
+#, fig.height=4.43, fig.width=7.1
+#figWidthWide <- 12/2.54; figHeightWide <- figWidthWide/1.6
+figWidthWide <- 3.8; figHeightWide <- 5
+#, fig.height=2.95, fig.width=4.72
+figWidthCol <- 8.3/2.54; figHeightCol <- figWidthCol/1.6
+#, fig.height=2.04, fig.width=3.27
+opts_chunk$set(
+   # out.extra='style="display:block; margin: auto"'
+    #, fig.align="center"
+    #, fig.width=4.6, fig.height=3.2
+    #fig.width = 6, fig.height = 3.75 #goldener Schnitt 1.6
+    fig.width = figWidthWide, fig.height = figHeightWide #goldener Schnitt 1.6 #GI single column
+    #fig.width = figWidthPage, fig.height = figHeightPage #goldener Schnitt 1.6 #GI single column
+    #, dev.args = list(pointsize = 11)
+    , dev = c('pdf','png')
+    , echo = FALSE
+    )
+knit_hooks$set(spar  =  function(before, options, envir) {
+    if (before) {
+        par( las = 1 )                   #also y axis labels horizontal
+        par(mar = c(2.0,3.3,0,0) + 0.3 )  #margins
+        par(tck = 0.02 )                          #axe-tick length inside plots             
+        par(mgp = c(1.1,0.2,0) )  #positioning of axis title, axis labels, axis
+    }
+})
+
+
+#themeUsed <- c(themeUsed, scale_colour_brewer(type="qual",palette="Dark2"))
+replace_labels <- function(labels, labelmap) {
+  sapply(labels, function(label){
+    if (is.null(labelmap[[label]])) label else labelmap[[label]]
+  })
+}
+
+
+```
+
+
+### Setup parameters and drivers
+Mass units are $gC/m^2$ or $gN/m^2$. Time unit is $yr$.
+```{r}
+require(sesam, quietly = TRUE)
+
+parmsModelN <- list(
+  cnB = 11
+  ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P) need 
+    # to have low C/N for CO2 increase scenario
+  ,kN = 60       ##<< /yr enzyme turnover 60 times a year, each 6 days -> fast 
+    # priming pulses
+  ,km = 0.05     ##<< enzyme half-saturation constant, in magnitude of enzymes, 
+    # determined by kN
+  ,kNB = 0.8     ##<< amount of recycling enzyme turnover by biomass (
+    # added to assimilable, i.e. uptake instead of R)
+  #,kR = 1/(10)        ##<< 1/(x years) # to demonstrate changes on short time scale
+  ,kR = 1/(20)        ##<< 1/(x years) # to demonstrate changes on short time scale
+  ,kL = 5           ##<< 1/(x years)   # formerly 1 year
+  ,aE = 0.001*365   ##<< C biomass allocated to enzymes 1/day /microbial biomass
+  ,m = 0.005*365    ##<< maintenance respiration rate   1/day /microbial biomass, 
+  ## Bogedom Fig. 1
+  ,tau = 1/60*365  ##<< biomass turnover rate (12 days)
+  ,eps = 0.5      ##<< carbon use efficiency for growth respiration
+  #,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (part by predators 
+  ,epsTvr = 0.45   ##<< carbon use efficiency of microbial tvr (part by predators 
+  ## which respire and corresponding amount of N must be mineralized)
+  #,iBN = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
+  ,iBN = 0.4 ##<< potential immobilization flux rate 
+  ## (immoNPot = iBN IN)
+  ,lN = 0.96       #0.00262647*365     ##<< leaching rate of mineralN lN IN
+  ,nuN = 0.9     # microbial N use efficiency accounting for apparent 
+  ## minceralization of N during uptake in heterogeneous soils
+  , isEnzymeMassFlux = TRUE  ##<< compute enzyme mass fluxes
+  ,kINPlant = 10.57 #0.0289652*365     ##<< plant uptake rate first order of IN
+)
+
+parmsModelN <- within(parmsModelN, {
+  kmN <- km*kN     # Sesam2 only uses a lumped parameter instead of km and kN
+  kmR <- kmL <- km  # seam2 can accept parameters differing by substrate
+  cnER <- cnEL <- cnE 
+  kNR <- kNL <- kN    
+  #isFixedI <- TRUE  # in this demonstration keep inorganic pool fixed
+})
+```
+
+
+For simplicity model drivers currently are prescribed as constant parameters.
+```{r}
+driversN <- within(list(
+  iR = 0          ##<< input of residue litter
+  ,iL = 400         # g/m2 input per year (half NPP)
+  ,cnIR = 7       ##<< C/N ratio of the residue litter input
+  ,cnIL = 30      ##<< C/N ratio of the labile litter input: 
+  ## N poor substrate, here no inorganic N supply, 
+  ## currently as absolute flux
+  ,iIN = 0         ##<< input of mineral N
+),{
+  plantNUp <- iL/cnIL   ##<< pland uptake of organic N  
+})
+```
+
+The initial pools must be specified but model will be run into steady state.
+```{r}
+x0N <- c( #aE = 0.001*365
+        B = 17                     ##<< microbial biomass 
+        #,ER  = 2*parms0$km                  ##<< total enzyme pool
+        #,EL  = 4*parms0$km                   ##<< total enzyme pool
+        ,R = 1100                ##<< N rich substrate
+        ,RN = 1100/driversN$cnIR   ##<< N rich substrate N pool
+        ,L = 10#100                 ##<< N poor substrate
+        ,LN = 10/driversN$cnIL #100/parms0$cnIL    ##<< N poor substrate N pool
+        ,IN =  0.04                ##<< inorganic pool gN/m2
+        , alpha = 0.5            ##<< microbial community partitioning to R [0,1]
+)
+```
+
+
+```{r}
+extend_CNP_setting <- function(x0, parms, drivers) {
+  driversP <- within(drivers,{
+    cpIR <- 40
+    cpIL <- 40*3
+    iIP <- 0.001  # very small
+    plantPUp <- iL/cpIL   ##<< pland uptake of organic N  
+  })
+  parmsP <- within(parms,{
+    lP <- 0.001  # very small to not run into P limitation  
+    nuP <- 0.0     # microbial P use efficiency: no direct P uptake
+     cpE <- 1e5
+     cpB <- 1e8 # for not running into P limitation, here assume no P required in biomass
+     iBP <- 0.38 * 10.57 # start with same as N
+     kIPPlant <- 0.0 #kINPlant  # plant uptake rate of P equals that of N
+     e_P <- 0.0 # no plant P enzyme production
+     kLP <- kL
+     kRP <- kR
+     cpm <- 500
+  })
+  x0P <- c( 
+        x0[c("B","R","RN")]
+        ,RP = unname(x0["R"]/driversP$cpIR)
+        ,x0[c("L","LN")]
+        ,LP = unname(x0["L"]/driversP$cpIL)    ##<< N poor substrate N pool
+        ,x0[c("IN")]
+        ,IP =  150 # prevent P limitation          ##<< inorganic pool gN/m2
+        ,alphaL=1- unname(x0["alpha"])
+        ,alphaR=unname(x0["alpha"])
+  )
+  list(x0=x0P, parms=parmsP, drivers=driversP)
+}
+```
+
+```{r}
+xpd <- extend_CNP_setting(x0N, parmsModelN, driversN)
+x0 <- xpd$x0
+parms0 <- c(xpd$parms, xpd$drivers)
+
+parms <- parms0 <- within( parms0, {
+  # change inorganic pool only by mobilization/immobilization flux
+  kINPlant <- 0
+  plantNUpAbs <- iL/cnIL
+  lN <- 0.96 # to not let IN increase to infinity
+  lP <- 1e-2
+  iIN <- 0
+  iIP <- 0
+  #isFixedI <- TRUE
+})
+
+# x0FixedAlpha <- x0
+# x0FixedAlpha["alphaR"] <- 0.3
+# x0FixedAlpha["alphaL"] <- 1-x0FixedAlpha["alphaR"]
+parmsFixedAlpha <- within(parms0, isFixedAlpha <- TRUE)
+parmsRelative <- within(parms0,isRelativeAlpha<-TRUE)
+parmsOptimal <- within(parms0,isOptimalAlpha<-TRUE)
+```
+
+```{r}
+get_storage_parameters <- function(p, iL = 1) {
+  # only some minor dust input and negligible leaching
+  p$iL <- iL
+  p$iIN <- 0
+  p$iIP <- 0
+  p$lN <- 1e-2
+  p$lP <- 1e-2
+  p
+}
+```
+
+
+First simulate a steady state microbial biomass before storage with field
+parameters, and then storage for two years with low L input.
+```{r}
+times_fresh <- c(0,exp(seq(log(0.002),log(2000), length.out = 200)))
+times_storage <- c(0,exp(seq(log(0.002),log(2), length.out = 200)))
+res <- as.data.frame(lsoda( x0, times_fresh, derivSesam3P, parms = parms0))
+  x0f <- unlist(res[nrow(res),1+seq_along(x0)])
+  res <- as.data.frame(lsoda( x0f, times_storage, derivSesam3P, parms = get_storage_parameters(parms0)))
+  x0_deriv <- unlist(res[nrow(res),1+seq_along(x0)])
+res <- as.data.frame(lsoda( x0, times_fresh, derivSesam3P, parms = parmsRelative))
+  x0f <- unlist(res[nrow(res),1+seq_along(x0)])
+  res <- as.data.frame(lsoda( x0f, times_storage, derivSesam3P, parms = get_storage_parameters(parmsRelative)))
+  x0_rel <- unlist(res[nrow(res),1+seq_along(x0)])
+res <- as.data.frame(lsoda( x0, times_fresh, derivSesam3P, parms = parmsOptimal))
+  x0f <- unlist(res[nrow(res),1+seq_along(x0)])
+  res <- as.data.frame(lsoda( x0f, times_storage, derivSesam3P, parms = get_storage_parameters(parmsOptimal)))
+  x0_opt <- unlist(res[nrow(res),1+seq_along(x0)])
+res <- as.data.frame(lsoda( x0, times_fresh, derivSesam3P, parms = parmsFixedAlpha))
+  x0f <- unlist(res[nrow(res),1+seq_along(x0)])
+  res <- as.data.frame(lsoda( x0f, times_storage, derivSesam3P, parms = get_storage_parameters(parmsFixedAlpha)))
+  x0_fix <- unlist(res[nrow(res),1+seq_along(x0)])
+.tmp.f <- function(){
+  plot(alphaR ~ time, res); abline(h=1)
+  plot(alphaL ~ time, res); abline(h=1)
+  plot(limN ~ time, res); abline(h=1)
+  plot(cnL ~ time, res); abline(h=1)
+  plot(cnR ~ time, res); abline(h=1)
+  plot(B ~ time, res); abline(h=1)
+  plot(R ~ time, res); abline(h=1)
+  plot(L ~ time, res); abline(h=1)
+  plot(limC ~ time, res); abline(h=1)
+  plot(IN ~ time, res); abline(h=1)
+  plot(IP ~ time, res); abline(h=1)
+}
+```
+
+
+```{r}
+simLPulse <- function(
+  x0, parms, cn0=75, 
+  #amend=500
+  amend=100
+  ){
+  # # spinup to steady state at low substrate inputs
+  # times <- seq(0,2000, length.out = 2)
+  # #times <- c(0,exp(seq(log(0.02),log(2000), length.out=100)))
+  # #setwd("../..");loadPkg()
+  # res <- res1 <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parms))
+  # #plot(R~time, res)
+  # xE <- unlist(tail(res,1))
+  # #xE["IN"] <- 0.04  # decrease IN pool # does not help filled up by mircobial tvr
+  #
+  # increase L, no L input any more
+  parms$iL <- 0
+  x0P = x0 #xE[1:length(x0) + 1]
+  x0P["L"] <- x0["L"] + amend
+  x0P["LN"] <- x0["LN"] + amend/cn0
+  x0P["IN"] <- 1  # moisten with DI water
+  x0P["IP"] <- 1
+  timesP <- c(0,exp(seq(log(0.002),log(10), length.out = 200)))
+  res <- resP <- as.data.frame(lsoda( x0P, timesP, derivSesam3P, parms = parms))
+  .tmp.f <- function(){
+    derivSesam3P(0, x0P, parms)
+    res <- resP <- as.data.frame(lsoda( x0P, c(0,0.1), derivSesam3P, parms = parms))
+    xE <- unlist(resP[nrow(resP),1+seq_along(x0)])
+    derivSesam3P(0, xE, parms)
+    plot(alphaR ~ time, res); abline(h=1)
+    tail(filter(res, alphaR < 1),1)
+  }
+  res
+}
+# x0 <- xpd$x0; parms<-parms0; cn0=50
+resCN50 <- res <- simLPulse(x0_deriv, get_storage_parameters(parms0), cn0 = 50)
+resCN70 <- simLPulse(x0_deriv, get_storage_parameters(parms0), cn0 = 70)
+resCN90 <- simLPulse(x0_deriv, get_storage_parameters(parms0), cn0 = 90)
+resRelCN50  <- simLPulse(x0_rel, get_storage_parameters(parmsRelative), cn0 = 50)
+resRelCN70  <- simLPulse(x0_rel, get_storage_parameters(parmsRelative), cn0 = 70)
+resRelCN90  <- simLPulse(x0_rel, get_storage_parameters(parmsRelative), cn0 = 90)
+# x0 <- xpd$x0; parms<-parmsOptimal; cn0=50
+resOptCN50  <- simLPulse(x0_opt, get_storage_parameters(parmsOptimal), cn0 = 50)
+resOptCN70  <- simLPulse(x0_opt, get_storage_parameters(parmsOptimal), cn0 = 70)
+resOptCN90  <- simLPulse(x0_opt, get_storage_parameters(parmsOptimal), cn0 = 90)
+#
+resAlpha30CN30  <- simLPulse(x0_fix, get_storage_parameters(parmsFixedAlpha), cn0 = 50)
+resAlpha30CN70  <- simLPulse(x0_fix, get_storage_parameters(parmsFixedAlpha), cn0 = 70)
+resAlpha30CN90  <- simLPulse(x0_fix, get_storage_parameters(parmsFixedAlpha), cn0 = 90)
+
+.tmp.f <- function(){
+  # x0 <- x0FixedAlpha; parms <- parmsFixedAlpha; cn0=50
+  # x0Alpha10 <- x0Steady; x0Alpha10["alpha"] <- 0.1
+  # resAlpha10  <- simLPulse(x0Alpha10, parmsFixedAlpha)
+  # x0Alpha90 <- x0Steady; x0Alpha90["alpha"] <- 0.6
+  # resAlpha90  <- simLPulse(x0Alpha90, parmsFixedAlpha)
+}
+resP <- rbind(
+  cbind(scen = "Derivative", cn0 = 50, resCN50)
+  ,cbind(scen = "Derivative", cn0 = 70, resCN70)
+  ,cbind(scen = "Derivative", cn0 = 90, resCN90)
+  ,cbind(scen = "Relative", cn0 = 50, resRelCN50)
+  ,cbind(scen = "Relative", cn0 = 70, resRelCN70)
+  ,cbind(scen = "Relative", cn0 = 90, resRelCN90)
+  ,cbind(scen = "Optimal", cn0 = 50, resOptCN50)
+  ,cbind(scen = "Optimal", cn0 = 70, resOptCN70)
+  ,cbind(scen = "Optimal", cn0 = 90, resOptCN90)
+  ,cbind(scen = "Fixed", cn0 = 50, resAlpha30CN30)
+  ,cbind(scen = "Fixed", cn0 = 70, resAlpha30CN70)
+  ,cbind(scen = "Fixed", cn0 = 90, resAlpha30CN90)
+)
+```
+```{r eval=FALSE}
+names(resP)
+unique(resP$scen)
+df = filter(resP, cn0==50 & scen=="adaptable")
+plot(synB ~ time, df)
+plot(iL ~ time, df)
+str(parms0)
+```
+
+
+```{r}
+vars <- c("L","R","alphaR","B", "cueDef", "cueSyn") 
+vars <- c("limN","alphaR","B","cueDef","R_norm","L") 
+#vars <- c("L","R","alpha","B", "IN","cueDef", "cueSyn") 
+#vars <- c("L","R","alpha","B","RL","cnRL") 
+#vars <- c("alpha","B", "cnL", "PhiNB","PhiNTotal","immoNPot", "CsynBC","CsynBN") 
+dsp0 <- resP %>% filter(.data$time < 3) %>%  
+  #rename(uptakeC = uC, respTotal = resp) %>% 
+  mutate(tvrBPred = 0.0) %>% 
+  cueSesam() %>% 
+  group_by(cn0,scen) %>% mutate(R_norm = R/R[1]) %>% ungroup() %>% 
+  mutate(cn0 = as.factor(cn0))  
+  #select_(~time, ~scen, ~L, ~R, ~RL) %>% gather_("Pool","value", c("L","R","RL"))
+dsp <- dsp0 %>% select(all_of(c("time","scen","cn0", vars))) %>% gather("Pool","value", vars)
+p2f <- dsp %>% 
+  mutate(scen = fct_relevel(.data$scen, c("Optimal","Derivative","Relative"))) %>% 
+  ggplot(aes(x = time, y = value, col = cn0, linetype = cn0)) + geom_line(linewidth = 1) +
+  facet_grid(Pool ~ scen,scales = "free") + 
+  xlab("Time (yr)") + 
+  #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
+  #xlab("Fraction C decomposed") +
+  #ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
+  #themeDefault +
+  #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
+  themePaper +
+  theme(legend.position = c(0.99,0.99), legend.justification = c(1,1)) +
+  theme(legend.title = element_blank()) +
+  theme(panel.grid.major.x = element_line(colour = "grey75")) +
+  theme(axis.title.y = element_blank()) +
+  c()
+#print(p2f + colScale)
+print(p2f)
+#ggsave("Sesam_OptimMethods_Pulse_time.png", width=4.8, height=3.8)
+```
+
+In the optimal scenario, $\alpha_R$ goes to lower values also for intermediate
+initial substrate C:N ratio and much sooner goes to high values in for 
+high initial substrate C:N ratio.
+
+In both the optimal and the derivative scenario, $\alpha_R$ goes to zero when
+N is not limiting any more, resulting in the accumulation of a larger fraction
+of the substrate ending up in the residue pool.
+This is because with lower biomass, the return does not strongly decrease with 
+community allocation any more and allocating to the enzymes with lower potential
+return is not as beneficial any more.
+Hence, it results in a higher time-integrated CUE with larger differences
+between the initial litter C:N ratios.
+
+Initially there is more N in the labile decomposition in absolute terms despite
+its low relative low N contents, i.e. high C:N ratio. Hence, microbial community
+shifts towards only L-degrading with high overflow respiration and low CUE.
+
+After the initial shift towards growing on the labile substrate,
+CUE is recovered to higher values sooner with flexible allocation due to
+increased allocation to N-rich residue pool.
+
+Biomass:
+```{r}
+vars <- c("B","synB","alphaR","respO","cueDef","limN","L") 
+dsp0 <- resP %>% filter(.data$time < 1) %>% cueSesam() 
+dsp <- dsp0 %>% select(all_of(c("time", "scen", "cn0", vars))) %>%
+  gather("Pool","value", vars)
+p2f <- dsp %>% 
+  mutate(Approach = fct_relevel(.data$scen, c("Optimal","Derivative","Relative"))) %>% 
+  mutate(Pool = fct_relevel(.data$Pool, vars)) %>% 
+  ggplot(aes(x = time, y = value, col = Approach, linetype = Approach)) + geom_line(linewidth = 1) +
+  facet_grid(Pool ~ cn0,scales = "free") + 
+  scale_color_approach +
+  scale_linetype_approach +
+  xlab("Time (yr)") + 
+  #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
+  #xlab("Fraction C decomposed") +
+  #ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
+  #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
+  #theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
+  themePaper +
+  theme(panel.grid.major.x = element_line(colour = "grey75")) +
+  theme(axis.title.y = element_blank()) +
+  c()
+#print(p2f + colScale)
+print(p2f)
+#ggsave("Sesam_OptimMethods_Pulse_approaches.png", width=4.8, height=3.8)
+
+
+```
+
+Biomass growing better in optimal approach.
+However, partially due to starting at
+higher levels obtained in steady-state simulation before.
+
+Community adaptation leads to less overflow respiration and higher CUE during 
+phase of N limitation.
+However, N-limitation only induced if initial inorganic N levels are set low
+assuming diluting during re-wetting of the soil. 
+Over time, inorganic N levels increase, because
+of decomposition an no loss from the system during incubation or during storage.
+This is in contrast to field, where N is lost by plant uptake and leaching.
+
+Note however, that for extremely large amendmends, of e.g. 500 gC/m^2,
+also optimally allocating community shifts towards labile degrading shares
+because return is much higher compared to residue levels.
+This then leads to even higher overflow respiration compared to the fixed
+and relative approaches.
+
+### paper plot
+```{r}
+vars <- c("synB","alphaR","respO") 
+labelmap = list(synB = "syn[B]", alphaR="alpha[R]", respO="resp[O]", cueDef="CUE")
+dsp0 <- resP %>% filter(.data$time <= 0.5) %>% cueSesam() 
+dsp <- dsp0 %>% select(all_of(c("time", "scen", "cn0", vars))) %>%
+  gather("Pool","value", vars)
+p2f <- dsp %>% 
+  filter(cn0 == 50) %>% 
+  mutate(Approach = fct_relevel(.data$scen, c("Optimal","Derivative","Relative"))) %>% 
+  mutate(Pool = fct_relevel(.data$Pool, vars)) %>% 
+  mutate(Pool = fct_relabel(Pool, ~replace_labels(.,labelmap))) %>% 
+  ggplot(aes(x = time, y = value, col = Approach, linetype = Approach)) + geom_line() +
+  facet_grid(Pool ~ .,scales = "free",labeller = label_parsed) + 
+  scale_color_approach +
+  scale_linetype_approach +
+  xlab("Time (yr)") + 
+  #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
+  #xlab("Fraction C decomposed") +
+  #ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
+  #scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
+  #theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
+  themePaper +
+  theme(panel.grid.major.x = element_line(colour = "grey75")) +
+  theme(axis.title.y = element_blank()) +
+  c()
+#print(p2f + colScale)
+print(p2f)
+#ggsave("Sesam_OptimMethods_Pulse_approaches.png", width=4.8, height=3.8)
+```
+```{r eval=FALSE, include=FALSE}
+p3b <- p2f +
+  #theme(legend.position = c(0.93,1.15), legend.justification = c(1,1))
+  c()
+ggsave("pulse_approaches.pdf", p3b, width = figWidthCol, height = figHeightCol) 
+```
+
+
+```{r}
+#vars2 <- c("cueDef", "cueSyn") 
+vars2 <- c("cueDef","alphaR") 
+dsp2 <- resP %>% 
+  cueSesam() %>% 
+  mutate(S = R + L, cnS = (R + L)/(RN + LN)) %>% 
+  mutate(relS = S/S[1], relL = L/L[1], fracDecomp = 1 - relL) %>% 
+  mutate(cn0 = as.factor(cn0)) %>% 
+  select(all_of(c("time","relS","relL","fracDecomp","scen","cn0", vars2))) %>% gather("Pool","value", vars2) %>% 
+  mutate(Pool = fct_relevel(Pool, vars2)) %>% 
+  mutate(Pool = fct_relabel(Pool, ~replace_labels(.,labelmap)))
+
+
+# theme_set(themeUsed) 
+
+p2 <- dsp2 %>% 
+  mutate(scen = fct_relevel(.data$scen, c("Optimal","Derivative","Relative"))) %>% 
+  filter(scen %in% c("Optimal","Relative","Fixed")) %>% 
+  ggplot(aes(x = fracDecomp, y = value, col = cn0, linetype = cn0)) + 
+#p2 <- ggplot( dsp2, aes(x = fracDecomp, y = value, col = cn0, linetype = cn0)) + 
+  geom_line(linewidth = 1) +
+  facet_grid(Pool ~ scen,scales = "free_y",labeller = label_parsed) + 
+  #xlab("Time (yr)") + 
+  #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
+  xlab("Fraction C decomposed") +
+  ylab("Carbon use efficiency") +
+  expand_limits(y = 0.3) +
+  #themePres + # presentation
+  guides(color=guide_legend(title = "C:N amendment")) +
+  guides(linetype=guide_legend(title = "C:N amendment")) +
+  #themeDefault +
+  # scale_colour_discrete(drop = TRUE,limits = levels(dsp$Allocation)) +
+  #theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
+  #theme(legend.position = c(0.05,0.05), legend.justification = c(0,0)) +
+  theme(legend.position = c(0.95,0.05), legend.justification = c(1,0)) +
+  #theme(panel.border = element_rect(colour = "black", fill = NA)) +
+  #theme(strip.background = element_blank()) +			
+  #theme(panel.grid.major.x = element_line(colour = "grey75")) +
+  c()
+#print(p2f + colScale)
+print(p2)
+```
+```{r eval=FALSE, include=FALSE}
+p2p <- p2
+p2p$layers[2] <- NULL # remove expand_limits
+p3b <- p2p +
+  #theme(legend.position = c(0.93,1.15), legend.justification = c(1,1)) +
+  themePaper +
+  #theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) +
+  theme(axis.text.x = element_text(angle = 60, vjust = 0.5)) +
+  theme(legend.position = "bottom") +
+  theme(axis.title.y = element_blank()) +
+  guides(linetype = guide_legend(title = "C:N", nrow = 1, byrow = TRUE)) +
+  guides(color = guide_legend(title = "C:N", nrow = 1, byrow = TRUE)) +
+  #facet_grid(scen ~ .) + #,scales = "free") + 
+  #theme(legend.title = element_blank()) +
+  c()
+ggsave("pulse_cn.pdf", p3b, width = figWidthCol, height = figHeightCol*1.5) 
+```
+
+## Inspect at low biomass
+
+```{r}
+vars <- c("B","synB","alphaR","cueDef","L","R") 
+vars <- c("B","alphaR","cueDef","L","R") 
+vars <- c("B","alphaR","L") 
+dsp0l <- resP %>% filter(between(.data$time,1.1,5)) %>% cueSesam() 
+dsp <- dsp0l %>% select(all_of(c("time", "scen", "cn0", vars))) %>%
+  gather("Pool","value", vars) %>% 
+  mutate(Pool = fct_relevel(Pool, vars)) %>% 
+  mutate(Pool = fct_relabel(Pool, ~replace_labels(.,labelmap)))
+  
+p2f <- dsp %>% 
+  mutate(Approach = fct_relevel(.data$scen, c("Optimal","Derivative","Relative"))) %>% 
+  filter(scen %in% c("Optimal","Relative")) %>% 
+  filter(cn0 == 50) %>% 
+  #mutate(Pool = fct_relevel(.data$Pool, vars)) %>% 
+  ggplot(aes(x = time, y = value, col = Approach, linetype = Approach)) + geom_line(linewidth = 1) +
+  #facet_grid(Pool ~ cn0,scales = "free") + 
+  facet_grid(Pool~.,scales = "free",labeller = label_parsed) + 
+  xlab("Time (yr)") + 
+  scale_color_approach +
+  scale_linetype_approach +
+  #xlab("Substrate (proportion of initial)") + scale_x_reverse() +
+  #xlab("Fraction C decomposed") +
+  #ylab(expression(Carbon~stock~(gCm^{-2}))) + #labs(linetype = "Substrate pool") +
+  #theme(legend.position = c(0.95,1.04), legend.justification = c(1,1)) +
+  #theme(panel.grid.major.x = element_line(colour = "grey75")) +
+  theme(axis.title.y = element_blank()) +
+  c()
+#print(p2f + colScale)
+print(p2f)
+#ggsave("Sesam_OptimMethods_Pulse_approaches.png", width=4.8, height=3.8)
+```
+Optimal approach does not allocate to L degrading enzymes any more.
+Yielding higher biomass and higher R decomposition.
+
+```{r eval=FALSE, include=FALSE}
+p3b <- p2f +
+  themePaper +
+  theme(axis.title.y = element_blank()) +
+  #theme(legend.position = c(0.93,1.15), legend.justification = c(1,1))
+  c()
+ggsave("pulse_lowB.pdf", p3b, width = figWidthCol, height = figHeightCol) 
+```
+
+```{r}
+# Compare the initial derivative at cn90
+
+```
+
+### supplementaory figures 
+Need to run Face1_EP.Rmd before to define functions
+
+```{r}
+vars <- c("alphaR","B","synB","cueDef","L","R","resp") 
+#vars <- c("L","R_diff","alphaR") 
+p3c <- dsp0 %>% 
+  filter(cn0 == 50) %>%   
+  mutate(scenario = scen) %>% 
+  cueSesam() %>% 
+  ggplot_vars(vars)+ colScaleApproach + linetypeScaleApproach +
+    theme(axis.title.y = element_blank()) +
+    theme(legend.title = element_blank()) +
+    c()
+p3c
+```
+```{r eval=FALSE, include=FALSE}
+p3cp <- p3c +
+  themePaper +
+  colScaleApproach + linetypeScaleApproach +
+    theme(axis.title.y = element_blank()) +
+    theme(legend.title = element_blank()) +
+  theme(legend.position = c(0.91,0.98), legend.justification = c(1,1))+
+  theme(legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid', linewidth = 0.02))+
+  theme(legend.spacing.y = unit(0.00, 'cm'))+
+  theme(legend.margin = margin(0,4,0,4,unit="pt"))+
+  theme(legend.position = "none") +
+  theme()
+ggsave("pulse_approaches_supp.pdf", p3cp, width = figWidthCol, height = 4) 
+```
+
+```{r}
+vars <- c("alphaR","B","synB","cueDef","L","R","resp") 
+#vars <- c("L","R_diff","alphaR") 
+p3c <- dsp0l %>% 
+  filter(cn0 == 50) %>%   
+  mutate(scenario = scen) %>% 
+  cueSesam() %>% 
+  ggplot_vars(vars)+ colScaleApproach + linetypeScaleApproach +
+    theme(axis.title.y = element_blank()) +
+    theme(legend.title = element_blank()) +
+    c()
+p3c
+```
+```{r eval=FALSE, include=FALSE}
+p3cp <- p3c +
+  themePaper +
+  colScaleApproach + linetypeScaleApproach +
+    theme(axis.title.y = element_blank()) +
+    theme(legend.title = element_blank()) +
+  theme(legend.position = c(0.91,0.98), legend.justification = c(1,1))+
+  theme(legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid', linewidth = 0.02))+
+  theme(legend.spacing.y = unit(0.00, 'cm'))+
+  theme(legend.margin = margin(0,4,0,4,unit="pt"))+
+  theme(legend.position = "none") +
+  theme()
+ggsave("pulse_lowB_supp.pdf", p3cp, width = figWidthCol, height = 4) 
+```
+
+```{r}
+
+```
+

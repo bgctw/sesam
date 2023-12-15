@@ -40,7 +40,7 @@ parms0 <- list(
   ,plantNUp = 0   ##<< plant N uptake balancing N inputs
   ,useFixedAlloc = FALSE    ##<< set to true to use fixed enzyme allocation (alpha = 0.5)
   ,kINPlant = 10.57 #0.0289652*365         ##<< plant uptake iP IN
-  ,iBN = 0.4 #0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iBN IN
+  ,iBN = 0.38 * 10.57 #0.0110068*365   ##<< immobilization flux iBN IN
   ,iIN = 0         ##<< input of mineral N
   ,lN = 0.96 #0.00262647*365       ##<< leaching rate of mineralN lN IN
   , nuN = 0.9       ##<< microbial N use efficiency
@@ -52,10 +52,10 @@ parms0 <- list(
   #, cpBW = 50
   , cpIR = 40
   #, cpIL = 40*3
-  , cpIL = 40*6  # to make real P limitation possible
-  , iBP = 0.4 #0.38 * 10.57 # start with same as N
+  , cpIL = 40*6
+  , iBP = 0.38 * 10.57 # start with same as N
   , e_P = 0.3*0.01*365 /20  ##<< 1/10 of kmn: /yr enzyme turnover 1% turning over each day
-  , cpm = 500 # at a c:P ratio of cpm biomineralization rate decreases to 1/2
+  , cpm = 500
 )
 parms <- parms0 <- within(parms0,{
 #  kmR <- kmL <- km
@@ -65,13 +65,13 @@ parms <- parms0 <- within(parms0,{
   lP <- lN       # leaching rate of inorganic P equals that of N
   nuP <- nuN     # mineralization of P during decomposiition equals that of N
   kIPPlant <- kINPlant  # plant uptake rate of P equals that of N
-  iIP <- iIN <- 10      # no N nor P limitation
+  iIP <- lN      # assume no P inputs compensate for leaching
   plantNUpAbs <- iL / cnIL	# same litter input as plant uptake
-  plantPUpAbs <- iL / cpIL	# same litter input as plant uptake
   kINPlant <- plantNUpAbs <- 0			# no plant uptake
   kLP <- kL # same maximum biomineralizatino rate as depolimerization
   kRP <- kR
 })
+
 parms <- parms0
 
 x0 <- x0Orig <- c( #aE = 0.001*365
@@ -123,8 +123,6 @@ test_that("fixed substrates", {
   xETest <- unlist(tail(resTest,1))
   expect_true(xETest["limN"] < 1e-6)
   expect_true(xETest["limP"] < 1e-6)
-  # print for regression test with Julia
-  xETest[c("B","alphaR")]
   # resExp <- as.data.frame(lsoda(
   #   getX0NoP(x0), times, derivSesam3a
   #   , parms = parmsFixedS))
@@ -141,17 +139,14 @@ test_that("fixed substrates", {
   #
   # N limitation
   #times <- seq(0,2100, length.out = 101)
-  ans0 <- derivSesam3P(0, x0Nlim, parms = parmsFixedS)
   times <- seq(0, 8100, length.out = 2)
   resTest <- as.data.frame(lsoda( x0Nlim, times, derivSesam3P, parms = parmsFixedS))
   xETest <- unlist(tail(resTest,1))
   expect_true( xETest["B"] > 0)
   expect_true( xETest["alphaL"] > 0.5)
   expect_true( xETest["alphaP"] < 1e-6)
-  # print for regression test with Julia
-  xETest[c("B","alphaR")]
   #
-  # CP co-limitation
+  # NP co-limitation
   x0Plim <- x0Nlim; x0Plim["IN"] <- 10; x0Plim["IP"] <- 0.002
   ans0 <- derivSesam3P(0, x0Plim, parms = parmsFixedS)
   #times <- seq(0,2100, length.out = 101)
@@ -163,113 +158,62 @@ test_that("fixed substrates", {
   expect_true( xETest["alphaP"] > 1e-6) # some from depolymerization
   #expect_true( xETest["alphaR"] > 0.1)   # higher allocation towards R
   # none to R? get P from biomineralization and C from L
-  # print for regression test with Julia
-  xETest[c("B","alphaP")]
-  ansE <- derivSesam3P(0, xETest[1+seq_along(x0Plim)], parms = parmsFixedS)
 })
 
 # # substrate feedbacks ---------------------------------------------------------
-# TODO
-#test_that("substrate feedbacks but inorganic pools fixed", {
-#   parmsInit <- within(parms0, {isFixedI <- TRUE})
-#   ans0 <- derivSesam3P(0, x0, parms = parmsInit)
-#   times <- seq(0,2000, length.out = 2)
-#   #times <- seq(0,800, length.out = 101)
-#   #times <- c(0,148:151)
-#   #times <- seq(0,2100, by = 2)
-#   #times <- seq(0,10000, length.out = 101)
-#   #ans1 <- derivSesam3P(0, x0, within(parmsInit, isRecover <- TRUE) )
-#   #
-#   resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsInit))
-#   xETest <- unlist(tail(resTest,1))
-#   xETest
-#   expect_true( xETest["alphaL"] > 0.5)
-#   #
-#   # N limitation
-#   parmsNlim <- within(parmsInit, cnIL <- 90)
-#   resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsNlim))
-#   xETest <- unlist(tail(resTest,1))
-#   xETest
-#   expect_true( xETest["alphaR"] > 0.2)
-#   tmp <- derivSesam3P(0, xETest[1+seq_along(x0)], parms = parmsNlim)
-# })
-
 test_that("substrate feedbacks", {
-  ans0 <- derivSesam3P(0, x0, parms = parms0)
-  #times <- seq(0,2000, length.out = 2)
-  times <- c(0,exp(seq(-6,log(8000), length.out = 101)))
+  parmsInit <- within(parms0, {isFixedI <- TRUE})
+  ans0 <- derivSesam3P(0, x0, parms = parmsInit)
+  times <- seq(0,2000, length.out = 2)
+  #times <- seq(0,800, length.out = 101)
+  #times <- seq(0,100, length.out = 101)
   #times <- c(0,148:151)
   #times <- seq(0,2100, by = 2)
   #times <- seq(0,10000, length.out = 101)
-  #ans1 <- derivSesam3P(0, x0, within(parms0, isRecover <- TRUE) )
+  #ans1 <- derivSesam3P(0, x0, within(parmsInit, isRecover <- TRUE) )
   #
-  resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parms0))
+  resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsInit))
   xETest <- unlist(tail(resTest,1))
   xETest
   expect_true( xETest["alphaL"] > 0.5)
-  # print for regression test with Julia
-  xETest[c("B","alphaR")]
+  #
+  # old assumptions alphaOpt ~ revenue
+  resTest_rel <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = within(parmsInit, isRelativeAlpha<-TRUE)))
+  xETest_rel <- unlist(tail(resTest_rel,1))
+  expect_true(xETest_rel["alphaR"] > xETest["alphaR"])
+  .tmp.f <- function(){
+    xETest
+    xETest_rel
+    derivSesam3P(0, xETest[1+seq_along(x0)], parms = parmsInit)
+    derivSesam3P(0, xETest_rel[1+seq_along(x0)], parms = within(parmsInit, isRelativeAlpha<-TRUE))
+  }
+  # specific optimal allocation
+  resTest_opt <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = within(parmsInit, isOptimalAlpha<-TRUE)))
+  xETest_opt <- unlist(tail(resTest_opt,1))
+  expect_true(abs(xETest_opt["alphaR"] - xETest["alphaR"]) < 1e-4 )
+  .tmp.f <- function(){
+    xETest
+    xETest_opt
+    derivSesam3P(0, xETest[1+seq_along(x0)], parms = parmsInit)
+    derivSesam3P(0, xETest_opt[1+seq_along(x0)], parms = within(parmsInit, isOptimalAlpha<-TRUE))
+    plot(times, resTest$alphaL, type="l")
+    lines(times, resTest_opt$alphaL, type="l", col="blue")
+  }
   #
   # N limitation
-  parmsNlim <- within(parms0,  {iIN <- 1e-5; cnIL<-40})
+  parmsNlim <- within(parmsInit, cnIL <- 90)
   resTest <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parmsNlim))
   xETest <- unlist(tail(resTest,1))
   xETest
-  expect_true( xETest["limN"] > 0.9)
-  expect_true( xETest["alphaR"] > 0.4)
-  #tmp <- derivSesam3P(0, xETest[1+seq_along(x0)], parms = parmsNlim)
-  #xETest[c("B","alphaR")]
-  #
-  # P limitation
-  parmsPlim <- within(parms0,  {iIP <- 1e-5})
-  x0Plim <- x0; x0Plim["IP"] <- 0.002
-  ans0 <- derivSesam3P(0, x0Plim, parms = parmsPlim)
-  resTest <- #as.data.frame(ode( x0Plim, t imes, derivSesam3P, parms = parmsPlim), method="radau")
-  resTest <- as.data.frame(lsoda( x0Plim, times, derivSesam3P, parms = parmsPlim))
-  xETest <- unlist(tail(resTest,1))
-  xETest
-  expect_true( xETest["limP"] > 0.9)
-  expect_true( xETest["alphaP"] > 0.4)
-  #xETest[c("B","alphaL","alphaR","alphaP")]
-  #xETest[c("L","LN","LP","R","RN","RP")]
-  #xETest[c("IN","IP")]
-  #ansE <- derivSesam3P(0, xETest[1+seq_along(x0Plim)], parms = parmsPlim)
-  #xETest[c("B","alphaP")]
-
-  tmp = xETest[1+seq_along(x0Plim)]
-  dump("tmp","")
-  x0Plim <- c(B = 9.5532405179743343, R = 2617.3347021513996, RN = 383.96307740260477,
-              RP = 59.337267206775913, L = 571.87399064315707, LN = 19.06246635477191,
-              LP = 2.2432022114256065, IN = 20.83333333295699, IP = 0.10841370333933449,
-              alphaL = 0.34651667267463748, alphaR = 0.16641997111762105)
-
-  xETest =unlist(head(resTest[resTest$time > 100,],1))
-
-
-  # debug julia solution
-  sol_julia=c(B = 3.6041840224071113, L = 860.3750089360257, R = 56990.34883770216, LN = 28.679166964534186, RN = 8360.485833327284, IN = 19.787982350021043, LP = 1.6319650235754555, RP = 20.335275080854387, IP = 0.10841370343866158, alphaR = 4.636786296463711e-65, alphaP = 0.5543880861686532)
-  sol_juliaL =  c(sol_julia, alphaL = unname(1-sol_julia["alphaR"]-sol_julia["alphaP"]))
-  x0Plim = sol_juliaL[names(x0)]
-  x0Plim
+  expect_true( xETest["alphaR"] > 0.3)
+  tmp <- derivSesam3P(0, xETest[1+seq_along(x0)], parms = parmsNlim)
 })
-
 
 .tmp.f <- function(){
   # plots of results
-  library(dplyr)
-  library(ggplot2)
+  #library(dplyr);  library(ggplot2)
   ggplot(filter(resTest, time > 1), aes(time, B)) + geom_line(alpha = 0.5)
-  ggplot(filter(resTest, time < 0.07), aes(time, B)) + geom_line(alpha = 0.5)
-  ggplot(filter(resTest, time < 2), aes(time, B)) + geom_point(alpha = 0.5)
   ggplot(filter(resTest, time > 0), aes(time, alphaL)) + geom_point(alpha = 0.5)
-  ggplot(filter(resTest, time > 0), aes(time, alphaR)) + geom_point(alpha = 0.5)
-  ggplot(filter(resTest, time < 2), aes(time, alphaR)) + geom_point(alpha = 0.5)
-  ggplot(filter(resTest, time < 0.07), aes(time, alphaR)) + geom_point(alpha = 0.5)
-  ggplot(filter(resTest, time < 0.07), aes(time, dAlphaR)) + geom_point(alpha = 0.5)
-  ggplot(filter(resTest, time < 3), aes(time, dAlphaR2)) + geom_point(alpha = 0.5)
-  ggplot(filter(resTest, time < 100), aes(time, R)) + geom_point(alpha = 0.5)
-  ggplot(filter(resTest, time > 0), aes(time, alphaP)) + geom_point(alpha = 0.5)
-  ggplot(filter(resTest, time > 0), aes(time, alphaP)) + geom_point(alpha = 0.5)
   ggplot(filter(resTest, time < 500 & time > 0), aes(time, alphaL)) + geom_point()
   ggplot(filter(resTest, time < 500 & time > 0), aes(time, alphaP)) + geom_point()
   ggplot(filter(resTest, time < 500), aes(time, B)) + geom_line()
@@ -279,11 +223,8 @@ test_that("substrate feedbacks", {
   #ggplot(filter(resTest, time > 10 & time < 500), aes(time, ER)) + geom_line()
   #ggplot(filter(resTest, time > 10 & time < 500), aes(time, EL)) + geom_line()
   ggplot(filter(resTest, time > 01), aes(time, PhiNB)) + geom_line()
-  ggplot(filter(resTest, time > 0.1), aes(time, limC)) + geom_line()
-  ggplot(filter(resTest, time > 0.1), aes(time, limN)) + geom_line()
   ggplot(filter(resTest, time > 0.1), aes(time, limP)) + geom_line()
   ggplot(filter(resTest, time > 0.1), aes(time, IP)) + geom_line()
-  ggplot(filter(resTest, time > 0.1), aes(time, IN)) + geom_line()
 }
 #
 #

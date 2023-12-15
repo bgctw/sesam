@@ -2,7 +2,8 @@
 
 # gC/m2 and gN/m2, /yr
 
-derivSesam3b <- function(
+# derivSesam3b conflicts with derivSesam3B in inlinedocs,
+derivSesam3b_ <- function(
   ### Soil Enzyme Steady Allocation model
   t,x,parms
 ){
@@ -64,7 +65,9 @@ derivSesam3b <- function(
   #   alphaCR, alphaN, CsynBN, CsynBC, tauB = parms$tau*B  )
   wELim <- computeElementLimitations(
     cbind(C = CsynBC, N = CsynBN)[1,]
-    , tauB = parms$tau*B)
+    , tauB = parms$tau*B
+    , betaB = c(C=1, N = parms$cnB, P = parms$cpB)
+    )
   alphaTarget <- computeSesam3bAllocationPartitioning(
     dS = cbind(R = dRPot, L = dLPot)[1,]
     , B = B
@@ -185,7 +188,7 @@ derivSesam3b <- function(
     , PhiNBU = as.numeric(PhiNBU)
     , immoNPot = as.numeric(immoNPot)
     , alphaTarget = as.numeric(alphaTarget)
-    , alphaCR = as.numeric(alphaCR), alphaN = as.numeric(alphaN)
+    #, alphaCR = as.numeric(alphaCR), alphaN = as.numeric(alphaN)
     , cnR = as.numeric(cnR), cnL = as.numeric(cnL)
     , limER = as.numeric(limER), limEL = as.numeric(limEL)
     , decR = as.numeric(decR), decL = as.numeric(decL)

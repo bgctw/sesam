@@ -1,0 +1,805 @@
+---
+title: "SESAM community composition"
+output:
+  pdf_document:
+    keep_tex: yes
+  html_notebook: default
+  html_document:
+    df_print: paged
+---
+
+# Game theoretically inspired derivation of community allocation $\alpha$
+
+Deprecated: assumptions of ESS not fulfilled, because cost depends on alpha.
+See sesam_LRP_opt for a derivation from finding optima at zero derivatives.
+
+One of the core ideas of SESAM is the optimization of community composition, in
+terms of enzyme allocation.
+SESAM 3.3, assumed the proportion of enzyme allocation into enzyme $Z$ to be 
+proportional
+to the revenue, i.e. return per investment, of this given enzyme.
+But, the arguments given, however, were not sufficiently rigorous (Wutzler X, appendix X).
+Therefore, a more rigorous mathematical treatment of these assumptions 
+is required.
+
+The developments of XXWutzler22 with the new formulation of decomposition based 
+on quasi-steady state of
+enzymes and the new formulation of revenue with limitation-weighted cost, it
+becomes possible to express the revenue as a function of the enzyme allocation.
+Here, we make use of this possibility to study community optimization
+from a mathematical game-theoretically inspired perspective.
+
+We find that ...
+
+## Methodology outline
+
+With borrowing ideas from determining an evolutionary stable strategy (ESS)
+in game theory, we look at a system with an incumbent microbial community playing
+enzyme allocation strategy $\vec{\alpha}^*$, allocating share $\alpha^*_Z$ to 
+enzyme $Z$. We seek $\vec{\alpha}^*$ to give optimal utility by asking if 
+there is any beneficial deviant strategy $\vec{\alpha}$, that could yield a higher
+utility.
+
+The competing pure strategies are the different enzymes, 
+and the utility is the efficiency of
+generating supply flux for microbial growth per flux of enzyme allocation
+$u_Z = \frac{{d_Z}_w(\alpha_Z)}{d_E \alpha_Z a_E B}$.
+The supply ${d_Z}_w$ is a limitation-weighted mineralization flux or uptake flux of 
+nutrients and carbon as detailed below. $a_E B$ is the total carbon flux allocated
+to enzyme production proportional to microbial biomass, $B$, 
+and $\alpha_Z$ is the share invested into production of
+enzyme $Z$. The enzyme investment is a limitation-weighted flux of elemental 
+investments into enzyme production.
+
+In contrast to basic ESS theory, in our problem, the utility depends 
+on the strategy mix $\alpha$ and it is not straightforward to setup a game situation
+where individuals play against each other. This is because the utility depends on 
+how large is the amount of
+the enzyme population and the return is shared by all microbial biomass independent
+of which enzymes they produced.
+
+For example, consider the case of two depolymerizing enzymes, $L$, and $R$. 
+The total return generated is 
+$$
+u(\vec{\alpha}) = d_E a_E B \left(\alpha_L \, u_L(\alpha_L) + \alpha_R \, u_R(\alpha_R)\right)
+$$
+
+It is shared by microbial populations both, the ones primarily producing 
+labile litter degrading enzymes, and the ones primarily producing residue
+degrading enyzmes.
+
+The classic way of finding an ESS based on a mixed Nash equilibrium
+is to find the partitioning so that the utility
+for the other player is the same for all pure strategies participating in the mix. 
+That is, if a pure strategy with higher utility was available to him, he would
+not assign this mix, but assign higher share to the pure strategy with higher
+utility.
+
+This way does not work in the current case, because the utilities for the
+pure strategies depend on the partitioning. Hence, it may happen that 
+when all utilities as a function of their share are equal, 
+that investing more into one of the pure
+strategies may increase the utility more than decrease resulting from investing
+less into another strategy.
+
+The way we propose for the current case, is to seek an allocation where 
+all the derivatives of total utility to the allocations are equal.
+
+The derivate, i.e. change in generated supply, 
+monotonically decreases with its share, because the generated supply saturates at
+high enzyme levels. At those high enzyme levels, a increase in allocation only
+increases the supply marginally. The maximum utility of an enzyme
+is achieved at an arbitrarily small share ${du_Z}_{max} = u_Z(\alpha_Z \to 0)$.
+If one of the derivatives is larger than the others, then increasing it at the
+expense of decreasing the share to another enzyme will increase total utility.
+
+The algorithm to determine the optimum strategy is as follows.
+
+1) Order the enzymes according to their maximum derivative, ${du_Z}_{max}$, 
+index them by $i$, set $i=1$ and start with a mix that includes only the most 
+efficient enzyme $\{Z_1\}$.
+
+2) Solve for the allocation
+strategy $\alpha_i$ that makes derivative of the utility to allocation 
+equal for each enzyme in the current mix, 
+$$
+\frac{d u(\vec{\alpha_i})}{d \alpha_Z} = du_i \, \forall Z \in \{Z_{1 \ldots i}\}
+$$
+and allocates nothing to enzymes that are not part of the current mix. 
+
+3) If $du_i > {du_{Z_{i+1}}}_{max}$ stop and report the found optimum 
+$\alpha^* = \alpha_i$. Otherwise increase $i$, i.e. include enzyme $Z_{i+1}$ in the
+mix and go to step 2.
+ 
+## Two depolymerizing enzymes
+After the general way forward is outlined, the following text reports the
+specifics of the utilities and the formulas for solving for the strategy
+that equalizes the utilities, for the case of two enzymes 
+depolymerizing labile OM, $L$, and residue OM, $R$, produced in shares
+$\alpha_L = \alpha, \alpha_R = (1-\alpha)$ respectively.
+
+The return is an limitation weighted average of the returns for all elements.
+
+$$
+\begin{aligned}
+{d_L}_C &= k_L L \frac{\alpha a_E B}{k_{mn} + \alpha a_E B}\\
+{d_L}_N &= {d_L}_C / {\beta_N}_L \\
+{d_L}_P &= {d_L}_C / {\beta_P}_L \\
+{d_L}_w &= w_C {d_L}_C + w_N {d_L}_N + w_P {d_L}_P \\
+&= k_L L \frac{\alpha a_E B}{k_{mn} + \alpha a_E B} (w_C + w_N / {\beta_N}_L + w_P / {\beta_P}_L) \\
+&= d_L \frac{\alpha a_E B}{k_{mn} + \alpha a_E B}
+\end{aligned}
+$$
+with $d_L = k_L L (w_C + w_N / {\beta_N}_L + w_P / {\beta_P}_L)$.
+
+similar
+$$
+{d_R}_w = d_R \frac{(1-\alpha) a_E B}{k_{mn} + (1-\alpha) a_E B}
+$$
+with $d_R = k_R R (w_C + w_N / {\beta_N}_R + w_P / {\beta_P}_R)$.
+
+
+The carbon investment into enzyme $Z$ is $\operatorname{inv}_{Z,C} = \alpha_Z a B$. 
+Similar to
+weighing the elemental limitations for the return, SESAM weighs the
+investments into enzymes, but uses stoichiometry of enzymes to convert
+elemental costs to common carbon-based currency.
+
+$$
+\begin{aligned}
+{\operatorname{inv}_Z}_w &= \alpha_Z a_E B (w_C + w_N / {\beta_N}_E + w_P / {\beta_P}_E)
+\\
+&= \alpha_Z a_E B \, d_E
+\end{aligned}
+$$
+with $d_E = w_C + w_N / {\beta_N}_E + w_P / {\beta_P}_E$.
+
+The utility from labile litter degrading enzyme with allocation $\alpha$, i.e. its revenue, is
+$$
+\begin{aligned}
+u_L &= {d_L}_w / {\operatorname{inv}_Z}_w
+\\
+&=  \frac{d_L \alpha a_E B}{k_{mn} + \alpha a_E B} \frac{1}{d_E \alpha a_E B }
+\\
+&=  \frac{d_L}{d_E } \frac{1}{k_{mn} + \alpha a_E B} 
+\end{aligned}
+$$
+
+And similar, the the revenue from residue litter with allocation $\alpha_R = 1 - \alpha$ is
+$$
+u_R = \frac{d_R}{d_E } \frac{1}{k_{mn} + \alpha_R a_E B} 
+$$
+
+For all strategies revenue $u_Z$ decreases with $\alpha_Z$.
+
+Since the denominator is positive for $\alpha_Z \in [0,1]$, 
+${u_Z}_{max} = u_Z(\alpha_Z \to 0) = u_Z(\alpha_Z = 0)$
+
+The total return is the utility per enzyme flux multiplied by total
+limitation-weighted enzyme flux $d_E a_E B$.
+$$
+\begin{aligned}
+u(\vec{\alpha}) &= d_E a_E B\left(\alpha_L \, u_L(\alpha_L) + \alpha_R \, u_R(\alpha_R)\right)
+\\
+&= a_E B \left(\frac{\alpha_L d_L}{k_{mn} + \alpha_L a_E B} +  \frac{\alpha_R d_R}{k_{mn} + \alpha_R a_E B} \right)
+\end{aligned}
+$$
+
+The $\alpha_Z$ occurs only in one term, hence, the derivative of the total
+utility equals the derivative of revenue up to a factor that is the same
+for all enzymes.
+Hence, the constraint of equality of derivatives of total utiltiy to each enzyme 
+allocation translates to equality of $\alpha_Z$ times the derivative of the
+utility of each enzyme, i.e. its revenue.
+
+We have the following derivatives of the total utility $u$.
+
+$$
+\begin{aligned}
+\frac{d u}{d \alpha_Z} &= d_E a_E B \frac{d(\alpha_Z u_Z)}{d \alpha_Z}
+\\
+&= d_E a_E B \frac{d}{d \alpha_Z} \left( \frac{d_Z}{d_E } \frac{\alpha_Z}{k_{mn} + \alpha_Z a_E B} \right)
+\\
+&= a_E B d_Z \frac{(k_{mn} + \alpha_Z a_E B) - \alpha_Z a_E B}{(k_{mn} + \alpha_Z a_E B)^2} 
+\\
+&= a_E B k_{mn} \frac{d_Z }{(k_{mn} + \alpha_Z a_E B)^2} 
+\\
+\end{aligned}
+$$
+
+The three possible strategies yield potentially optimal results. Two resemble
+the notion of pure Nash equilibrium and one resembles the notion of
+a mixed Nash equilibrium.
+
+- $u_L(\alpha_L = 1) > u_R(\alpha_R \to 0)$: only degrading labile litter, i.e. $\alpha = 1$.
+- $u_R(\alpha_R = 1) > u_L(\alpha_L \to 0)$: only degrading residue litter, i.e. $\alpha = 0$.
+- $u_L(\alpha) = u_R(1-\alpha)$: degrading both litter types.
+
+For the third strategy we can solve for $\frac{d u_L}{d \alpha_L} = \frac{d u_R}{d \alpha_R}$.
+
+$$
+\begin{aligned}
+\frac{d u}{d \alpha_L} &= \frac{d u}{d \alpha_R}
+\\
+\frac{d_L }{(k_{mn} + \alpha a_E B)^2}  &= \frac{d_R }{(k_{mn} + (1-\alpha) a_E B)^2}
+\end{aligned}
+$$
+This provides a quadratic equation of $\alpha$, which one can solve.
+
+The second root (TODO why second root) of the following equation 
+provides the optimal $\alpha$.
+
+$$
+\begin{aligned}
+\alpha_{1,2} &=
+\frac{B a d_{L} + d_{L} k + d_{R} k \pm \sqrt{d_{L}} \sqrt{d_{R}} \left(B a + 2 k\right) }{B a \left(d_{L} - d_{R}\right)}
+\\
+\alpha_{1,2} &=
+\frac{a_E B d_{L} + k_{mn}(d_{L} + d_{R}) \pm \sqrt{d_{L} d_{R}} \left(a_E B + 2 k_{mn}\right) }{a_E B \left(d_{L} - d_{R}\right)}
+\end{aligned}
+$$
+
+### Visualize two enzymes 
+
+Lets plot some scenarios of dL = 1 (black) and dL = 0.5 (blue, maroon)
+versus dR increasing from 0 to 1.
+In the maroon case, the biomass is increased.
+
+
+```{r echo=FALSE}
+calc_alpha <- function(dL, dR, p){
+  dLmdR = dL - dR
+  #ifelse(cbind(dLmdR,dLmdR) == 0, c(0.5,0.5), {
+  ifelse(dLmdR == 0, 0.5, {
+    aeB = p$a_E*p$B
+    A = aeB * dL + p$k_mn*(dL+dR)
+    D = (aeB + 2*p$k_mn)*sqrt(dL*dR)
+    d = aeB*dLmdR
+    # q = p$k_mn^2 + aeB*(2+aeB)*dL/dLmdR
+    # D = sqrt(A^2-q)
+    # alpha0 <- ifelse(dL < dR, (A + D)/aeB, (A - D)/aeB)    
+    # alpha <- pmin(1,pmax(0,alpha0))
+    #alpha <- cbind((A+D)/d, (A-D)/d)
+    alpha0 <- (A-D)/d  # only the second root is reasonable
+    alpha <- pmin(1,pmax(0,alpha0))
+  })
+}
+p = within(list(
+  a_E = 0.1, 
+  B=1, 
+  e_P = 0,
+  tau = 365/30,
+  synB = 15
+), k_mn <- a_E*B/2)
+dR <- seq(0,1,length.out=5); dL <- 0.5
+#calc_alpha(dL, seq(0,1,length.out=5), p)
+nstep = 200
+dRs = seq(0,1, length.out=nstep)
+plot(dRs, calc_alpha(1,dRs,p), type="l", ylim=c(0,1), ylab=expression(alpha), xlab=expression(d[R]))
+#plot(dRs, calc_alpha(0.5,dRs,p), type="l", ylim=c(0,1), ylab=expression(alpha), xlab=expression(d[R]))
+abline(h=0.5, col="lightgray", lty="dotted")
+lines(dRs, calc_alpha(0.5,dRs,p), col="blue")
+pB <- within(p, B <- 0.5)
+lines(dRs, calc_alpha(0.5,dRs,pB), col="maroon")
+```
+
+The shape is only marginally modified by a halved biomass (maroon).
+The largest different is that the range is increased where allocation to
+a single enzyme is best.
+
+```{r eval=FALSE, include=FALSE}
+# check symmetry for dR=0.5 changing dL
+plot(dRs, calc_alpha(dRs,0.5,p), type="l", ylim=c(0,1), ylab=expression(alpha), xlab=expression(d[L])); abline(h=0.5, col="lightgray", lty="dotted")
+```
+
+The following plot for example shown by maroon line above demonstrates 
+that the derivatives of the utilities are equal in maroon example above.
+
+```{r echo=FALSE}
+calc_du_dalpha <- function(alpha, dS, p, e_P =  p$e_P){
+  aeB = p$a_E * p$B
+  aeB * p$k_mn * dS / (e_P + p$k_mn + alpha*aeB)^2
+}
+dL <- 0.5
+dRs = seq(0,1, length.out=40)
+dE <- 0.2
+alphas = calc_alpha(dL, dRs, pB)
+duL = calc_du_dalpha(alphas, dL, pB)
+duR = calc_du_dalpha(1-alphas, dRs, pB)
+plot(alphas, duL, ylab="duL (black) duR (blue)")
+lines(alphas, duR, col="blue", lty="dotted")
+```
+
+### Checking optimality
+Is the utility of a community playing a different strategy $\alpha$
+inferior to a a community playing $\alpha^*$? 
+We numerically compare the total utility 
+$u(\vec{\alpha}) = \alpha_L u_L(\alpha) + \alpha_R u_R(\alpha_R))$ between
+$\vec{\alpha^*}$ and a slightly modified $\vec{\alpha}$.
+
+First, decrease alpha slightly, $\alpha = 0.99 \alpha^*$.
+
+```{r include=FALSE}
+u_decomp <- function(alpha, dLorR, dE, p){
+  dLorR/dE/(p$k_mn + alpha * p$a_E * p$B)
+}
+u_biomin <- function(alpha, dP, dE, p){
+  dP*p$k_mn/dE/((p$k_mn + p$e_P)^2 + alpha * p$a_E * p$B * ((p$k_mn + p$e_P)))
+}
+u_2depoly <- function(alpha, dL, dR, dE, p){
+  (alpha * u_decomp(alpha, dL, dE, p) + (1-alpha)* u_decomp((1-alpha), dR, dE, p))*p$a_E*p$B*dE
+}
+du_dalphaS <- function(alpha, dS, p, e_P =  p$e_P){
+  aeB = p$a_E * p$B
+  aeB * p$k_mn * dS / (e_P + p$k_mn + alpha*aeB)^2
+}
+du_dalpha <- function(alpha3, dL, dR, dP, p){
+  if (is.matrix(alpha3)) {
+    cbind(
+      du_dalphaS(alpha3[,"L", drop=FALSE], dL, p, e_P = 0),
+      du_dalphaS(alpha3[,"R", drop=FALSE], dR, p, e_P = 0),
+      du_dalphaS(alpha3[,"P", drop=FALSE], dP, p)
+    )#,c("L","R","P"))
+  } else {
+    c(
+      du_dalphaS(alpha3["L"], dL, p, e_P = 0),
+      du_dalphaS(alpha3["R"], dR, p, e_P = 0),
+      du_dalphaS(alpha3["P"], dP, p)
+    )
+  }
+}
+```
+
+```{r eval=FALSE, include=FALSE}
+.tmp.f <- function(){
+  alpha3 <- c(L=0.6,R=0.3,P=0.1)  
+  du_dalpha(alpha3, dL, dR, dP, p)
+  du_dalpha(t(alpha3), dL, dR, dP, p)
+  du_dalpha(rbind(alpha3, alpha3), dL, dR, dP, p)
+}
+```
+
+```{r echo=FALSE}
+is_ess <- alphas < 1 & alphas > 0
+aps = 0.99 * alphas
+u_ap = u_2depoly(aps, dL, dRs, dE, pB)
+u_a =  u_2depoly(alphas, dL, dRs, dE, pB)
+#rbind(dRs, u_ap, u_a, u_ap - u_a)[,is_ess]
+#plot(dRs[is_ess], u_a[is_ess], type="l")
+#lines(dRs[is_ess], u_ap[is_ess], col="blue")
+plot(dRs[is_ess], (u_ap - u_a)[is_ess], ylab=expression(u[alpha]-u[alpha^'*']), 
+     xlab=expression(d[R]), ylim=c(min((u_ap - u_a)[is_ess]),0))
+abline(h=0)
+#max((u_ap - u_a)[is_ess], na.rm = TRUE)
+```
+```{r eval=FALSE, include=FALSE}
+# check specific case
+dL <- 0.5; dR <- 0.4
+alpha <- calc_alpha(dL, dR, pB); alpha
+u_2depoly(alpha, dL, dR, dE, pB)
+u = c(u_2depoly(alpha-0.01, dL, dR, dE, pB),u_2depoly(alpha, dL, dR, dE, pB))
+u[1] - u[2]
+```
+
+The utility $u_\alpha$ is always smaller than $u_{\alpha^*}$, 
+although the difference becomes small for $d_R \to d_L$.
+
+Now for slightly larger $\alpha = max(1, 1.01 \alpha^*)$
+
+```{r echo=FALSE}
+is_ess <- alphas < 1 & alphas > 0
+aps = pmax(1,1.01 * alphas)
+u_ap = u_2depoly(aps, dL, dRs, dE, pB)
+u_a =  u_2depoly(alphas, dL, dRs, dE, pB)
+#rbind(dRs, u_ap, u_a, u_ap - u_a)[,is_ess]
+#plot(dRs[is_ess], u_a[is_ess], type="l")
+#lines(dRs[is_ess], u_ap[is_ess], col="blue")
+plot(dRs[is_ess], (u_ap - u_a)[is_ess], ylab=expression(u[alpha]-u[alpha^'*']), 
+     xlab=expression(d[R]), ylim=c(min((u_ap - u_a)[is_ess]),0))
+abline(h=0)
+max((u_ap - u_a)[is_ess], na.rm = TRUE)
+```
+Again, the utility of the modified strategy is always smaller.
+There is no profitable deviation from strategy $\alpha^*$.
+
+## Three enzymes
+
+Consider the case where in addition to the two depolymerizing enzymes, there
+is an additional biomineralizing enzyme. 
+This biomineralizing enzyme is also produced by plants with rate $e_P$. 
+Hence, we need to
+calculate the effect of microbe-produced enzyme in addition to plant.
+
+With $d_P = w_P (k_L L / {\beta_P}_L + k_R R / {\beta_P}_R)$
+assuming that P is produced from SOM at the same potential rate as decomposition
+and assuming that biomineralization enzymes attack both, labile and residue OM
+we calculate the return ${d_P}_m$.
+
+$$
+\begin{aligned}
+{d_P}_m &= d_P \frac{ e_P + \alpha_P a_E B}{k_{mn} + e_P + \alpha_P a_E B} - d_P \frac{ e_P}{k_{mn} + e_P}
+\\
+ &= d_P \frac{ (e_P + \alpha_P a_E B)(k_{mn} + e_P) - e_P(k_{mn} + e_P + \alpha_P a_E B)}{(k_{mn} + e_P + \alpha_P a_E B)(k_{mn} + e_P)} 
+\\
+ &= d_P \frac{ e_P k_{mn} + \alpha_P a_E B k_{mn} + e_P^2 + \alpha_P a_E B e_P - (e_P k_{mn} + e_P^2  + \alpha_P a_E B e_P)}
+{(k_{mn} + e_P)^2 + \alpha_P a_E B (k_{mn} + e_P)} 
+\\
+ &= d_P \frac{ \alpha_P a_E B k_{mn}}
+{(k_{mn} + e_P)^2 + \alpha_P a_E B (k_{mn} + e_P)} 
+\\
+ &= d_P \frac{k_{mn}}{e_P + k_{mn}} \frac{ \alpha_P a_E B }
+{(e_P + k_{mn}) + \alpha_P a_E B } 
+\end{aligned}
+$$
+
+The return has the form of a Michaelis-Menten kinetics with decreased
+affinity, i.e. increased half-saturation, and the maximum rate multiplied
+by another Michaelis-Menten term of $k_{mn}$ with half-saturation $e_P$.
+
+The revenue from biomineralizing enzyme with allocation $\alpha_P$ is
+$$
+\begin{aligned}
+u_P &= {d_P}_m / {\operatorname{inv}_P}_w
+\\
+&=  \frac{ d_P\alpha_P a_E B k_{mn}}
+{(k_{mn} + e_P)^2 + \alpha_P a_E B (k_{mn} + e_P)} 
+\frac{1}{d_E \alpha_P a_E B }
+\\
+&=  \frac{d_P}{d_E } \frac{k_{mn}}{(k_{mn} + e_P)^2 + \alpha_P a_E B (k_{mn} + e_P)}
+\\
+&=  \frac{d_P}{d_E } \frac{k_{mn}}{e_P + k_{mn}} \frac{ 1 }
+{(e_P + k_{mn}) + \alpha_P a_E B }
+\end{aligned}
+$$
+
+Hence, the derivative $\frac{u}{d \alpha_P}$
+
+$$
+\begin{aligned}
+\frac{du}{d \alpha_P} &= d_E a_E B \frac{d (\alpha_P u_P)}{d \alpha_P} 
+\\
+&= a_E B d_P \frac{k_{mn}}{e_P + k_{mn}}  \frac{d }{d \alpha_P}\left(  \frac{ \alpha_P }
+{(e_P + k_{mn}) + \alpha_P a_E B } \right)
+\\
+&= a_E B d_P \frac{k_{mn}}{e_P + k_{mn}}   
+\frac{ (e_P + k_{mn}) + \alpha_P a_E B - \alpha_P (a_E B) }
+{((e_P + k_{mn}) + \alpha_P a_E B)^2 }
+\\
+&=  a_E B k_{mn}
+\frac{ d_P  }
+{((e_P + k_{mn}) + \alpha_P a_E B)^2 }
+\end{aligned}
+$$
+$$
+\begin{aligned}
+\end{aligned}
+$$
+
+
+
+For the mixed strategy optimum involving three enzymes, we have
+
+$$
+\begin{aligned}
+\frac{d(\alpha_L u_L)}{d \alpha_L} 
+&= \frac{d(\alpha_R u_R)}{d \alpha_R} 
+&= \frac{d(\alpha_P u_P)}{d \alpha_P} 
+\\
+ \frac{d_L}{(k_{mn} + \alpha a_E B)^2} 
+&=  \frac{d_R}{(k_{mn} + (1-\alpha-\alpha_P) a_E B)^2} 
+&=  \frac{ d_P }
+{((e_P + k_{mn}) + \alpha_P a_E B)^2 }
+\end{aligned}
+$$
+
+We first compute $\alpha$ given $\alpha_P$ using the first equality.
+(see sesam_LRP_deriv_sympy.py)
+
+$$
+\begin{aligned}
+{\alpha_L}_{12} &= \frac{- a_E B \alpha_{P} d_{L} + a_E B d_{L} \pm \sqrt{d_{L}} \sqrt{d_{R}} \left(a_E B \alpha_{P} - a_E B - 2 k_{mn}\right) + d_{L} k_{mn} + d_{R} k_{mn}}{a_E B \left(d_{L} - d_{R}\right)}
+\\
+&= \frac{a_E B( 1-  \alpha_{P}) d_{L}  + k_{mn}(d_{L} + d_{R}) \pm \sqrt{d_{L}d_{R}} \left(a_E B (1-\alpha_{P}) + 2 k_{mn}\right) }
+{a_E B \left(d_{L} - d_{R}\right)}
+\end{aligned}
+$$
+
+Next we insert the second root of $\alpha_L(\alpha_P)$ in equating
+the first and third utility to solve for $\alpha_P$.
+TODO - why second root?
+
+
+$$
+\begin{aligned}
+{\alpha_P}_{12} &= (A \pm D)/B
+\\
+A &= 2 B a d_{L}^{\frac{3}{2}} d_{P} \sqrt{d_{R}} - B a d_{L}^{2} d_{P} - B a d_{L} d_{P} d_{R} + 4 d_{L}^{\frac{3}{2}} d_{P} \sqrt{d_{R}} k - d_{L}^{3} e_{P} - d_{L}^{3} k \\
+&- 2 d_{L}^{2} d_{P} k + 2 d_{L}^{2} d_{R} e_{P} + 2 d_{L}^{2} d_{R} k - 2 d_{L} d_{P} d_{R} k - d_{L} d_{R}^{2} e_{P} - d_{L} d_{R}^{2} k 
+\\
+D &= 
+ \sqrt{d_{P}} \left(B a + e_{P} + 3 k\right) \sqrt{- 2 d_{L}^{\frac{9}{2}} \sqrt{d_{R}} + 4 d_{L}^{\frac{7}{2}} d_{R}^{\frac{3}{2}} - 2 d_{L}^{\frac{5}{2}} d_{R}^{\frac{5}{2}} + d_{L}^{5} - d_{L}^{4} d_{R} - d_{L}^{3} d_{R}^{2} + d_{L}^{2} d_{R}^{3}}
+\\
+B &= B a \left(2 d_{L}^{\frac{3}{2}} d_{P} \sqrt{d_{R}} + d_{L}^{3} - d_{L}^{2} d_{P} - 2 d_{L}^{2} d_{R} - d_{L} d_{P} d_{R} + d_{L} d_{R}^{2}\right)
+\end{aligned}
+$$
+
+```{r include=FALSE}
+calc_alpha3_optL <- function(alphaP, dL, dR, dP, p){
+  dLmdR = dL - dR
+  #ifelse(cbind(dLmdR,dLmdR) == 0, c(0.5,0.5), {
+  ifelse(dLmdR == 0, 0.5, {
+    aeB = p$a_E*p$B
+    A = aeB*(1-alphaP) * dL + p$k_mn*(dL+dR)
+    D = (aeB*(1-alphaP) + 2*p$k_mn)*sqrt(dL*dR)
+    d = aeB*dLmdR
+    # q = p$k_mn^2 + aeB*(2+aeB)*dL/dLmdR
+    # D = sqrt(A^2-q)
+    # alpha0 <- ifelse(dL < dR, (A + D)/aeB, (A - D)/aeB)    
+    # alpha <- pmin(1,pmax(0,alpha0))
+    #alpha <- cbind((A+D)/d, (A-D)/d)
+    alpha0 <- (A-D)/d  # only the second root is reasonable
+    alpha <- pmin(1,pmax(0,alpha0))
+  })
+}
+calc_alpha3_optLRP <- function(dL,dR, dP, p){
+  aeB = p$a_E*p$B
+  A = 2*aeB*dL^(3/2)*dP*sqrt(dR) - aeB*dL^2*dP - aeB*dL*dP*dR + 4*dL^(3/2)*dP*sqrt(dR)*p$k_mn - dL^3*p$e_P - dL^3*p$k_mn - 
+      2*dL^2*dP*p$k_mn + 2*dL^2*dR*p$e_P + 2*dL^2*dR*p$k_mn - 2*dL*dP*dR*p$k_mn - dL*dR^2*p$e_P - dL*dR^2*p$k_mn 
+  D = sqrt(dP)*(aeB + p$e_P + 3*p$k_mn)*sqrt(-2*dL^(9/2)*sqrt(dR) + 4*dL^(7/2)*dR^(3/2) - 2*dL^(5/2)*dR^(5/2) + dL^5 - dL^4*dR - dL^3*dR^2 + dL^2*dR^3)
+  B = aeB*(2*dL^(3/2)*dP*sqrt(dR) + dL^3 - dL^2*dP - 2*dL^2*dR - dL*dP*dR + dL*dR^2)
+  alphaP <- (A+D)/B
+  alphaL <- calc_alpha3_optL(alphaP, dL,dR,dP,p)
+  alphaR <- 1-alphaL-alphaP
+  alpha=cbind(L=alphaL,R=alphaR,P=alphaP)
+  alpha
+}
+.tmp.f <- function(){
+  dL = 0.7; dR = 0.5; dP = 0.3
+  p = within(list(
+    a_E = 0.1, 
+    B=1, 
+    e_P = 0,
+    tau = 365/30,
+    synB = 15
+  ), k_mn <- a_E*B/2)
+  calc_alpha3_optLRP(dL,dR,dP,p)
+  calc_alpha3_optLRP(dL,dR,c(0.3,0.5),p)
+  #sum(alpha3)
+}
+```
+
+
+### Depolymerizing and biomineralizing enzyme
+
+For the mixed strategy optimum involving 
+a depolymerizing and a biomineralizing enzyme we have:
+
+$$
+\begin{aligned}
+\begin{aligned}
+\frac{d(\alpha_L u_L)}{d \alpha_L} 
+&= \frac{d(\alpha_P u_P)}{d \alpha_P} 
+\\
+ \frac{d_L}{(k_{mn} + \alpha_L a_E B)^2} 
+&=  \frac{ d_P }
+{((e_P + k_{mn}) + (1-\alpha_L) a_E B)^2 }
+\end{aligned}\end{aligned}
+$$
+
+$$
+\begin{aligned}
+{\alpha_L}_{12} = 
+\frac{(a_E B  + e_{P} + k_{mn}) d_{L} + k_{mn} d_{P}  \pm \sqrt{d_{L}d_{P}} \left(a_E B + e_{P} + 2 k_{mn}\right)}
+{a_E B \left(d_{L} - d_{P}\right)}
+\end{aligned}
+$$
+For enzymes R and P just replace $d_L$ by $d_R$.
+
+```{r include=FALSE}
+calc_alphaS_optSP <- function(dS, dP, p){
+  dLmdR = dS - dP
+  #ifelse(cbind(dLmdR,dLmdR) == 0, c(0.5,0.5), {
+  alphaL <- ifelse(dLmdR == 0, 0.5, {
+    aeB = p$a_E*p$B
+    A = (aeB+p$e_P+p$k_mn)*dL + p$k_mn*dP
+    D = sqrt(dL*dP)*(aeB + p$e_P + 2*p$k_mn)
+    d = aeB*dLmdR
+    # q = p$k_mn^2 + aeB*(2+aeB)*dL/dLmdR
+    # D = sqrt(A^2-q)
+    # alpha0 <- ifelse(dL < dR, (A + D)/aeB, (A - D)/aeB)    
+    # alpha <- pmin(1,pmax(0,alpha0))
+    #alpha <- cbind((A+D)/d, (A-D)/d)
+    alpha0 <- (A-D)/d  # only the second root is reasonable
+    alphaL <- pmin(1,pmax(0,alpha0))
+  })
+  alphaL
+}
+.tmp.f <- function(){
+  dL = 0.7; dR = 0.1; dP = 0.3
+  p = within(list(
+    a_E = 0.1, 
+    B=1, 
+    e_P = 0,
+    tau = 365/30,
+    synB = 15
+  ), k_mn <- a_E*B/2)
+  calc_alphaS_optSP(dL,seq(0,1,length.out=5),p)
+  #sum(alpha3)
+}
+```
+
+### Visualize three enzymes 
+
+Lets plot some scenarios of dL = 1 (black) and dL = 0.5 (blue, maroon)
+versus dR of 0.7 and d_P increasing from 0 to 1 without plant enzyme
+production, e_P =0.
+
+In the maroon case eP = aE*B/2.
+
+The utility of a depolymerizing enzmye decreases with $\alpha$ and stronger
+with larger biomass (blue line).
+
+
+```{r echo=FALSE}
+# utility of depolymerizing enzyme
+p = within(list(
+  a_E = 0.1, 
+  B=1, 
+  e_P = 0
+), k_mn <- a_E*B/2)
+alpha = seq(0,1,length.out=31)
+dL = dLorR= 1
+dR = 0.7
+dP = seq(0,1,length.out=30)
+dE = 0.2
+plot(u_decomp(alpha, dL, dE,  within(p, B <-2)) ~ alpha, type = "l", col="blue",
+     ylab=expression(u[L]), xlab=expression(alpha))
+lines(u_decomp(alpha, dL, dE, p) ~ alpha)
+```
+
+The utility is smaller, with plant mineralizing enzymes, but does not
+decrease as strongly.
+
+```{r echo=FALSE}
+# utility of biomineralizing enzyme
+u_e0 <- u_biomin(alpha, dL, dE,  p)
+u_e1 <- u_biomin(alpha, dL, dE, within(p, e_P <- a_E*B/5))
+plot(u_e0 ~ alpha, type = "l", ylim=range(c(u_e0,u_e1)),
+     ylab=expression(u[L]), xlab=expression(alpha))
+lines(u_e1 ~ alpha,col="blue")
+```
+
+```{r echo=FALSE}
+calc_alpha3_opt = function (dL,dR, dP, p, dE=0.2){
+  dumax = sort(du_dalpha(c(L=0,R=0,P=0), dL, dR, dP, p), decreasing = TRUE)
+  if(names(dumax[1]) == "L") {
+    du1 = du_dalphaS(1, dL, p, e_P=0)
+    if (du1 > dumax[2]) return(c(L=1,R=0,P=0))
+    if (names(dumax[2]) == "R"){
+      alphaL = calc_alpha(dL, dR, p)
+      du2 = du_dalphaS(alphaL, dL, p, e_P = 0)
+      if (du2 > dumax[3]) return(c(L=alphaL,R=(1-alphaL),P=0))
+    } else { # umax2 must be P
+      alphaL = calc_alphaS_optSP(dL,dP,p)
+      du2 = du_dalphaS(alphaL, dL, p, e_P = 0)
+      if (du2 > dumax[3]) return(c(L=alphaL,R=0,P=(1-alphaL)))
+    }
+    alpha3 = calc_alpha3_optLRP(dL,dR,dP,p)
+    return(alpha3)
+  }
+  if(names(dumax[1]) == "R") {
+    du1 = du_dalphaS(1, dR, p, e_P = 0)
+    if (du1 > dumax[2]) return(c(L=0,R=1,P=0))
+    if (names(dumax[2]) == "L"){
+      alphaL = calc_alpha(dL, dR, p)
+      du2 = du_dalphaS(alphaL, dL, p, e_P = 0)
+      if (du2 > dumax[3]) return(c(L=alphaL,R=(1-alphaL),P=0))
+    } else { # umax2 must be P
+      alphaR = calc_alphaS_optSP(dR,dP,p)
+      du2 = du_dalphaS(alphaR, dR, p, e_P = 0)
+      if (du2 > dumax[3]) return(c(L=0,R=alphaR,P=(1-alphaR)))
+    }
+    alpha3 = calc_alpha3_LRP(dL,dR,dP,p)
+    return(alpha3)
+  }
+  if(names(dumax[1]) == "P") {
+    du1 = du_dalphaS(1, dP, p)
+    if (du1 > dumax[2]) return(c(L=0,R=0,P=1))
+    if (names(dumax[2]) == "L"){
+      alphaL = calc_alphaS_optSP(dL,dP,p)
+      du2 = du_dalphaS(alphaL, dL, p, e_P = 0)
+      if (du2 > dumax[3]) return(c(L=alphaL,R=0,P=(1-alphaL)))
+    } else if (names(dumax[2]) == "R") {
+      alphaR = calc_alphaS_optSP(dR,dP,p)
+      du2 = du_dalphaS(alphaR, dR, p, e_P = 0)
+      if (du2 > dumax[3]) return(c(L=0,R=alphaR,P=(1-alphaR)))
+    }
+    alpha3 = calc_alpha3_optLRP(dL,dR,dP,p)
+    return(alpha3)
+  }
+  stop("unhandled umax: ", dumax)
+} 
+.tmp.f <- function(){
+  dL = 0.7; dR = 0.5; dP = 0.6
+  dL = 0.7; dR = 0.5; dP = 0.3
+  alpha3 = calc_alpha3_opt(dL,dR,dP,p)
+  alpha3
+  # all derivatives equal?
+  # c(u_decomp(alpha3[,"L"], dL, dE, p), u_decomp(alpha3[,"R"], dR, dE, p), u_biomin(alpha3[,"P"], dP, dE, p))
+  du_dalpha(alpha3, dL, dR, dP, p)
+}
+```
+
+```{r include=FALSE}
+compute_utilities <- function(alpha3,dL,dR,dP,p,dE=0.2){
+  c(
+      u_decomp(alpha3["L"], dL, dE, p), 
+      u_decomp(alpha3["R"], dR, dE, p), 
+      u_biomin(alpha3["P"], dP, dE, p)
+    )
+}
+compute_total_utilities <- function(alpha3,dL,dR,dP,p,dE=0.2){
+  u = compute_utilities(alpha3,dL,dR,dP,p,dE)
+  sum(alpha3 * u)
+}
+calc_alpha3_relative = function(dL,dR,dP,p,dE=0.2) {
+  u0 = u1 = sapply(list(L=dL, R=dR, P=dP), function(x) x/(dE*p$k_mn))
+  # fixpoint iteration
+  for (i in 1:5) {
+    alpha3 = u1/sum(u1)
+    u1 = compute_utilities(alpha3,dL,dR,dP,p,dE)
+    #print(c(u1, sum(alpha3*u1)))
+  }
+  alpha3
+}
+.tmp.f <- function(){
+  calc_alpha3_relative(dL,dR,dP,p)  
+}
+```
+
+```{r echo=FALSE}
+nstep = 200
+dL = 0.7
+dR = 0.5
+dPs = seq(0,1, length.out=nstep)
+alpha3 = sapply(dPs, function(dP){calc_alpha3_opt(dL,dR,dP,p)} )
+alpha3r = sapply(dPs, function(dP){calc_alpha3_relative(dL,dR,dP,p)} )
+
+plot(dPs, alpha3["P",], type="l", ylim=c(-0.1,1.1), ylab=expression(alpha), xlab=expression(d[P]))
+#plot(dPs, alpha3["R",], type="l",  ylab=expression(alpha), xlab=expression(d[P]))
+lines(dPs, alpha3["L",], type="l", lty="dashed")
+lines(dPs, alpha3["R",], type="l", lty="dotted")
+#
+lines(dPs, alpha3r["P",], type="l", col="maroon")
+lines(dPs, alpha3r["L",], type="l", lty="dashed", col="maroon")
+lines(dPs, alpha3r["R",], type="l", lty="dotted", col="maroon")
+```
+
+The relative-revenue heuristics overestimtes the allocation to the enzymes
+with lowest returns and underestimates allocation to the enzymes
+with highest returns.
+This is most significant in the case where not allocating to the
+enzyme at all is optimal.
+Otherwise, it approximates the optimal solution quite well.
+
+```{r echo=FALSE}
+usum = sapply(seq_along(dPs), function(i){compute_total_utilities(alpha3[,i],dL,dR,dPs[i],p,dE)})
+usum_r = sapply(seq_along(dPs), function(i){compute_total_utilities(alpha3r[,i],dL,dR,dPs[i],p,dE)})
+plot(dPs, usum, type="l", ylim=range(c(usum,usum_r)),ylab="total utility", xlab=expression(d[P]))
+#plot(dPs, alpha3["R",], type="l",  ylab=expression(alpha), xlab=expression(d[P]))
+lines(dPs, usum_r, type="l", col="maroon")
+```
+
+The total utility approximated by the relative-revenue heuristics
+is quite close to the optimal one, aside from the no-allocation case.
+
+```{r eval=FALSE, include=FALSE}
+# inspect specific ase
+dP = 0.3
+alpha3s = calc_alpha3_opt(dL,dR,dP,p)
+alpha3sr = calc_alpha3_relative(dL,dR,dP,p)
+cbind(t(alpha3s), alpha3sr)
+c(compute_total_utilities(alpha3s[1,],dL,dR,dP,p,dE), compute_total_utilities(alpha3sr,dL,dR,dP,p,dE))
+```
+
+
