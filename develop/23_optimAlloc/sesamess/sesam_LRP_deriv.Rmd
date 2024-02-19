@@ -505,7 +505,7 @@ p2 <- pivot_longer(
   mutate(Enzyme = fct_relevel(Enzyme, "R","P")) %>% 
   #ggplot(aes(dP, value, color=Enzyme, linetype=Approach)) + geom_line() +
   ggplot(aes(dL, value, color=Enzyme, linetype=Approach, linewidth=as.factor(Biomass))) + geom_line() +
-  xlab(bquote('Potential return from depolymerizing labile ('*gC~ m^-2~yr^-1*')')) +
+  xlab(bquote('Potential return from depolymerizing labile substrate ('*gC~ m^-2~yr^-1*')')) +
   ylab(bquote('Allocation '*alpha)) +
   #theme(axis.title.y = element_blank()) +
   c()
