@@ -1,0 +1,516 @@
+---
+title: "SESAM predictions of emergent CUE"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document:
+    keep_tex: true
+---
+
+Based on Sesam3P version, with parameterization that avoids P limitation.
+Plant uptake of inorganic N varies to match N input by litter, to balance the 
+system.
+
+## Emergent CUE of SESAM predictions
+```{r, echo=FALSE, results='hide', message=FALSE}
+library(ggplot2)
+library(grid)   #unit
+library(RColorBrewer) # brewer.pal
+library(tidyr)
+library(dplyr)
+library(purrr)
+library(forcats)
+library(knitr)
+
+mycolors <- brewer.pal(6,"Dark2")
+mylinetypes <- c("solid","dashed","dotdash","twodash","dotted","longdash")
+scale_colour_discrete <- function(...) scale_colour_manual(...,values=mycolors)
+
+adjust_facets <- function(theme){
+  theme +
+    theme(panel.border = element_rect(colour = "black", fill = NA)) +
+    theme(strip.background = element_blank()) 
+}
+themePaper <- (theme_classic(base_size = 10) + theme(axis.title = element_text(size = 9))) %>% 
+  adjust_facets()
+themePres <- theme_classic(base_size = 18) %>% 
+  adjust_facets()
+
+#figWidthPage <- 18/2.54; figHeightPage <- figWidthPage/1.6 
+# GMD fixes at 12 instead of entire page 18
+figWidthPage <- 12/2.54; figHeightPage <- figWidthPage/1.6 
+#, fig.height=4.43, fig.width=7.1
+#figWidthWide <- 12/2.54; figHeightWide <- figWidthWide/1.6
+#figWidthWide <- 3.8; figHeightWide <- 5
+#, fig.height=2.95, fig.width=4.72
+figWidthWide <- 7; figHeightWide <- figWidthWide/1.6 # ppt wide 2 figures on one page
+figWidthCol <- 8.3/2.54; figHeightCol <- figWidthCol/1.6
+#, fig.height=2.04, fig.width=3.27
+#
+theme_set(themePaper); figWidth <- figWidthCol; figHeight <- figHeightCol
+theme_set(themePres); figWidth <- figWidthWide; figHeight <- figHeightWide 
+#theme_set(themePres); figWidth <- figWidthSAB; figHeight <- figHeightSAB 
+
+
+opts_chunk$set(
+   # out.extra='style="display:block; margin: auto"'
+    fig.width = figWidth, fig.height = figHeight #goldener Schnitt 1.6 #GI single column
+    #, dev.args = list(pointsize = 11)
+    , dev = c('pdf','png')
+    , echo = FALSE
+    )
+knit_hooks$set(spar  =  function(before, options, envir) {
+    if (before) {
+        par( las = 1 )                   #also y axis labels horizontal
+        par(mar = c(2.0,3.3,0,0) + 0.3 )  #margins
+        par(tck = 0.02 )                          #axe-tick length inside plots             
+        par(mgp = c(1.1,0.2,0) )  #positioning of axis title, axis labels, axis
+    }
+})
+
+.simpleCap <- function(s) {
+    paste(toupper(substring(s, 1, 1)), substring(s, 2),  sep = "")
+}
+.approaches <- c("Optimal","Derivative","Relative","Fixed")
+.approaches_ext <- c(.approaches, c("Relative_kR","Relative_kmNR"))
+colScaleApproach <- scale_colour_manual(
+  name = "Approach", values = c(
+    setNames(mycolors[seq_along(.approaches)], .approaches)
+  ,c(Relative_kR = mycolors[3], Relative_kmNR=mycolors[3])))
+linetypeScaleApproach <- scale_linetype_manual(
+  name = "Approach",values = setNames(mylinetypes[seq_along(.approaches_ext)], .approaches_ext))
+.treatments <- structure(c(1,0.5), names = c("Litter input pulse","No Litter input"))
+sizeScale <- scale_size_manual(name = "Treatment",values = .treatments)
+```
+
+```{r}
+library(devEMF)
+figWidthSAB <- 8.1/2.54; figHeightSAB <- figWidthCol/1.6
+save_emf <- function(filename, p=last_plot(), width = figWidthSAB, height = figWidthCol/1.6) {
+  fname = paste0(basename(filename),".emf")
+  emf(file = fname, emfPlus = FALSE, width = width, height = height)
+  print(p)
+  dev.off()  
+  message("saved plot to ",fname)
+}
+```
+
+### Setup parameters and drivers
+Mass units are $gC/m^2$ or $gN/m^2$. Time unit is $yr$.
+```{r}
+require(sesam, quietly = TRUE)
+
+parmsModel <- list(
+  cnB = 11
+  ,cnE = 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P) need 
+    # to have low C/N for CO2 increase scenario
+  ,kN = 60       ##<< /yr enzyme turnover 60 times a year, each 6 days -> fast 
+    # priming pulses
+  ,km = 0.05     ##<< enzyme half-saturation constant, in magnitude of enzymes, 
+    # determined by kN
+  ,kNB = 0.8     ##<< amount of recycling enzyme turnover by biomass (
+    # added to assimilable, i.e. uptake instead of R)
+  #,kR = 1/(10)        ##<< 1/(x years) # to demonstrate changes on short time scale
+  ,kR = 1/31.40989 # matching initial R pools of about 3200 g/m2
+  #,kR = 1/(20)        ##<< 1/(x years) # to demonstrate changes on short time scale
+  ,kL = 5           ##<< 1/(x years)   # formerly 1 year
+  ,aE = 0.001*365   ##<< C biomass allocated to enzymes 1/day /microbial biomass
+  ,m = 0.016*365    ##<< maintenance respiration rate   1/day /microbial biomass, 
+  ## Bogedom Fig. 1
+  ,tau = 1/60*365  ##<< biomass turnover rate (12 days)
+  ,eps = 0.68      ##<< carbon use efficiency for growth respiration
+  #,eps = 0.5      ##<< carbon use efficiency for growth respiration
+  ,epsTvr = 0.3   ##<< carbon use efficiency of microbial tvr (part by predators 
+  #,epsTvr = 0.45   ##<< carbon use efficiency of microbial tvr (part by predators 
+  #,epsPred = 3     ##<< carbon use efficiency of microbial tvr (part by predators 
+  ## which respire and corresponding amount of N must be mineralized)
+  #,iBN = 0.38 * 10.57 #0.0110068*365   ##<< potential immobilization flux rate 
+  ,iBN = 0.4 ##<< potential immobilization flux rate of inorganic N
+  #,iBN = 1/12*(24*365) # tvr of IN of 12 hours
+  ## (immoNPot = iBN IN)
+  ,lN = 0.96       #0.00262647*365     ##<< leaching rate of mineral N: lN IN
+  ,nuN = 0.9     # microbial N use efficiency accounting for apparent 
+  ## minceralization of N during uptake in heterogeneous soils
+  , isEnzymeMassFlux = TRUE  ##<< compute enzyme mass fluxes
+  , kINPlant = 10.57 #0.0289652*365          ##<< plant uptake iP IN
+  #
+  #
+  ,lP = 0.001  # very small to not run into P limitation  
+  ,nuP = 0.0     # microbial P use efficiency: no direct P uptake
+  , cpE = 50
+  , cpB = 40 # for not running into P limitation, here assume no P required in biomass
+  , iBP = 100 # arbitrarily high to not run into P limitation
+  , kIPPlant = 0.0 #kINPlant  # plant uptake rate of P equals that of N
+  , e_P = 0.0 # no plant P enzyme production
+  #
+  # additional parameters with version 4: detailed microbial turnover
+  #, cnBW = 10    ##<< C/N ratio of cell walls (that go to R, )
+  # , cnBW = cnB    ##<< do not partition
+  # , cpBW = 1e8   # not running into P limitation
+  # #, cW = 0.5 # proportion of cell wall within microbial biomass
+  # , cW = 1 # proportion of cell wall within microbial biomass
+  # , B0 = 0  # minimal biomass, below which predation rate is zero
+  # #, tauP = 0.1 # slope of predation rate with biomass
+  # , tauP = 0 # slope of predation rate with biomass
+  #, kSP = 1/30 # 1/x years
+  # , pESP = 0.01  # /year production of phospatase by plants, small to check balance
+  # , nuPP = 0.05 # most of the phosphats to to mineral pool
+)
+
+parmsModel <- within(parmsModel, {
+    kmN <- km*kN     # Sesam2 only uses a lumped parameter instead of km and kN
+    kmR <- kmL <- km  # seam2 can accept parameters differing by substrate
+    cnER <- cnEL <- cnE 
+    kNR <- kNL <- kN    
+})
+```
+
+```{r}
+# For simplicity model drivers currently are prescribed as constant parameters.
+drivers <- list(
+  iR = 0           ##<< input of residue litter
+  ,iL = 400        # g/m2 input per year (half NPP)
+  ,cnIR = 7        ##<< C/N ratio of the residue litter input
+#  ,cnIL = 30      ##<< C/N ratio of the labile litter input: 
+  ,cnIL = 28       ##<< C/N ratio of the labile litter input: 
+  ,iIN = 0.0       ##<< input of mineral N
+  ,iIP = 0.0       # no inorganic P inputs
+  , cpIR = 40
+  , cpIL = 40*3
+)
+parms0 <- parms <- within( c(parmsModel, drivers), {
+  iIN <- 0.0714 #for cnIL = 28 # iL/cnIL/200    # assume a fraction of 1/10 of annual litter production
+  kINPlant <- 1/5*365 # tvr of 5 days
+  plantNUpAbs <- iL/cnIL + iIN # plants take maximum out as much as returned by litter
+  # plus inorganic input, difference is grazed
+  # keep leaching as otherwise it accumulates during priming
+  #lN <- 0 # no leaching
+  kLP <- kL # same efficiency as depolymerizing enzyme 
+  kRP <- kR
+  cpm <- 500
+})
+parms0F <- within(parms0,isFixedAlpha<-TRUE)
+```
+
+```{r}
+x0 <- x0Explicit <- c( #aE = 0.001*365
+        B = 17                     ##<< microbial biomass 
+        ,R = 1100                ##<< N rich substrate
+        ,RN = 3000/parms0$cnIR   ##<< N rich substrate N pool
+        ,RP = 3000/parms0$cpIR
+        ,L = 100                 ##<< N poor substrate
+        ,LN = 100/parms0$cnIL    ##<< N poor substrate N pool
+        ,LP = 100/parms0$cpIL    ##<< N poor substrate N pool
+        ,IN =  0.04 #150 #0.04                ##<< inorganic pool gN/m2
+        #,IP =  0.04 #150 #0.04                ##<< inorganic pool gN/m2
+        ,IP =  150 # prevent P limitation          ##<< inorganic pool gN/m2
+        #, alpha = 0.5            ##<< microbial community partitioning [0,1]
+        #, alphaL=0.4, alphaR = 0.5, alphaRP=0.1    ##<< microbial community partitioning [0,1]
+        , alphaL=0.7, alphaR = 0.3    ##<< microbial community partitioning [0,1]
+)
+times <- seq(0,10000, length.out = 500)
+```
+
+```{r}
+computeCNSOM <- function(xEs, parms=parms0){
+  xEs$SOC <- xEs$L + xEs$R + xEs$B
+  xEs$SON <- xEs$LN + xEs$RN + xEs$B/parms$cnB
+  xEs$CN <- xEs$SOC / xEs$SON
+  xEs
+}
+```
+
+### Gradient of C/N of litter inputs
+
+Simulate steady state stocks with a gradient of C/N of litter inputs
+yields the expected pattern of a decreasing CUE when C/N is higher than 
+a threshold elemental ratio.
+
+```{r}
+cnILs <- seq(20,40,by = 2)
+cnILi <- cnILs[1]
+#cnILi <- cnILs[length(cnILs)]
+xEs <- as.data.frame(t(sapply(cnILs, function(cnILi){
+  parms_i <- within(parms0, {
+    cnIL <- cnILi
+    plantNUpAbs <- iL/cnIL + iIN # plants take maximum out as much 
+    })
+  res <- resA <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parms_i))
+  xE <- cueSesam(tail(res,1))
+  xE$cnIL <- cnILi
+  unlist(xE)
+})))
+xEs$variant = "Adaptive"
+xEs <- computeCNSOM(xEs)
+xEFs <- as.data.frame(t(sapply(cnILs, function(cnILi){
+  parms_i <- within(parms0F, {
+    cnIL <- cnILi
+    plantNUpAbs <- iL/cnIL + iIN # plants take maximum out as much 
+    })
+  res <- resF <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parms_i))
+  xE <- cueSesam(tail(res,1))
+  #derivSesam3P(0,unlist(xE[2:12]), parms_i)
+  xE$cnIL <- cnILi
+  unlist(xE)
+})))
+xEFs$variant = "Fixed"
+xEFs <- computeCNSOM(xEFs)
+ggplot(rbind(xEs,xEFs), aes(cnIL, cueSyn, color=variant, shape=variant)) + geom_point() + 
+  scale_y_continuous('CUE') +
+  scale_x_continuous('C/N litter input') +
+  theme()
+```
+
+```{r}
+ggplot(xEs, aes(cnIL, cueSyn)) + geom_point() + 
+  #themePres +
+  scale_y_continuous('CUE') +
+  scale_x_continuous('C/N litter input') +
+  theme()
+save_emf("simCN_CNLitter_CUE")
+```
+
+There is no difference between adaptive and fixed community enzyme allocation.
+At steady state, the decomposition matches the inputs to the system. 
+
+```{r}
+ggplot(rbind(xEs,xEFs), aes(cnIL, SOC, color=variant, shape=variant)) + geom_point() + 
+  #themePres +
+  scale_y_continuous('SOC (g/m2)') +
+  scale_x_continuous('C/N litter input') +
+  theme()
+```
+With non-adaptive fixed allocation, the stocks decrease more strongly with
+N limitation.
+With C limitation (low C/N), the adaptive variant results in higher C stocks, 
+whereas with N limitation, the adaptive variant results in lower C stocks.
+
+```{r}
+ggplot(xEs, aes(cnIL, SOC)) + geom_point() + 
+  scale_x_continuous('C/N litter input') +
+  scale_y_continuous('SOC (g/m2)') +
+  theme()
+save_emf("simCN_CNLitter_stocks")
+```
+
+
+
+```{r eval=FALSE, include=FALSE}
+ggplot(rbind(xEs,xEFs), aes(cnIL, SON, color=variant, shape=variant)) + geom_point() + 
+  #themePres +
+  scale_y_continuous('SON (g/m2)') +
+  scale_x_continuous('C/N litter input') +
+  theme()
+```
+
+```{r}
+ggplot(rbind(xEs,xEFs), aes(cnIL, alphaR, color=variant, shape=variant )) + geom_point() + 
+  scale_y_continuous('allocation to R degrading enzymes') +
+  scale_x_continuous('C/N litter input') +
+  theme()
+```
+
+However, this CUE pattern with litter input C/N leads to only slight variation in
+total SOM C/N.
+
+```{r}
+ggplot(rbind(xEs,xEFs), aes(CN, cueSyn, color=variant, shape=variant)) + geom_point() + 
+  theme(axis.text.x = element_text(angle = 30, vjust = 0.5)) +
+  scale_x_continuous('C/N SOM stocks') +
+  scale_y_continuous('CUE') +
+  theme()
+```
+```{r}
+ggplot(xEs, aes(CN, cueSyn)) + geom_point() + 
+  theme(axis.text.x = element_text(angle = 30, vjust = 0.5)) +
+  scale_x_continuous('C/N SOM stocks') +
+  scale_y_continuous('CUE') +
+  theme()
+save_emf("simCN_CNStocks_CUE")
+```
+
+
+SESAM predicts a nonlinear increase of long-term stocks with CUE.
+This corresponds to an initially steep decrease of stocks with increasing 
+N limitation.
+
+```{r}
+ggplot(rbind(xEs,xEFs), aes(cueSyn, SOC, color=variant, shape=variant)) + geom_point() + 
+  scale_y_continuous('SOC') +
+  scale_x_continuous('CUE') +
+  theme()
+```
+
+```{r}
+ggplot(xEs, aes(cueSyn, SOC)) + geom_point() + 
+  scale_x_continuous('CUE') +
+  scale_y_continuous('SOC') +
+  theme()
+save_emf("simCN_CUE_stocks")
+
+```
+
+### Gradient of residue turnover rate
+
+A stronger stabilization by interaction with minerals can roughly be simulated
+by a decreasing decomposition rate of the residue pool.
+Here, we vary the rate to decrease from 1/20yr to 1/200 yrs.
+
+```{r}
+tauRs <- exp(seq(log(20),log(500),length.out = 10))
+tauRi <- tauRs[length(tauRs)]
+cnILi <- parms0$cnIL #27
+xER <- as.data.frame(t(sapply(tauRs, function(tauRi){
+  parms_i <- within(parms0, {
+    kR <- kRP <- 1/tauRi
+    cnIL <- cnILi
+  })
+  res <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parms_i))
+  xE <- cueSesam(tail(res,1))
+  xE$tauR <- tauRi
+  unlist(xE)
+})))
+xER <- computeCNSOM(xER)
+ggplot(xER, aes(tauR, cueSyn)) + geom_point() + 
+  #themePres +
+  scale_x_continuous('Residue turnover time (yr)') +
+  scale_y_continuous('CUE') +
+  theme()
+```
+
+CUE, in SESAM does not vary with residue turnover time. The slight variation
+at very large turnover times result from approaching higher steady-state
+stocks very slowly.
+Again its the steady state stocks that change with parameters, but result in
+the same fluxes that at steady state are determined by the inputs.
+
+### Temperature
+
+```{r}
+compute_temp_fac = function(temp, q10=2, T0=20) {
+  q10^((temp-T0)/10)
+}
+temp = seq(5,30, by=5)
+mT = compute_temp_fac(temp)
+ggplot(data.frame(temp,mT), aes(temp,mT)) + geom_point()
+```
+```{r}
+cnILi <- parms0$cnIL #27
+xET <- as.data.frame(t(sapply(temp, function(tempi){
+  mTi <- compute_temp_fac(tempi)
+  parms_i <- within(parms0, {
+    kR <- kRP <- parms0$kR * mTi
+    kL <- kLP <- parms0$kL * mTi
+    cnIL <- cnILi
+  })
+  res <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parms_i))
+  xE <- cueSesam(tail(res,1))
+  xE$T <- tempi
+  xE$mT <- mTi
+  unlist(xE)
+})))
+xET <- computeCNSOM(xET)
+ggplot(xET, aes(temp, cueSyn)) + geom_point() + 
+  #themePres +
+  scale_x_continuous('Temperature (°C)') +
+  scale_y_continuous('CUE') +
+  theme()
+
+```
+```{r}
+ggplot(xET, aes(temp, SOC)) + geom_point() + 
+  #themePres +
+  scale_x_continuous('Temperature (°C)') +
+  scale_y_continuous('SOC') +
+  theme()
+```
+
+Although SOC stocks decrease with increasing temperature, CUE predicted by
+SESAM does not change.
+
+### Amounts of litter input
+
+```{r}
+#cnILi <- parms0$cnIL 
+cnILi <- 32 # assume high C/N ratio as typical
+iLs <- seq(50,600, by=50)
+xEL <- as.data.frame(t(sapply(iLs, function(iLi){
+  parms_i <- within(parms0, {
+    iL <- iLi
+    plantNUpAbs <- iL/cnIL + iIN # plants take maximum out as much 
+    cnIL <- cnILi
+  })
+  res <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parms_i))
+  xE <- cueSesam(tail(res,1))
+  xE$iL <- iLi
+  unlist(xE)
+})))
+xEL <- computeCNSOM(xEL)
+xEL$variant = "Adaptive"
+xELF <- as.data.frame(t(sapply(iLs, function(iLi){
+  parms_i <- within(parms0F, {
+    iL <- iLi
+    plantNUpAbs <- iL/cnIL + iIN # plants take maximum out as much 
+    cnIL <- cnILi
+  })
+  res <- as.data.frame(lsoda( x0, times, derivSesam3P, parms = parms_i))
+  xE <- cueSesam(tail(res,1))
+  xE$iL <- iLi
+  unlist(xE)
+})))
+xELF <- computeCNSOM(xELF)
+xELF$variant = "Fixed"
+ggplot(rbind(xEL, xELF), aes(iL, cueSyn, color=variant, shape=variant)) + geom_point() + 
+  #themePres +
+  expand_limits(y = c(0.2, 0.3)) +
+  scale_x_continuous('Litter input (gC/m^2)') +
+  scale_y_continuous('CUE') +
+  theme()
+```
+
+
+```{r}
+select(rbind(xEL, xELF), variant, iL, limC, limN, SOC, alphaR) %>% 
+  arrange(iL, desc(variant))
+```
+
+Even with different amount of litter input, there is no change in predicted CUE 
+between the adaptive and fixed model variant.
+Its only the stocks that change.
+
+```{r}
+ggplot(rbind(xEL, xELF), aes(iL, SOC, color=variant, shape=variant)) + geom_point() + 
+  #themePres +
+  scale_x_continuous('Litter input (gC/m^2)') +
+  scale_y_continuous('SOC (g/m2)') +
+  theme()
+```
+
+```{r}
+ggplot(rbind(xEL, xELF), aes(iL, alphaR, color=variant, shape=variant)) + geom_point() + 
+  #themePres +
+  scale_x_continuous('Litter input (gC/m^2)') +
+  scale_y_continuous('alphaR') +
+  theme()
+```
+
+With lower litter input, the differences between the variants 
+(increase at lower C/N of inputs, but)
+decrease at higher C/N of inputs.
+Hence, we expect differences between fixed and adaptive variant 
+to decrease in subsoil, because both C/N of litter inputs and amount
+of litter inputs decrease.
+
+### Inspecting single runs
+```{r eval=FALSE, include=FALSE}
+times <- seq(0,1000, length.out = 500)
+times <- seq(0,10000, length.out = 500)
+ggplot(res, aes(time, B)) + geom_point()
+ggplot(res, aes(time, limC)) + geom_point()
+ggplot(res, aes(time, R)) + geom_point()
+ggplot(cueSesam(res), aes(time, cueSyn)) + geom_point()
+
+
+```
+
